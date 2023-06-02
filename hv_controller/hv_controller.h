@@ -2,6 +2,7 @@
 #define HV_CONTROLLER_H
 
 #include <stdbool.h>
+#include <stdint.h>
 
 typedef enum
 {
@@ -31,7 +32,7 @@ typedef enum
 
 bool hv_controller_init();
 bool hv_controller_connect();
-bool hv_controller_write_uint16(int reg_addr, unsigned short value);
-bool hv_controller_read_data();
+bool hv_controller_write_uint16(int reg_addr, uint16_t value);
+bool hv_controller_read_data(int reg_addr, uint16_t * buf, int len);
 
 #endif // HV_CONTROLLER_H

@@ -17,7 +17,6 @@ I2C接口
 #include <stdbool.h>
 #include "common_tools.h"
 
-#include "type_defs.h"
 #include "lcd_display.h"
 
 /*We use the scrn as a monochrom one.*/
@@ -28,7 +27,7 @@ I2C接口
 #define DDRAM_MAX_PAGE_NUM 8 //(SCRN_PX_ROW_NUM / 8)
 #define SCRN_BUF_BYTE_NUM 2048 //DDRAM_MAX_COL_NUM * DDRAM_MAX_PAGE_NUM 
 //The local frame buffer is sychronized with display dram (DDRAM) 
-static uchar gs_local_frame_buf[2048];
+static uint8_t gs_local_frame_buf[2048];
 
 
 #define I2C_CMD_WITH_PARM_PREFIX_LEN 3
@@ -47,16 +46,16 @@ static unsigned char LCD_I2C_ADDR = 0x3C;
 
 static int lcd_fd = -1;
 
-static uchar I2C_LCD_CMD_CTRL_BYTE= 0x80;
-static uchar I2C_LCD_CMD_PARM_CTRL_BYTE = 0x40;
-static uchar I2C_LCD_DDRAM_DATA_CTRL_BYTE = 0x40;
-//static uchar I2C_LCD_DDRAM_DATA_CTRL_BYTE = 0xC0;
+static uint8_t I2C_LCD_CMD_CTRL_BYTE= 0x80;
+static uint8_t I2C_LCD_CMD_PARM_CTRL_BYTE = 0x40;
+static uint8_t I2C_LCD_DDRAM_DATA_CTRL_BYTE = 0x40;
+//static uint8_t I2C_LCD_DDRAM_DATA_CTRL_BYTE = 0xC0;
 
-static uchar I2C_LCD_CMD_ALL_PX_ON = 0x23;
-static uchar I2C_LCD_CMD_ALL_PX_OFF = 0x22;
-static uchar I2C_LCD_CMD_WRITE_DATA = 0x5C;
-static uchar I2C_LCD_CMD_READ_DATA = 0x5D;
-static uchar I2C_LCD_CMD_EXIT_PARTIAL_MODE = 0xA9;
+static uint8_t I2C_LCD_CMD_ALL_PX_ON = 0x23;
+static uint8_t I2C_LCD_CMD_ALL_PX_OFF = 0x22;
+static uint8_t I2C_LCD_CMD_WRITE_DATA = 0x5C;
+static uint8_t I2C_LCD_CMD_READ_DATA = 0x5D;
+static uint8_t I2C_LCD_CMD_EXIT_PARTIAL_MODE = 0xA9;
 
 typedef enum
 {
@@ -67,7 +66,7 @@ typedef enum
 }ddram_rw_case_t;
 
 static void lcd_address(int x,int y,int x_total,int y_total);
-static ssize_t transfer_command_lcd(uchar cmd, uchar* parm, ssize_t parm_len);
+static ssize_t transfer_command_lcd(uint8_t cmd, uint8_t* parm, ssize_t parm_len);
 
 
 static bool check_col_pg_addr(int col_s, int pg_s, int col_len, int pg_len)
@@ -189,10 +188,10 @@ static ssize_t lcd_write_io(void* buf, ssize_t cnt)
 }
 
 /*buf contains img in 2D array arrange, and the data should be consecutive.*/
-ssize_t write_img_into_col_pg_rect(uchar* buf, int d_col_bytes, int d_row_bytes,
+ssize_t write_img_into_col_pg_rect(uint8_t* buf, int d_col_bytes, int d_row_bytes,
                                          int col_s, int pg_s, int col_cnt, int pg_cnt)
 {
-    uchar w_cmd_buf[I2C_W_CMD_BUF_SIZE];
+    uint8_t w_cmd_buf[I2C_W_CMD_BUF_SIZE];
     int w_idx, d_buf_row_idx, d_buf_col_idx, d_buf_row_idx_end;
     int clipped_col_cnt, clipped_pg_cnt;
     int area_pg_cnt, area_col_cnt;
@@ -298,7 +297,7 @@ ssize_t write_img_into_col_pg_rect(uchar* buf, int d_col_bytes, int d_row_bytes,
 }
 
 /*buf contains img in 2D array arrange, and the data should be consecutive.*/
-ssize_t write_img_into_col_pg_pos(uchar* buf, int d_col_bytes, int d_row_bytes,
+ssize_t write_img_into_col_pg_pos(uint8_t* buf, int d_col_bytes, int d_row_bytes,
                                          int col_s, int pg_s)
 {
     int col_cnt = DDRAM_MAX_COL_NUM - col_s;
@@ -312,9 +311,9 @@ ssize_t write_img_into_col_pg_pos(uchar* buf, int d_col_bytes, int d_row_bytes,
 
 //写指令到 LCD 模块
 //non "write data" command
-static ssize_t transfer_command_lcd(uchar cmd, uchar* parm, ssize_t parm_len)
+static ssize_t transfer_command_lcd(uint8_t cmd, uint8_t* parm, ssize_t parm_len)
 {
-    uchar cmd_str[I2C_NON_RW_CMD_BUF_SIZE];
+    uint8_t cmd_str[I2C_NON_RW_CMD_BUF_SIZE];
     ssize_t cmd_len;
     cmd_str[0] = I2C_LCD_CMD_CTRL_BYTE;
     cmd_str[1] = cmd;
@@ -336,7 +335,7 @@ static ssize_t transfer_command_lcd(uchar cmd, uchar* parm, ssize_t parm_len)
 
 static void initial_lcd()
 {
-    uchar cmd_parm[I2C_NON_RW_CMD_PARM_MAX_LEN];
+    uint8_t cmd_parm[I2C_NON_RW_CMD_PARM_MAX_LEN];
     printf("enter initial...\n");
 
     ssize_t parm_len;
@@ -410,7 +409,7 @@ static void initial_lcd()
 /*写 LCD 行列地址：X 为起始的列地址，Y 为起始的行地址，x_total,y_total 分别为列地址及行地址的起点到终点的差值 */
 static void lcd_address(int x,int y,int x_total,int y_total)
 {
-    uchar cmd_parm[I2C_NON_RW_CMD_PARM_MAX_LEN];
+    uint8_t cmd_parm[I2C_NON_RW_CMD_PARM_MAX_LEN];
 
     cmd_parm[0] = x;
     cmd_parm[1] = x + x_total - 1;
@@ -532,13 +531,13 @@ void write_img_to_px_rect(unsigned char* img_buf, int img_px_w, int img_px_h,
             else
             {
                 int rem_bits_num = scrn_px_y + area_px_h - fb_px_y;
-                uchar mask_img = 0xFF >> (8 - rem_bits_num);
-                uchar mask_fb = ~mask_img; 
+                uint8_t mask_img = 0xFF >> (8 - rem_bits_num);
+                uint8_t mask_fb = ~mask_img; 
                 for(img_col_idx = 0, fb_col_idx = fb_col_s; 
                     img_col_idx < area_px_w; ++img_col_idx, ++fb_col_idx)
                 {
-                    uchar img_b = mask_img & img_buf[img_pg_idx * img_px_w + img_col_idx];
-                    uchar fb_b 
+                    uint8_t img_b = mask_img & img_buf[img_pg_idx * img_px_w + img_col_idx];
+                    uint8_t fb_b 
                         = mask_fb & gs_local_frame_buf[fb_pg_idx * SCRN_PX_COL_NUM + fb_col_idx];
                     gs_local_frame_buf[fb_pg_idx * SCRN_PX_COL_NUM + fb_col_idx]
                         = img_b | fb_b;
@@ -552,12 +551,12 @@ void write_img_to_px_rect(unsigned char* img_buf, int img_px_w, int img_px_h,
     else
     {
         int bot_rem_bits_num = 8 - scrn_px_y % 8;
-        uchar bot_mask_img = 0xFF >> (8 - bot_rem_bits_num);
-        uchar bot_mask_fb =  0xFF >> bot_rem_bits_num; 
+        uint8_t bot_mask_img = 0xFF >> (8 - bot_rem_bits_num);
+        uint8_t bot_mask_fb =  0xFF >> bot_rem_bits_num; 
 
         int top_rem_bits_num = 8 - bot_rem_bits_num;
-        uchar top_mask_img = 0xFF << (8 - top_rem_bits_num);
-        uchar top_mask_fb = 0xFF << top_rem_bits_num; 
+        uint8_t top_mask_img = 0xFF << (8 - top_rem_bits_num);
+        uint8_t top_mask_fb = 0xFF << top_rem_bits_num; 
 
         img_pg_idx = 0;
         while(fb_px_y < scrn_px_y + area_px_h)
@@ -573,11 +572,11 @@ void write_img_to_px_rect(unsigned char* img_buf, int img_px_w, int img_px_h,
             for(img_col_idx = 0, fb_col_idx = fb_col_s; 
                 img_col_idx < area_px_w; ++img_col_idx, ++fb_col_idx)
             {
-                uchar bot_img_b 
+                uint8_t bot_img_b 
                     = bot_mask_img & img_buf[img_pg_idx * img_px_w + img_col_idx];
                 bot_img_b = bot_img_b << (scrn_px_y % 8);
 
-                uchar bot_fb_b 
+                uint8_t bot_fb_b 
                     = bot_mask_fb & gs_local_frame_buf[fb_pg_idx * SCRN_PX_COL_NUM
                                             + fb_col_idx];
                 gs_local_frame_buf[fb_pg_idx * SCRN_PX_COL_NUM + fb_col_idx]
@@ -602,11 +601,11 @@ void write_img_to_px_rect(unsigned char* img_buf, int img_px_w, int img_px_h,
                 for(img_col_idx = 0, fb_col_idx = fb_col_s; 
                     img_col_idx < area_px_w; ++img_col_idx, ++fb_col_idx)
                 {
-                    uchar top_img_b 
+                    uint8_t top_img_b 
                         = top_mask_img & img_buf[img_pg_idx * img_px_w + img_col_idx];
                     top_img_b = top_img_b >> (8 - scrn_px_y % 8);
 
-                    uchar top_fb_b 
+                    uint8_t top_fb_b 
                         = top_mask_fb & gs_local_frame_buf[fb_pg_idx * SCRN_PX_COL_NUM
                                                            + fb_col_idx];
                     gs_local_frame_buf[fb_pg_idx * SCRN_PX_COL_NUM + fb_col_idx]
@@ -623,7 +622,7 @@ void write_img_to_px_rect(unsigned char* img_buf, int img_px_w, int img_px_h,
 
     /*Collect the updated bytes in local frame buffer into a consecutive buffer.*/
     int to_ddram_bytes_num = fb_col_len * fb_pg_len;
-    uchar* to_ddram_buf = malloc(to_ddram_bytes_num);
+    uint8_t* to_ddram_buf = malloc(to_ddram_bytes_num);
     if(!to_ddram_buf)
     {
         printf("malloc error!\n");

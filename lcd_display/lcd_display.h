@@ -2,13 +2,14 @@
 #define _LCD_DISPLAY_H
 
 #include <stdbool.h>
+#include <stdint.h>
 
 bool open_lcd_dev();
 bool close_lcd_dev();
 void clear_screen();
-void write_img_to_px_rect(unsigned char* img_buf, int img_px_w, int img_px_h, 
+void write_img_to_px_rect(uint8_t* img_buf, int img_px_w, int img_px_h, 
                       int scrn_px_x, int scrn_px_y, int scrn_px_w, int scrn_px_h);
-void write_img_to_px_pos(unsigned char* img_buf, int img_px_w, int img_px_h, int scrn_px_x, int scrn_px_y);
+void write_img_to_px_pos(uint8_t* img_buf, int img_px_w, int img_px_h, int scrn_px_x, int scrn_px_y);
 bool write_img_file_to_px_pos(const char* img_file_name, int rect_x, int rect_y);
 bool write_img_file_to_px_rect(const char* img_file_name,
                             int rect_x, int rect_y, int rect_w, int rect_h);

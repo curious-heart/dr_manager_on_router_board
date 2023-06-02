@@ -4,16 +4,15 @@
 
 #include "hv_controller.h"
 #include "logger.h"
-#include "type_defs.h"
 
 static const char* gs_mb_rtu_serialPortName="/dev/ttyS0";
-static const int gs_mb_rtu_serialBaudRate=9600;
+static const int32_t gs_mb_rtu_serialBaudRate=9600;
 static const char gs_mb_rtu_serialParity='N';
-static const int gs_mb_rtu_serialDataBits=8;
-static const int gs_mb_rtu_serialStopBits=1;
-static const int gs_mb_rtu_timeout=1000;
-static const int gs_mb_rtu_numberOfRetries=3;
-static const int gs_mb_rtu_serverAddress=1;
+static const int32_t gs_mb_rtu_serialDataBits=8;
+static const int32_t gs_mb_rtu_serialStopBits=1;
+static const int32_t gs_mb_rtu_timeout=1000;
+static const int32_t gs_mb_rtu_numberOfRetries=3;
+static const int32_t gs_mb_rtu_serverAddress=1;
 
 static modbus_t *gs_mb_master_ctx = NULL;
 
@@ -32,22 +31,23 @@ bool hv_controller_open()
         return false;
     }
 
+    if(-1 == modbus_set_slave(gs_mb_master_ctx, gs_mb_rtu_serverAddress))
+    {
+        modbus_free(gs_mb_master_ctx);
+        gs_mb_master_ctx = NULL;
+        DIY_LOG(LOG_ERROR, "modbus set slave fail:%s\n", modbus_strerror(errno));
+        return false;
+    }
+
     if(-1 == modbus_connect(gs_mb_master_ctx))
     {
+        modbus_close(gs_mb_master_ctx);
         modbus_free(gs_mb_master_ctx);
         gs_mb_master_ctx = NULL;
         DIY_LOG(LOG_ERROR, "modbus connect fail:%s\n", modbus_strerror(errno));
         return false;
     }
 
-    if(-1 == modbus_set_slave(gs_mb_master_ctx, gs_mb_rtu_serverAddress))
-    {
-        modbus_close(gs_mb_master_ctx);
-        modbus_free(gs_mb_master_ctx);
-        gs_mb_master_ctx = NULL;
-        DIY_LOG(LOG_ERROR, "modbus set slave fail:%s\n", modbus_strerror(errno));
-        return false;
-    }
     return true;
 }
 
@@ -57,6 +57,7 @@ bool hv_controller_close()
     {
         modbus_close(gs_mb_master_ctx);
         modbus_free(gs_mb_master_ctx);
+        gs_mb_master_ctx = NULL;
     }
     else
     {
@@ -65,7 +66,7 @@ bool hv_controller_close()
     return true;
 }
 
-bool hv_controller_write_uint16(int reg_addr, uint16 value)
+bool hv_controller_write_uint16(int reg_addr, uint16_t value)
 {
     if(gs_mb_master_ctx)
     {
@@ -87,7 +88,7 @@ bool hv_controller_write_uint16(int reg_addr, uint16 value)
     }
 }
 
-bool hv_controller_read_data(int reg_addr, uint16 * buf, int len)
+bool hv_controller_read_data(int reg_addr, uint16_t * buf, int len)
 {
     if(gs_mb_master_ctx)
     {
