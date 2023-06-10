@@ -1,14 +1,24 @@
+#include <signal.h>
+
 #include "logger.h"
+#include "hv_registers.h"
 #include "hv_controller.h"
 
-void exposure_test()
+void exposure_test(const char* dev_name)
 {
     bool end = false;
     int test_no;
     hv_mb_reg_e_t reg_addr;
+    uint16_t read_data;
+
+    if(!hv_controller_open(dev_name, true))
+    {
+        return;
+    }
 
     while(!end)
     {
+        printf("\n");
         printf("HSV = 0,                   //软硬件版本\n");
         printf("OTA = 1,                   //OTA升级\n");
         printf("BaudRate = 2,              //波特率\n");
@@ -49,13 +59,31 @@ void exposure_test()
             case State:
             case VoltSet:
             case FilamentSet:
+                break;
+
             case ExposureTime:
+                read_data = 0xFFFF;
+                hv_controller_read_uint16s((int)reg_addr, &read_data, 1);
+                printf("ExposureTime: %d\n", read_data);
+                break;
+
             case Voltmeter:
             case Ammeter:
             case RangeIndicationStatus:
+                break;
+
             case ExposureStatus:
+                hv_controller_read_uint16s((int)reg_addr, &read_data, 1);
+                printf("ExposureStatus: %d\n", read_data);
+                break;
+
             case RangeIndicationStart:
+                break;
+
             case ExposureStart:
+                hv_controller_write_single_uint16((int)ExposureStart, 2);
+                break;
+
             case BatteryLevel:
             case BatteryVoltmeter:
             case OilBoxTemperature:
@@ -70,10 +98,56 @@ void exposure_test()
         }
         printf("\n");
     }
+    hv_controller_close();
+}
+
+static void clear_for_exit()
+{
+    mb_server_exit();
+    hv_controller_close();
+}
+
+static void close_sigint(int dummy)
+{
+    clear_for_exit();
+    exit(dummy);
 }
 
 int main(int argc, char *argv[])
 {
-    
+    const char* dev_name = NULL;
+    mb_server_exit_code_t mb_server_ret;
+
+    if(argc > 1)
+    {
+        dev_name = argv[1];
+    }
+
+    signal(SIGINT, close_sigint);
+
+    if(!hv_controller_open(dev_name, true))
+    {
+        DIY_LOG(LOG_ERROR, "Connecting high volatage board fails.\n");
+        return -1;;
+    }
+
+    mb_server_ret = mb_server_loop("127.0.0.1", 1502, true);
+    switch(mb_server_ret)
+    {
+        case MB_SERVER_EXIT_INIT_FAIL:
+            DIY_LOG(LOG_ERROR, "modbus server startup fails.!\n");
+            break;
+
+        case MB_SERVER_EXIT_COMM_FATAL_ERROR: 
+            DIY_LOG(LOG_ERROR, "modbus server communication fatal error.!\n");
+            close_sigint(mb_server_ret);
+            break;
+
+         default:
+            DIY_LOG(LOG_ERROR, "modbus server exit for unknow reason.!\n");
+            close_sigint(mb_server_ret);
+    }
+
+    clear_for_exit();
     return 0;
 }
