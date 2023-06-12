@@ -5,30 +5,24 @@
 #include "hv_controller.h"
 #include "logger.h"
 
-static const char* gs_mb_rtu_serialPortName="/dev/ttyS1";
-static const int32_t gs_mb_rtu_serialBaudRate=9600;
-static const char gs_mb_rtu_serialParity='N';
-static const int32_t gs_mb_rtu_serialDataBits=8;
-static const int32_t gs_mb_rtu_serialStopBits=1;
-static const uint32_t gs_mb_rtu_timeout_ms =999; //1000;
-static const int32_t gs_mb_rtu_numberOfRetries=3;
-static const int32_t gs_mb_rtu_serverAddress=1;
-
 static modbus_t *gs_mb_master_ctx = NULL;
 static const char* gs_mb_master_log_header = "modbus master: ";
 
-bool hv_controller_open(const char* dev_name, bool debug_flag)
+bool hv_controller_open(mb_rtu_params_t* rtu_params)
 {
-    const char* rtu_dev = dev_name;
-    uint32_t resp_timeout_ms = gs_mb_rtu_timeout_ms;
+    const char* rtu_dev;
+    uint32_t resp_timeout_ms = rtu_params->timeout_ms;
 
-    if(NULL == rtu_dev)
+    if(!rtu_params || !rtu_params->serialPortName)
     {
-        rtu_dev = gs_mb_rtu_serialPortName;
+        DIY_LOG(LOG_ERROR, "%slacking rtu info.\n", gs_mb_master_log_header);
+        return false;
     }
+    rtu_dev = rtu_params->serialPortName;
 
-    gs_mb_master_ctx = modbus_new_rtu(rtu_dev, gs_mb_rtu_serialBaudRate,
-            gs_mb_rtu_serialParity, gs_mb_rtu_serialDataBits, gs_mb_rtu_serialStopBits);
+    gs_mb_master_ctx = modbus_new_rtu(rtu_dev, rtu_params->serialBaudRate,
+            rtu_params->serialParity, rtu_params->serialDataBits,
+            rtu_params->serialStopBits);
     if(gs_mb_master_ctx)
     {
         DIY_LOG(LOG_INFO, "%smodbus init ok.\n", gs_mb_master_log_header );
@@ -40,7 +34,7 @@ bool hv_controller_open(const char* dev_name, bool debug_flag)
                 gs_mb_master_log_header, errno, err_msg);
         return false;
     }
-    if(0 != modbus_set_debug(gs_mb_master_ctx, debug_flag))
+    if(0 != modbus_set_debug(gs_mb_master_ctx, rtu_params->debug_flag))
     {
         DIY_LOG(LOG_WARN, "%smodbus set debug fail:%d: %s\n",
                gs_mb_master_log_header, errno, modbus_strerror(errno));
@@ -56,7 +50,7 @@ bool hv_controller_open(const char* dev_name, bool debug_flag)
         return false;
     }
 
-    if(0 != modbus_set_slave(gs_mb_master_ctx, gs_mb_rtu_serverAddress))
+    if(0 != modbus_set_slave(gs_mb_master_ctx, rtu_params->serverAddress))
     {
         modbus_free(gs_mb_master_ctx);
         gs_mb_master_ctx = NULL;

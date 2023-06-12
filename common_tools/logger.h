@@ -18,7 +18,7 @@ extern const char* g_log_level_str[];
 bool start_log_thread();
 void end_log_thread();
 
-#define MAX_LOG_INFO_STR_LEN 128
+#define MAX_LOG_INFO_STR_LEN 320
 
 #define DIY_LOG(level, ...) \
 {\
