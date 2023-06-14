@@ -1,32 +1,43 @@
 #ifndef _HV_REGISTERS_H_
 #define _HV_REGISTERS_H_
 
-typedef enum
-{
-    HSV = 0,                            //软硬件版本
-    OTA = 1,                            //OTA升级
-    BaudRate = 2,                       //波特率
-    ServerAddress = 3,                  //设备地址
-    State = 4,                          //状态
-    VoltSet = 5,  					 	//5管电压设置值
-    FilamentSet = 6,					//6 管设置值电流 （决定灯丝电流决定管电流）
-    ExposureTime = 7,                   //曝光时间
-    Voltmeter = 8,                      //管电压读出值
-    Ammeter = 9,                        //管电流读出值
-    RangeIndicationStatus = 10,         //范围指示状态
-    ExposureStatus = 11,                //曝光状态
-    RangeIndicationStart = 12,          //范围指示启动
-    ExposureStart = 13,                 //曝光启动
-    BatteryLevel = 14,                  //电池电量
-    BatteryVoltmeter = 15,
-    OilBoxTemperature = 16,             //电池电压高位
-    Poweroff = 17,							//17 关机请求
-    Fixpos = 18, 								//18 油盒温度低位
-    Fixval = 19, 								//19 充能状态
-    Workstatus = 20,						//20充能状态
-    exposureCount = 21,                     //曝光次数
+#define MB_REG_ENUM \
+{\
+    C(HSV = 0),                            /*软硬件版本*/\
+    C(OTA = 1),                            /*OTA升级*/\
+    C(BaudRate = 2),                       /*波特率*/\
+    C(ServerAddress = 3),                  /*设备地址*/\
+    C(State = 4),                          /*状态*/\
+    C(VoltSet = 5),                        /*5管电压设置值*/\
+    C(FilamentSet = 6),                    /*6 管设置值电流 （决定灯丝电流决定管电流）*/\
+    C(ExposureTime = 7),                   /*曝光时间*/\
+    C(Voltmeter = 8),                      /*管电压读出值*/\
+    C(Ammeter = 9),                        /*管电流读出值*/\
+    C(RangeIndicationStatus = 10),         /*范围指示状态*/\
+    C(ExposureStatus = 11),                /*曝光状态*/\
+    C(RangeIndicationStart = 12),          /*范围指示启动*/\
+    C(ExposureStart = 13),                 /*曝光启动*/\
+    C(BatteryLevel = 14),                  /*电池电量*/\
+    C(BatteryVoltmeter = 15),\
+    C(OilBoxTemperature = 16),             /*电池电压高位*/\
+    C(Poweroff = 17),                      /*关机请求*/\
+    C(Fixpos = 18),                        /*校准定义*/\
+    C(Fixval = 19),                        /*校准值*/\
+    C(Workstatus = 20),                    /*充能状态*/\
+    C(exposureCount = 21),                 /*曝光次数*/\
+    C(MAX_HV_MB_REG_NUM),\
+}
+#undef C
+#define C(a) a
+typedef enum MB_REG_ENUM hv_mb_reg_e_t;
 
-    MAX_HV_MB_REG_NUM,
-}hv_mb_reg_e_t;
+#undef C
+#define C(a) #a
+
+#define HV_MB_REG_RW_ATTR_R 'r'
+#define HV_MB_REG_RW_ATTR_W 'w'
+#define HV_MB_REG_RW_ATTR_RW '+'
+const char* get_hv_mb_reg_str(hv_mb_reg_e_t reg_addr);
+const char get_hv_mb_reg_rw_attr(hv_mb_reg_e_t reg_addr);
 
 #endif

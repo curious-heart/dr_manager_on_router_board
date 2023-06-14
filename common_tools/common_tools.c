@@ -66,3 +66,34 @@ bool get_datetime_str(char* buf, int len)
     }
     return get_fmt_datetime_str(buf, len, "%Y-%m-%d %H:%M:%S");
 }
+
+/*
+ * 'r' for read
+ * 'w' for write
+ * 'c' for cancel
+ * */
+char choose_read_or_write()
+{
+    char op = 0;
+    bool end = false;
+    while(!end)
+    {
+        printf("please choose an operation by input a character:\n");
+        printf("'r': read\n");
+        printf("'w': write\n");
+        printf("'c': cancel\n");
+        scanf("%*c");
+        op = getchar();
+        switch(op)
+        {
+            case 'r':
+            case 'w':
+            case 'c':
+                end = true;
+                break;
+            default:
+                ;
+        }
+    }
+    return op;
+}

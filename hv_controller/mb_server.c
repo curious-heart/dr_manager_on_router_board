@@ -144,7 +144,7 @@ static bool mb_server_check_func_reg_cnt(uint8_t * req_msg,
     return ret;
 }
 
-static int mb_server_process_req(uint8_t * req_msg, int req_msg_len)
+static int mb_server_process_req(uint8_t * req_msg, int req_msg_len, bool server_only)
 {
     if(NULL == req_msg)
     {
@@ -181,6 +181,11 @@ static int mb_server_process_req(uint8_t * req_msg, int req_msg_len)
                             mb_exception_string(exception_code));
         modbus_reply_exception(gs_mb_srvr_ctx, req_msg, exception_code);
         return -1;
+    }
+
+    if(server_only)
+    {
+        return 0;
     }
 
     switch(func_code)
@@ -279,7 +284,8 @@ static int mb_server_process_req(uint8_t * req_msg, int req_msg_len)
     return 0;
 }
 
-mb_server_exit_code_t  mb_server_loop(const char* srv_ip, uint16_t srv_port, bool debug_flag)
+mb_server_exit_code_t  mb_server_loop(const char* srv_ip, uint16_t srv_port, bool debug_flag,
+        bool server_only)
 {
     uint8_t query[MODBUS_TCP_MAX_ADU_LENGTH];
     int master_socket;
@@ -428,7 +434,7 @@ mb_server_exit_code_t  mb_server_loop(const char* srv_ip, uint16_t srv_port, boo
                 rc = modbus_receive(gs_mb_srvr_ctx, query);
                 if (rc > 0)
                 {
-                    mb_server_process_req(query, rc);
+                    mb_server_process_req(query, rc, server_only);
                 }
                 else if (rc == -1)
                 {

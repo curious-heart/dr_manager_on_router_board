@@ -20,12 +20,68 @@ static const int32_t gs_def_mb_rtu_serverAddress=1;
 static const char* gs_local_loop_ip = "127.0.0.1";
 static const uint16_t gs_def_mb_srvr_port = 1502;
 
-void exposure_test(mb_rtu_params_t* rtu_params )
+static void mb_reg_only_write(hv_mb_reg_e_t reg_addr)
+{
+    uint32_t write_data;
+    const char* reg_str;
+    reg_str = get_hv_mb_reg_str(reg_addr);
+    if(!reg_str)
+    {
+        return;
+    }
+    printf("please input the data to be written:");
+    scanf("%u", &write_data);
+    if(hv_controller_write_single_uint16((int)reg_addr, (uint16_t)write_data))
+    {
+        printf("write register data ok.\n");
+    }
+}
+
+static uint16_t mb_reg_only_read(hv_mb_reg_e_t reg_addr)
+{
+    uint16_t read_data = 0xFFFF;
+    const char* reg_str;
+    reg_str = get_hv_mb_reg_str(reg_addr);
+    if(!reg_str)
+    {
+        return read_data;
+    }
+    if(hv_controller_read_uint16s((int)reg_addr, &read_data, 1))
+    {
+        printf("read register %s ok, the value is: %d\n", reg_str, read_data);
+    }
+    return read_data;
+}
+
+static uint16_t mb_reg_read_write(hv_mb_reg_e_t reg_addr)
+{
+    char op;
+    uint16_t read_data = 0xFFFF;
+
+    op = choose_read_or_write();
+    switch(op)
+    {
+        case 'r':
+            read_data = mb_reg_only_read(reg_addr);
+            break;
+
+        case 'w':
+            mb_reg_only_write(reg_addr);
+            break;
+
+        default:
+            ;
+    }
+    return read_data;
+}
+
+static void rtu_master_test(mb_rtu_params_t* rtu_params )
 {
     bool end = false;
     int test_no;
     hv_mb_reg_e_t reg_addr;
-    uint16_t read_data;
+    const char* reg_str;
+    char rw_op;
 
     if(!hv_controller_open(rtu_params))
     {
@@ -40,8 +96,8 @@ void exposure_test(mb_rtu_params_t* rtu_params )
         printf("BaudRate = 2,              //波特率\n");
         printf("ServerAddress = 3,         //设备地址\n");
         printf("State = 4,                 //状态\n");
-        printf("VoltSet = 5,               //5管电压设置值\n");
-        printf("FilamentSet = 6,           //6 管设置值电流 （决定灯丝电流决定管电流）\n");
+        printf("VoltSet = 5,               //管电压设置值\n");
+        printf("FilamentSet = 6,           //管设置值电流 （决定灯丝电流决定管电流）\n");
         printf("ExposureTime = 7,          //曝光时间\n");
         printf("Voltmeter = 8,             //管电压读出值\n");
         printf("Ammeter = 9,               //管电流读出值\n");
@@ -52,10 +108,10 @@ void exposure_test(mb_rtu_params_t* rtu_params )
         printf("BatteryLevel = 14,         //电池电量\n");
         printf("BatteryVoltmeter = 15,\n");
         printf("OilBoxTemperature = 16,    //电池电压高位\n");
-        printf("Poweroff = 17,             //17 关机请求\n");
-        printf("Fixpos = 18,               //18 油盒温度低位\n");
-        printf("Fixval = 19,               //19 充能状态\n");
-        printf("Workstatus = 20,           //20充能状态\n");
+        printf("Poweroff = 17,             //关机请求\n");
+        printf("Fixpos = 18,               //校准定义\n");
+        printf("Fixval = 19,               //校准值\n");
+        printf("Workstatus = 20,           //充能状态\n");
         printf("exposureCount = 21,        //曝光次数\n");
         printf("-1: exit.\n");
 
@@ -65,52 +121,30 @@ void exposure_test(mb_rtu_params_t* rtu_params )
             end = true;
             break;
         }
-        reg_addr = (hv_mb_reg_e_t)test_no;
-        switch(reg_addr)
+        if(test_no >= MAX_HV_MB_REG_NUM)
         {
-            case HSV:
-            case OTA:
-            case BaudRate:
-            case ServerAddress:
-            case State:
-            case VoltSet:
-            case FilamentSet:
-                break;
+            printf("Invlaid register number!\n");
+            continue;
+        }
 
-            case ExposureTime:
-                read_data = 0xFFFF;
-                hv_controller_read_uint16s((int)reg_addr, &read_data, 1);
-                printf("ExposureTime: %d\n", read_data);
-                break;
+        reg_addr = (hv_mb_reg_e_t)test_no;
+        rw_op = get_hv_mb_reg_rw_attr(reg_addr);
+        switch(rw_op)
+        {
+            case HV_MB_REG_RW_ATTR_R:
+               mb_reg_only_read(reg_addr);
+               break; 
 
-            case Voltmeter:
-            case Ammeter:
-            case RangeIndicationStatus:
-                break;
+            case HV_MB_REG_RW_ATTR_W:
+               mb_reg_only_write(reg_addr);
+               break; 
 
-            case ExposureStatus:
-                hv_controller_read_uint16s((int)reg_addr, &read_data, 1);
-                printf("ExposureStatus: %d\n", read_data);
-                break;
+            case HV_MB_REG_RW_ATTR_RW:
+               mb_reg_read_write(reg_addr);
+               break; 
 
-            case RangeIndicationStart:
-                break;
-
-            case ExposureStart:
-                hv_controller_write_single_uint16((int)ExposureStart, 2);
-                break;
-
-            case BatteryLevel:
-            case BatteryVoltmeter:
-            case OilBoxTemperature:
-            case Poweroff:
-            case Fixpos:
-            case Fixval:
-            case Workstatus:
-            case exposureCount:
             default:
-                printf("Invlaid input value.\n");
-                break;
+               ;
         }
         printf("\n");
     }
@@ -168,23 +202,37 @@ static void print_usage()
 {
     /*should be consistent with options defined in main function.*/
     printf("dr_manager [--com_dev|-c /dev/ttySN] [--ip_addr|-a modbus_server_ip]\
-[--port|-p modbus_server_port] [--rtu_debug|-r] [--tcp_debug|-t] [--help|-h]\n");
+[--port|-p modbus_server_port] [--rtu_debug|-r] [--tcp_debug|-t] \
+[--rtu_master_only|-m] [--tcp_server_only|-s] \
+[--help|-h]\n");
     printf("The defaul arguments:\n");
-
+    printf("--com_dev /dev/ttyS1\n");
+    printf("--ip_addr 127.0.0.1\n");
+    printf("--port 1502\n");
 }
 
+typedef enum
+{
+    WORK_MODE_NORMAL,
+    WORK_MODE_RTU_MASTER_ONLY,
+    WORK_MODE_TCP_SERVER_ONLY,
+}work_mode_t;
 static const char* gs_opt_com_dev_str = "com_dev";
-static const char gs_opt_com_dev_c = 'c';
+#define gs_opt_com_dev_c 'c'
 static const char* gs_opt_ip_addr_str = "ip_addr";
-static const char gs_opt_ip_addr_c = 'a';
+#define gs_opt_ip_addr_c 'a'
 static const char* gs_opt_port_str = "port";
-static const char gs_opt_port_c = 'p';
+#define gs_opt_port_c 'p'
 static const char* gs_opt_rtu_debug_str = "rtu_debug";
-static const char gs_opt_rtu_debug_c = 'r';
+#define gs_opt_rtu_debug_c 'r'
 static const char* gs_opt_tcp_debug_str = "tcp_debug";
-static const char gs_opt_tcp_debug_c = 't';
+#define gs_opt_tcp_debug_c 't'
 static const char* gs_opt_help_str = "help";
-static const char gs_opt_help_c = 'h';
+#define gs_opt_help_c 'h'
+static const char* gs_opt_rtu_master_only_str = "rtu_master_only";
+#define gs_opt_rtu_master_only_c 'm'
+static const char* gs_opt_tcp_server_only_str = "tcp_server_only";
+#define gs_opt_tcp_server_only_c 's'
 #define MAX_TTY_DEV_NAME_SIZE 17 
 #define MAX_IP_ADDR_STR_SIZE 17 
 char gs_mb_rtu_dev_name[MAX_TTY_DEV_NAME_SIZE];
@@ -200,10 +248,14 @@ int main(int argc, char *argv[])
         {gs_opt_port_str, required_argument, 0, gs_opt_port_c},
         {gs_opt_rtu_debug_str, no_argument, 0, gs_opt_rtu_debug_c}, 
         {gs_opt_tcp_debug_str, no_argument, 0, gs_opt_tcp_debug_c}, 
+        {gs_opt_rtu_master_only_str, no_argument, 0, gs_opt_rtu_master_only_c}, 
+        {gs_opt_tcp_server_only_str, no_argument, 0, gs_opt_tcp_server_only_c}, 
         {gs_opt_help_str, no_argument, 0, gs_opt_help_c}, 
         {0, 0, 0, 0},
     };
     int opt_c;
+    work_mode_t work_mode = WORK_MODE_NORMAL;
+    bool server_only = false;
     bool arg_parse_result;
 
     mb_rtu_params_t rtu_params;
@@ -219,7 +271,7 @@ int main(int argc, char *argv[])
     {
         switch(opt_c)
         {
-            case (int)gs_opt_com_dev_c:
+            case gs_opt_com_dev_c:
                 if(optarg && optarg[0] != ':' && optarg[0] != '?')
                 {
                     snprintf(gs_mb_rtu_dev_name, MAX_TTY_DEV_NAME_SIZE, optarg);
@@ -283,10 +335,17 @@ int main(int argc, char *argv[])
                 mb_tcp_debug_flag = true;
                 break;
 
+            case (int)gs_opt_rtu_master_only_c:
+                work_mode = WORK_MODE_RTU_MASTER_ONLY;
+                break;
+
+            case (int)gs_opt_tcp_server_only_c:
+                work_mode = WORK_MODE_TCP_SERVER_ONLY;
+                break;
+
             case (int)gs_opt_help_c: 
                 print_usage();
                 return 0;
-
             default:
                 arg_parse_result = false;
         }
@@ -298,16 +357,32 @@ int main(int argc, char *argv[])
     }
 
     print_modbus_params(&rtu_params, srvr_ip, srvr_port);
+    switch(work_mode)
+    {
+        case WORK_MODE_RTU_MASTER_ONLY:
+            rtu_master_test(&rtu_params);
+            return 0;
+
+        case WORK_MODE_TCP_SERVER_ONLY:
+            server_only = true;
+            break;
+
+        default:
+        ;
+    }
 
     signal(SIGINT, close_sigint);
 
-    if(!hv_controller_open(&rtu_params))
+    if(!server_only)
     {
-        DIY_LOG(LOG_ERROR, "Connecting high volatage board fails.\n");
-        return -1;;
+        if(!hv_controller_open(&rtu_params))
+        {
+            DIY_LOG(LOG_ERROR, "Connecting high volatage board fails.\n");
+            return -1;;
+        }
     }
 
-    mb_server_ret = mb_server_loop(srvr_ip, srvr_port, mb_tcp_debug_flag);
+    mb_server_ret = mb_server_loop(srvr_ip, srvr_port, mb_tcp_debug_flag, server_only);
     switch(mb_server_ret)
     {
         case MB_SERVER_EXIT_INIT_FAIL:

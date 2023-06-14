@@ -17,4 +17,10 @@ bool get_date_str(char* buf, int len);
 bool get_time_str(char* buf, int len);
 bool get_datetime_str(char* buf, int len);
 
+/*
+ * 'r' for read
+ * 'w' for write
+ * 'c' for cancel
+ * */
+char choose_read_or_write();
 #endif // COMMON_TOOL_FUNC_H
