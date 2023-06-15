@@ -3,12 +3,14 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <getopt.h>
+#include <string.h>
 
+#include "version_def.h"
 #include "logger.h"
 #include "hv_registers.h"
 #include "hv_controller.h"
 
-static const char* gs_def_mb_rtu_serialPortName="/dev/ttyS1";
+static const char* gs_def_mb_rtu_serialPortName="/dev/ttyS0";
 static const int32_t gs_def_mb_rtu_serialBaudRate=9600;
 static const char gs_def_mb_rtu_serialParity='N';
 static const int32_t gs_def_mb_rtu_serialDataBits=8;
@@ -17,7 +19,7 @@ static const uint32_t gs_def_mb_rtu_timeout_ms =999; //1000;
 static const int32_t gs_def_mb_rtu_numberOfRetries=3;
 static const int32_t gs_def_mb_rtu_serverAddress=1;
 
-static const char* gs_local_loop_ip = "127.0.0.1";
+static const char* gs_local_loop_ip = "0.0.0.0";
 static const uint16_t gs_def_mb_srvr_port = 1502;
 
 static void mb_reg_only_write(hv_mb_reg_e_t reg_addr)
@@ -80,7 +82,6 @@ static void rtu_master_test(mb_rtu_params_t* rtu_params )
     bool end = false;
     int test_no;
     hv_mb_reg_e_t reg_addr;
-    const char* reg_str;
     char rw_op;
 
     if(!hv_controller_open(rtu_params))
@@ -166,20 +167,20 @@ static void close_sigint(int dummy)
 static void print_modbus_params(mb_rtu_params_t * rtu_params,
         const char* ip_addr, uint16_t tcp_port)
 {
-    DIY_LOG(LOG_INFO, "++++++++++++++++++++\nRTU info:\n"
-            "serialPortName: %s\n"
+    DIY_LOG(LOG_INFO, "++++++++++++++++++++\nRTU info:\nserialPortName: %s\n",
+            rtu_params->serialPortName);
+    DIY_LOG(LOG_INFO + LOG_ONLY_INFO_STR, 
             "serialBaudRate: %d\nserialParity: %c\nserialDataBits: %d\nserialStopBits: %d\n"
             "timeout_ms: %d\nnumberOfRetries: %d\n"
-            "serverAddress: %d\n"
-            "====================\nTCP server info:\n"
-            "ip address: %s\ntcp port: %u\n--------------------\n",
-            rtu_params->serialPortName, 
+            "serverAddress: %d\n",
             rtu_params->serialBaudRate, rtu_params->serialParity,
             rtu_params->serialDataBits, rtu_params->serialStopBits,
             rtu_params->timeout_ms, rtu_params->numberOfRetries,
-            rtu_params->serverAddress,
-            ip_addr, tcp_port
-            );
+            rtu_params->serverAddress);
+    DIY_LOG(LOG_INFO + LOG_ONLY_INFO_STR,
+            "====================\nTCP server info:\n"
+            "ip address: %s\ntcp port: %u\n--------------------\n",
+            ip_addr, tcp_port);
 }
 
 static void get_mb_rtu_params(mb_rtu_params_t * rtu_params)
@@ -204,11 +205,11 @@ static void print_usage()
     printf("dr_manager [--com_dev|-c /dev/ttySN] [--ip_addr|-a modbus_server_ip]\
 [--port|-p modbus_server_port] [--rtu_debug|-r] [--tcp_debug|-t] \
 [--rtu_master_only|-m] [--tcp_server_only|-s] \
-[--help|-h]\n");
+[--help|-h] [--version]\n");
     printf("The defaul arguments:\n");
-    printf("--com_dev /dev/ttyS1\n");
-    printf("--ip_addr 127.0.0.1\n");
-    printf("--port 1502\n");
+    printf("--com_dev %s\n", gs_def_mb_rtu_serialPortName);
+    printf("--ip_addr %s\n", gs_local_loop_ip);
+    printf("--port %u\n", gs_def_mb_srvr_port);
 }
 
 typedef enum
@@ -233,6 +234,7 @@ static const char* gs_opt_rtu_master_only_str = "rtu_master_only";
 #define gs_opt_rtu_master_only_c 'm'
 static const char* gs_opt_tcp_server_only_str = "tcp_server_only";
 #define gs_opt_tcp_server_only_c 's'
+static const char* gs_opt_version_str = "version";
 #define MAX_TTY_DEV_NAME_SIZE 17 
 #define MAX_IP_ADDR_STR_SIZE 17 
 char gs_mb_rtu_dev_name[MAX_TTY_DEV_NAME_SIZE];
@@ -251,12 +253,14 @@ int main(int argc, char *argv[])
         {gs_opt_rtu_master_only_str, no_argument, 0, gs_opt_rtu_master_only_c}, 
         {gs_opt_tcp_server_only_str, no_argument, 0, gs_opt_tcp_server_only_c}, 
         {gs_opt_help_str, no_argument, 0, gs_opt_help_c}, 
+        {gs_opt_version_str, no_argument, 0, 0}, 
         {0, 0, 0, 0},
     };
     int opt_c;
     work_mode_t work_mode = WORK_MODE_NORMAL;
     bool server_only = false;
     bool arg_parse_result;
+    int longindex;
 
     mb_rtu_params_t rtu_params;
     const char* srvr_ip = gs_local_loop_ip;
@@ -267,7 +271,7 @@ int main(int argc, char *argv[])
 
     get_mb_rtu_params(&rtu_params);
     arg_parse_result = true;
-    while((opt_c = getopt_long(argc, argv, s_opt_chars, l_opt_arr, NULL)) >= 0)
+    while((opt_c = getopt_long(argc, argv, s_opt_chars, l_opt_arr, &longindex)) >= 0)
     {
         switch(opt_c)
         {
@@ -346,6 +350,14 @@ int main(int argc, char *argv[])
             case (int)gs_opt_help_c: 
                 print_usage();
                 return 0;
+
+            case 0:
+                if(!strcmp(l_opt_arr[longindex].name, gs_opt_version_str))
+                {
+                    printf("%s\n", APP_VER_STR);
+                }
+                return 0;
+
             default:
                 arg_parse_result = false;
         }

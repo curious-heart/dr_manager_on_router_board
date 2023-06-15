@@ -46,6 +46,7 @@ void mb_server_exit()
     }
     if(gs_mb_srvr_ctx)
     {
+        modbus_close(gs_mb_srvr_ctx);
         modbus_free(gs_mb_srvr_ctx);
         gs_mb_srvr_ctx = NULL;
     }
@@ -166,7 +167,7 @@ static int mb_server_process_req(uint8_t * req_msg, int req_msg_len, bool server
         case MODBUS_FC_READ_HOLDING_REGISTERS:
         case MODBUS_FC_WRITE_MULTIPLE_REGISTERS:
         case MODBUS_FC_WRITE_SINGLE_REGISTER:
-            DIY_LOG(LOG_INFO, "%sreg_reg_start:%d, reg_cnt:%d.\n",
+            DIY_LOG(LOG_INFO + LOG_ONLY_INFO_STR, "%sreg_reg_start:%d, reg_cnt:%d.\n",
                     gs_mb_server_log_header, reg_addr_start, reg_cnt); 
             break;
 
@@ -292,6 +293,8 @@ mb_server_exit_code_t  mb_server_loop(const char* srv_ip, uint16_t srv_port, boo
     int rc;
     fd_set refset;
     fd_set rdset;
+    socklen_t addrlen;
+    struct sockaddr_in clientaddr;
     /* Maximum file descriptor number */
     int fdmax;
     uint32_t resp_timeout_ms = 500;
@@ -311,6 +314,7 @@ mb_server_exit_code_t  mb_server_loop(const char* srv_ip, uint16_t srv_port, boo
         DIY_LOG(LOG_WARN, "%sbut we continue going ahead.\n\n", gs_mb_server_log_header);
     }
 
+    /*
     if(0!= modbus_set_error_recovery(gs_mb_srvr_ctx,
             MODBUS_ERROR_RECOVERY_LINK | MODBUS_ERROR_RECOVERY_PROTOCOL))
     {
@@ -318,6 +322,7 @@ mb_server_exit_code_t  mb_server_loop(const char* srv_ip, uint16_t srv_port, boo
                 gs_mb_server_log_header, errno, modbus_strerror(errno));
         DIY_LOG(LOG_WARN, "%sbut we continue going ahead.\n\n", gs_mb_server_log_header);
     }
+    */
 
     if(0 != modbus_set_response_timeout(gs_mb_srvr_ctx, 0, resp_timeout_ms * 1000))
     {
@@ -365,7 +370,7 @@ mb_server_exit_code_t  mb_server_loop(const char* srv_ip, uint16_t srv_port, boo
         gs_mb_header_len = -1;
         return MB_SERVER_EXIT_INIT_FAIL;
     }
-    DIY_LOG(LOG_INFO, "\n\n");
+    DIY_LOG(LOG_INFO + LOG_ONLY_INFO_STR, "\n\n");
     DIY_LOG(LOG_INFO, "%smodbus server listenning on %s:%d, socket fd: %d...\n",
             gs_mb_server_log_header, srv_ip, srv_port, gs_mb_server_socket);
 
@@ -387,8 +392,7 @@ mb_server_exit_code_t  mb_server_loop(const char* srv_ip, uint16_t srv_port, boo
             return MB_SERVER_EXIT_COMM_FATAL_ERROR;
         }
 
-        /* Run through the existing connections looking for data to be
-         * read */
+        /* Run through the existing connections looking for data to be read */
         for (master_socket = 0; master_socket <= fdmax; master_socket++)
         {
             if (!FD_ISSET(master_socket, &rdset))
@@ -396,20 +400,19 @@ mb_server_exit_code_t  mb_server_loop(const char* srv_ip, uint16_t srv_port, boo
                 continue;
             }
 
-            if (master_socket == gs_mb_server_socket)
+            if(master_socket == gs_mb_server_socket)
             {
                 /* A client is asking a new connection */
-                socklen_t addrlen;
-                struct sockaddr_in clientaddr;
                 int newfd;
 
                 /* Handle new connections */
                 addrlen = sizeof(clientaddr);
                 memset(&clientaddr, 0, sizeof(clientaddr));
-                newfd = accept(gs_mb_server_socket, (struct sockaddr *) &clientaddr, &addrlen);
+                //newfd = accept(gs_mb_server_socket, (struct sockaddr *) &clientaddr, &addrlen);
+                newfd = modbus_tcp_accept(gs_mb_srvr_ctx, &gs_mb_server_socket);
                 if (newfd == -1)
                 {
-                    DIY_LOG(LOG_ERROR, "%smobdbus Server accept() error.\n",
+                    DIY_LOG(LOG_ERROR, "%smodbus_tcp_accept error.\n",
                             gs_mb_server_log_header);
                 }
                 else
@@ -421,11 +424,21 @@ mb_server_exit_code_t  mb_server_loop(const char* srv_ip, uint16_t srv_port, boo
                         /* Keep track of the maximum */
                         fdmax = newfd;
                     }
-                    DIY_LOG(LOG_INFO, "%sNew connection from %s:%d on socket %d\n",
-                           gs_mb_server_log_header, 
-                           inet_ntoa(clientaddr.sin_addr),
-                           clientaddr.sin_port,
-                           newfd);
+                    if(getpeername(newfd, (struct sockaddr*)&clientaddr, &addrlen) < 0)
+                    {
+                        DIY_LOG(LOG_WARN,
+                                "%sNew connection coming, but can't obtain its addr:%d\n",
+                                gs_mb_server_log_header,
+                                errno);
+                    }
+                    else
+                    {
+                        DIY_LOG(LOG_INFO, "%sNew connection from %s:%d on socket %d\n",
+                               gs_mb_server_log_header, 
+                               inet_ntoa(clientaddr.sin_addr),
+                               clientaddr.sin_port,
+                               newfd);
+                    }
                 }
             }
             else
@@ -434,6 +447,25 @@ mb_server_exit_code_t  mb_server_loop(const char* srv_ip, uint16_t srv_port, boo
                 rc = modbus_receive(gs_mb_srvr_ctx, query);
                 if (rc > 0)
                 {
+                    addrlen = sizeof(clientaddr);
+                    memset(&clientaddr, 0, sizeof(clientaddr));
+
+                    if(getpeername(master_socket, (struct sockaddr*)&clientaddr, &addrlen) < 0)
+                    {
+                        DIY_LOG(LOG_WARN,
+                                "%sdata received, but can't obtain its addr:%d\n",
+                                gs_mb_server_log_header,
+                                errno);
+                    }
+                    else
+                    {
+                        DIY_LOG(LOG_INFO, "%sdata received from %s:%d on socket %d\n",
+                               gs_mb_server_log_header, 
+                               inet_ntoa(clientaddr.sin_addr),
+                               clientaddr.sin_port,
+                               master_socket);
+                    }
+
                     mb_server_process_req(query, rc, server_only);
                 }
                 else if (rc == -1)
@@ -442,7 +474,8 @@ mb_server_exit_code_t  mb_server_loop(const char* srv_ip, uint16_t srv_port, boo
                      * any errors. */
                     DIY_LOG(LOG_ERROR, "%sConnection closed on socket %d\n",
                            gs_mb_server_log_header, master_socket);
-                    close(master_socket);
+                    //close(master_socket);
+                    modbus_close(gs_mb_srvr_ctx);
 
                     /* Remove from reference set */
                     FD_CLR(master_socket, &refset);

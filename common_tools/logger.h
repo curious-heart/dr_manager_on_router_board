@@ -10,7 +10,9 @@ enum LOG_LEVEL {
     LOG_DEBUG=0,//调试
     LOG_INFO,   //信息
     LOG_WARN,   //警告
-    LOG_ERROR   //错误
+    LOG_ERROR,   //错误
+
+    LOG_ONLY_INFO_STR = 0x80,
 };
 
 extern const char* g_log_level_str[];
@@ -18,11 +20,18 @@ extern const char* g_log_level_str[];
 bool start_log_thread();
 void end_log_thread();
 
-#define MAX_LOG_INFO_STR_LEN 320
+#define MAX_LOG_INFO_STR_LEN 256 
 
 #define DIY_LOG(level, ...) \
 {\
-    if(level >= APP_LOG_LEVEL)\
+    bool only_info_str = false;\
+    int v_level = level;\
+    if(v_level >= LOG_ONLY_INFO_STR)\
+    {\
+        only_info_str = true;\
+        v_level -= LOG_ONLY_INFO_STR;\
+    }\
+    if(v_level >= APP_LOG_LEVEL)\
     {\
         char log_info_buf[MAX_LOG_INFO_STR_LEN + 1];\
         char date_time_str[DATE_STRING_LEN + 1 + TIME_STRING_SEC_LEN + 1];\
@@ -33,15 +42,23 @@ void end_log_thread();
         }\
         if(l_p > 0)\
         {\
-            printf("%s [%s]: %s, %d, %s\n", \
-                    date_time_str, g_log_level_str[level], __FILE__, __LINE__, __FUNCTION__);\
+            if(!only_info_str)\
+            {\
+                printf("%s [%s]: %s, %d, %s\n", \
+                        date_time_str, g_log_level_str[v_level], \
+                        __FILE__, __LINE__, __FUNCTION__);\
+            }\
             printf("\t");\
             printf(log_info_buf);\
         }\
         else\
         {\
-            printf("%s [%s]: %s, %d, %s\n",\
-                    date_time_str, g_log_level_str[level], __FILE__, __LINE__, __FUNCTION__);\
+            if(!only_info_str)\
+            {\
+                printf("%s [%s]: %s, %d, %s\n",\
+                        date_time_str, g_log_level_str[v_level],\
+                        __FILE__, __LINE__, __FUNCTION__);\
+            }\
             printf("snprintf error.\n");\
         }\
     }\

@@ -89,6 +89,14 @@ bool hv_controller_open(mb_rtu_params_t* rtu_params)
         DIY_LOG(LOG_WARN, "%sbut we continue going ahead.\n\n", gs_mb_master_log_header);
     }
 
+    if(0!= modbus_set_error_recovery(gs_mb_master_ctx,
+            MODBUS_ERROR_RECOVERY_LINK | MODBUS_ERROR_RECOVERY_PROTOCOL))
+    {
+        DIY_LOG(LOG_WARN, "%sset error recovery mode fail:%d: %s, ",
+                gs_mb_master_log_header, errno, modbus_strerror(errno));
+        DIY_LOG(LOG_WARN, "%sbut we continue going ahead.\n\n", gs_mb_master_log_header);
+    }
+
     if(0 != modbus_set_response_timeout(gs_mb_master_ctx, 0, resp_timeout_ms * 1000))
     {
         modbus_free(gs_mb_master_ctx);
