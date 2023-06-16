@@ -9,6 +9,7 @@
 #include "logger.h"
 #include "hv_registers.h"
 #include "hv_controller.h"
+#include "dr_manager.h"
 
 static const char* gs_def_mb_rtu_serialPortName="/dev/ttyS0";
 static const int32_t gs_def_mb_rtu_serialBaudRate=9600;
@@ -152,18 +153,6 @@ static void rtu_master_test(mb_rtu_params_t* rtu_params )
     hv_controller_close();
 }
 
-static void clear_for_exit()
-{
-    mb_server_exit();
-    hv_controller_close();
-}
-
-static void close_sigint(int dummy)
-{
-    clear_for_exit();
-    exit(dummy);
-}
-
 static void print_modbus_params(mb_rtu_params_t * rtu_params,
         const char* ip_addr, uint16_t tcp_port)
 {
@@ -197,6 +186,31 @@ static void get_mb_rtu_params(mb_rtu_params_t * rtu_params)
         rtu_params->serverAddress = gs_def_mb_rtu_serverAddress;
         rtu_params->debug_flag = false;
     }
+}
+
+static void init_threads()
+{
+    init_dev_st_pool_mutex();
+    init_lcd_upd_mutex();
+}
+
+static void clear_threads()
+{
+    destroy_dev_st_pool_mutex();
+    destroy_lcd_upd_mutex();
+}
+
+static void clear_for_exit()
+{
+    mb_server_exit();
+    hv_controller_close();
+    clear_threads();
+}
+
+static void close_sigint(int dummy)
+{
+    clear_for_exit();
+    exit(dummy);
 }
 
 static void print_usage()
@@ -383,6 +397,8 @@ int main(int argc, char *argv[])
         ;
     }
 
+    init_threads();
+
     signal(SIGINT, close_sigint);
 
     if(!server_only)
@@ -390,6 +406,7 @@ int main(int argc, char *argv[])
         if(!hv_controller_open(&rtu_params))
         {
             DIY_LOG(LOG_ERROR, "Connecting high volatage board fails.\n");
+            clear_for_exit();
             return -1;;
         }
     }

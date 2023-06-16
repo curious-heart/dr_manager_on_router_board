@@ -27,6 +27,7 @@
 #include "logger.h"
 #include "hv_registers.h"
 #include "hv_controller.h"
+#include "dr_manager.h"
 
 /**/
 #define NB_CONNECTION 2
@@ -507,3 +508,4 @@ mb_server_exit_code_t  mb_server_loop(const char* srv_ip, uint16_t srv_port, boo
 
     return MB_SERVER_EXIT_UNKNOWN;
 }
+

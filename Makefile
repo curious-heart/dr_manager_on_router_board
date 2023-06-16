@@ -23,8 +23,8 @@ TCP_SRVR_TEST_SOURCES = $(wildcard $(addsuffix /*.c, $(TCP_SRVR_TEST_SRC)))
 # These variables hold the name of the compilation tool, the compilation flags and the link flags
 # We make use of these variables in the package manifest
 CC = gcc
-override CFLAGS += -Wall $(addprefix -I, $(INC)) -DAPP_LOG_LEVEL=$(APP_LOG_LEVEL)
-override LDLIBS += -lm -lmodbus
+override CFLAGS += -Wall $(addprefix -I, $(INC)) -DAPP_LOG_LEVEL=$(APP_LOG_LEVEL) -pthread
+override LDLIBS += -lm -lmodbus -pthread
  
 DEPS = $(INCLUDES)
 OBJECTS = $(patsubst %.c, $(OBJ)/%.o, $(notdir $(SOURCES)))
