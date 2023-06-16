@@ -20,7 +20,7 @@ static const int32_t gs_def_mb_rtu_numberOfRetries=3;
 static const int32_t gs_def_mb_rtu_serverAddress=1;
 
 static const char* gs_local_loop_ip = "0.0.0.0";
-static const uint16_t gs_def_mb_srvr_port = 1502;
+static const uint16_t gs_def_mb_srvr_port = 502;
 
 static void mb_reg_only_write(hv_mb_reg_e_t reg_addr)
 {
@@ -242,7 +242,7 @@ char gs_mb_tcp_ip_str[MAX_IP_ADDR_STR_SIZE];
 int main(int argc, char *argv[])
 {
     /*should be consistent with usage string in print_usage function.*/
-    const char* s_opt_chars = "c:a:p:rth";
+    const char* s_opt_chars = "c:a:p:rtmsh";
     struct option l_opt_arr[] =
     {
         {gs_opt_com_dev_str, required_argument, 0, gs_opt_com_dev_c},

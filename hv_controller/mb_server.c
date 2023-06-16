@@ -427,22 +427,27 @@ mb_server_exit_code_t  mb_server_loop(const char* srv_ip, uint16_t srv_port, boo
                     if(getpeername(newfd, (struct sockaddr*)&clientaddr, &addrlen) < 0)
                     {
                         DIY_LOG(LOG_WARN,
-                                "%sNew connection coming, but can't obtain its addr:%d\n",
+                                "%sNew connection coming on socket %d,"
+                                " but can't obtain its addr:%d\n",
                                 gs_mb_server_log_header,
+                                newfd,
                                 errno);
                     }
                     else
                     {
-                        DIY_LOG(LOG_INFO, "%sNew connection from %s:%d on socket %d\n",
+                        DIY_LOG(LOG_INFO, "%sNew connection on socket %d, %s:%u.\n",
                                gs_mb_server_log_header, 
+                               newfd,
                                inet_ntoa(clientaddr.sin_addr),
-                               clientaddr.sin_port,
-                               newfd);
+                               clientaddr.sin_port);
                     }
                 }
             }
             else
             {
+                int get_peer_name_ret = 0;
+                get_peer_name_ret = getpeername(master_socket,
+                                                (struct sockaddr*)&clientaddr, &addrlen);
                 modbus_set_socket(gs_mb_srvr_ctx, master_socket);
                 rc = modbus_receive(gs_mb_srvr_ctx, query);
                 if (rc > 0)
@@ -450,30 +455,41 @@ mb_server_exit_code_t  mb_server_loop(const char* srv_ip, uint16_t srv_port, boo
                     addrlen = sizeof(clientaddr);
                     memset(&clientaddr, 0, sizeof(clientaddr));
 
-                    if(getpeername(master_socket, (struct sockaddr*)&clientaddr, &addrlen) < 0)
+                    if(get_peer_name_ret < 0)
                     {
                         DIY_LOG(LOG_WARN,
-                                "%sdata received, but can't obtain its addr:%d\n",
+                                "%sdata received, but can't obtain its addr, errno:%d\n",
                                 gs_mb_server_log_header,
                                 errno);
                     }
                     else
                     {
-                        DIY_LOG(LOG_INFO, "%sdata received from %s:%d on socket %d\n",
+                        DIY_LOG(LOG_INFO, "%sdata received on socket %d, %s:%u.\n",
                                gs_mb_server_log_header, 
+                               master_socket,
                                inet_ntoa(clientaddr.sin_addr),
-                               clientaddr.sin_port,
-                               master_socket);
+                               clientaddr.sin_port);
                     }
 
                     mb_server_process_req(query, rc, server_only);
                 }
                 else if (rc == -1)
                 {
-                    /* This example server in ended on connection closing or
-                     * any errors. */
-                    DIY_LOG(LOG_ERROR, "%sConnection closed on socket %d\n",
+                    /* This example server in ended on connection closing or any errors. */
+                    DIY_LOG(LOG_ERROR, "%sConnection closed on socket %d, ",
                            gs_mb_server_log_header, master_socket);
+                    if(get_peer_name_ret < 0)
+                    {
+                        DIY_LOG(LOG_WARN + LOG_ONLY_INFO_STR,
+                                "but can't obtain the remote addr, errno: %d.\n",
+                                errno);
+                    }
+                    else
+                    {
+                        DIY_LOG(LOG_INFO + LOG_ONLY_INFO_STR, "%s:%u.\n",
+                               inet_ntoa(clientaddr.sin_addr),
+                               clientaddr.sin_port);
+                    }
                     //close(master_socket);
                     modbus_close(gs_mb_srvr_ctx);
 
