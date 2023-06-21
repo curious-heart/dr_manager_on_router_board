@@ -52,6 +52,12 @@ typedef enum
     EXPOSURE_ST_CLOSING,
 }exposure_state_t;
 
+typedef enum
+{
+    HV_DSP_DISCONNECTED = 0,
+    HV_DSP_CONNECTED,
+}hv_dsp_conntion_state_t;
+
 typedef struct
 {
     battery_chg_st_t bat_chg_st;
@@ -61,19 +67,30 @@ typedef struct
     wifi_wan_st_t wifi_wan_st;
     sim_card_st_t sim_card_st;
 
+    hv_dsp_conntion_state_t hv_dsp_conn_st;
     uint16_t expo_volt /*uint: kV*/, expo_dura /*uint: ms*/;
     uint32_t expo_am; /*unit: uA*/
     exposure_state_t expo_st;
 }dr_device_st_pool_t;
+extern dr_device_st_pool_t g_device_st_pool;
 
-void init_dev_st_pool_mutex();
-void destroy_dev_st_pool_mutex();
-void init_lcd_upd_mutex();
-void destroy_lcd_upd_mutex();
-
+typedef void* (*pthread_func_t)(void*);
+int init_dev_st_pool_mutex();
+int destroy_dev_st_pool_mutex();
 typedef void (*update_device_status_pool_func_t)();
-typedef void (*update_lcd_func_t)();
 void update_device_st_pool(pthread_t pth_id, update_device_status_pool_func_t func);
 
-extern dr_device_st_pool_t g_device_st_pool;
+int init_lcd_upd_mutex();
+int destroy_lcd_upd_mutex();
+typedef void (*update_lcd_func_t)();
+void update_lcd_display(pthread_t pth_id, update_lcd_func_t func);
+
+typedef struct
+{
+    uint32_t sch_period;
+}dev_monitor_th_parm_t;
+extern const char* g_dev_monitor_th_desc;
+void* dev_monitor_thread_func(void* arg);
+#define DEV_MONITOR_DEF_PERIOD 3
+
 #endif

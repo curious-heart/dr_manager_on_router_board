@@ -188,16 +188,56 @@ static void get_mb_rtu_params(mb_rtu_params_t * rtu_params)
     }
 }
 
-static void init_threads()
+const char* gs_tof_th_desc = "TOF-Measurement";
+#define PTHREAD_ERR_CHECK(s, str_h, str_m, str_t) \
+    if(s != 0)\
+    {\
+        DIY_LOG(LOG_ERROR, "%s", str_h);\
+        DIY_LOG(LOG_ERROR + LOG_ONLY_INFO_STR, "%s", str_m);\
+        DIY_LOG(LOG_ERROR + LOG_ONLY_INFO_STR, "%s", str_t);\
+        DIY_LOG(LOG_ERROR + LOG_ONLY_INFO_STR, " :%d.\n", s);\
+        return false;\
+    }
+static bool start_assit_thread(const char* desc, pthread_t * th_id, bool detach,
+        pthread_func_t func, void* arg)
 {
+    int s;
+    pthread_attr_t attr;
+    pthread_t l_th_id;
+
     init_dev_st_pool_mutex();
     init_lcd_upd_mutex();
+
+
+    s = pthread_attr_init(&attr);
+    PTHREAD_ERR_CHECK(s, "init pthread attribute for ", desc, " fails");
+
+    if(detach)
+    {
+        s = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+        PTHREAD_ERR_CHECK(s, "Set thread detach state for ", desc, " fails");
+    }
+
+    s = pthread_create(&l_th_id, &attr, func, arg);
+    PTHREAD_ERR_CHECK(s, "Create thread ", desc, " failes");
+
+    s= pthread_attr_destroy(&attr);
+    PTHREAD_ERR_CHECK(s, "Destory attr for ", desc, " failes");
+
+    if(th_id) *th_id = l_th_id;
+
+    DIY_LOG(LOG_INFO, "%s thread created successfully, the id is %u.\n",
+            desc, (uint32_t)l_th_id);
+    return true;
 }
 
-static void clear_threads()
+static bool clear_threads()
 {
-    destroy_dev_st_pool_mutex();
-    destroy_lcd_upd_mutex();
+    int s;
+    s = destroy_dev_st_pool_mutex();
+    s = destroy_lcd_upd_mutex();
+
+    return true;
 }
 
 static void clear_for_exit()
@@ -209,6 +249,7 @@ static void clear_for_exit()
 
 static void close_sigint(int dummy)
 {
+    DIY_LOG(LOG_INFO, "SIGINT received, now exit...\n");
     clear_for_exit();
     exit(dummy);
 }
@@ -249,6 +290,7 @@ static const char* gs_opt_rtu_master_only_str = "rtu_master_only";
 static const char* gs_opt_tcp_server_only_str = "tcp_server_only";
 #define gs_opt_tcp_server_only_c 's'
 static const char* gs_opt_version_str = "version";
+static const char* gs_opt_dev_monitor_th_period_str = "dev_monitor_p";
 #define MAX_TTY_DEV_NAME_SIZE 17 
 #define MAX_IP_ADDR_STR_SIZE 17 
 char gs_mb_rtu_dev_name[MAX_TTY_DEV_NAME_SIZE];
@@ -268,6 +310,7 @@ int main(int argc, char *argv[])
         {gs_opt_tcp_server_only_str, no_argument, 0, gs_opt_tcp_server_only_c}, 
         {gs_opt_help_str, no_argument, 0, gs_opt_help_c}, 
         {gs_opt_version_str, no_argument, 0, 0}, 
+        {gs_opt_dev_monitor_th_period_str , required_argument, 0, 0}, 
         {0, 0, 0, 0},
     };
     int opt_c;
@@ -282,6 +325,9 @@ int main(int argc, char *argv[])
     bool mb_tcp_debug_flag = false;
     struct in_addr srvr_ip_in_addr;
     mb_server_exit_code_t mb_server_ret;
+
+    pthread_t dev_monitor_th_id, tof_th_id;
+    dev_monitor_th_parm_t dev_monitor_th_parm = {DEV_MONITOR_DEF_PERIOD};
 
     get_mb_rtu_params(&rtu_params);
     arg_parse_result = true;
@@ -369,8 +415,31 @@ int main(int argc, char *argv[])
                 if(!strcmp(l_opt_arr[longindex].name, gs_opt_version_str))
                 {
                     printf("%s\n", APP_VER_STR);
+                    return 0;
                 }
-                return 0;
+                else if(!strcmp(l_opt_arr[longindex].name, gs_opt_dev_monitor_th_period_str))
+                {
+                    if(optarg && optarg[0] != ':' && optarg[0] != '?')
+                    {
+                        dev_monitor_th_parm.sch_period = (uint32_t)atoi(optarg);
+                        if(0 == dev_monitor_th_parm.sch_period)
+                        {
+                            DIY_LOG(LOG_ERROR,
+                                    "The --%s param value %s (%s thread period in int second)"                                     "is invalid.\n",
+                                    gs_opt_dev_monitor_th_period_str, optarg, 
+                                    g_dev_monitor_th_desc);
+                            arg_parse_result = false;
+                        }
+                    }
+                    else
+                    {
+                        DIY_LOG(LOG_ERROR,
+                                "if option --%s are provided, an int peroid is necessary.\n", 
+                                gs_opt_dev_monitor_th_period_str);
+                        arg_parse_result = false;
+                    }
+                }
+                break;
 
             default:
                 arg_parse_result = false;
@@ -383,6 +452,13 @@ int main(int argc, char *argv[])
     }
 
     print_modbus_params(&rtu_params, srvr_ip, srvr_port);
+
+    if(!start_assit_thread(g_dev_monitor_th_desc, &dev_monitor_th_id, 
+            true, dev_monitor_thread_func, &dev_monitor_th_parm))
+    {
+        return -1;
+    }
+
     switch(work_mode)
     {
         case WORK_MODE_RTU_MASTER_ONLY:
@@ -396,8 +472,6 @@ int main(int argc, char *argv[])
         default:
         ;
     }
-
-    init_threads();
 
     signal(SIGINT, close_sigint);
 
