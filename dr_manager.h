@@ -66,24 +66,33 @@ typedef struct
     cellular_srv_st_t cellular_st;
     wifi_wan_st_t wifi_wan_st;
     sim_card_st_t sim_card_st;
+}dr_main_dev_st_t;
 
+typedef struct
+{
     hv_dsp_conntion_state_t hv_dsp_conn_st;
-    uint16_t expo_volt /*uint: kV*/, expo_dura /*uint: ms*/;
-    uint32_t expo_am; /*unit: uA*/
+    uint16_t expo_volt_kv /*uint: kV*/, expo_dura_ms /*uint: ms*/;
+    uint32_t expo_am_ua; /*unit: uA*/
     exposure_state_t expo_st;
+}dr_hv_st_t;
+
+typedef struct
+{
+    dr_main_dev_st_t main_dev_st;
+    dr_hv_st_t hv_st;
 }dr_device_st_pool_t;
 extern dr_device_st_pool_t g_device_st_pool;
 
 typedef void* (*pthread_func_t)(void*);
 int init_dev_st_pool_mutex();
 int destroy_dev_st_pool_mutex();
-typedef void (*update_device_status_pool_func_t)();
-void update_device_st_pool(pthread_t pth_id, update_device_status_pool_func_t func);
+typedef void (*update_device_status_pool_func_t)(void*);
+void update_device_st_pool(pthread_t pth_id, update_device_status_pool_func_t func, void* arg);
 
 int init_lcd_upd_mutex();
 int destroy_lcd_upd_mutex();
-typedef void (*update_lcd_func_t)();
-void update_lcd_display(pthread_t pth_id, update_lcd_func_t func);
+typedef void (*update_lcd_func_t)(void*);
+void update_lcd_display(pthread_t pth_id, update_lcd_func_t func, void* arg);
 
 typedef struct
 {

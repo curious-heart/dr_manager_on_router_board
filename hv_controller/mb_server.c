@@ -38,6 +38,9 @@ static int gs_mb_server_socket = -1;
 static int gs_mb_header_len = -1;
 static const char* gs_mb_server_log_header = "modbus server: ";
 
+/*This global static var should only be accessed from main loop thread.*/
+static dr_hv_st_t gs_hv_st;
+
 void mb_server_exit()
 {
     if (gs_mb_server_socket != -1)
@@ -146,21 +149,151 @@ static bool mb_server_check_func_reg_cnt(uint8_t * req_msg,
     return ret;
 }
 
-static int mb_server_process_req(uint8_t * req_msg, int req_msg_len, bool server_only)
+/*
+ * DO NOT call this function directly because it is not thread safe.
+ * Use it as a function point parameter of function update_device_st_pool.
+ */
+static void update_dev_st_pool_from_main_loop_th(void* d)
 {
+    dr_hv_st_t * hv_st = (dr_hv_st_t*)d;
+
+    g_device_st_pool.hv_st.hv_dsp_conn_st = hv_st->hv_dsp_conn_st;
+    g_device_st_pool.hv_st.expo_volt_kv = hv_st->expo_volt_kv;
+    g_device_st_pool.hv_st.expo_dura_ms = hv_st->expo_dura_ms;
+    g_device_st_pool.hv_st.expo_am_ua = hv_st->expo_am_ua;
+    g_device_st_pool.hv_st.expo_st = hv_st->expo_st;
+}
+/*
+ * DO NOT call this function directly because it is not thread safe.
+ * Use it as a function point parameter of function update_lcd_display.
+ */
+static void updata_lcd_from_main_loop_th(void* arg)
+{
+    /* TO BE COMPLETED.*/
+    /* use gs_hv_st(the arg) to update lcd display.*/
+}
+
+typedef enum
+{
+    MB_RW_REG_RET_ERROR = -1,
+    MB_RW_REG_RET_NONE = 0,
+    MB_RW_REG_RET_USE_SHORT_WAIT_TIME,
+    MB_RW_REG_RET_USE_LONG_WAIT_TIME,
+}mb_rw_reg_ret_t;
+
+static mb_rw_reg_ret_t mb_server_write_reg_sniff(uint16_t reg_addr_start,
+                                     uint16_t * data_arr, uint16_t reg_cnt)
+{
+    bool becare = false;
+    mb_rw_reg_ret_t ret = MB_RW_REG_RET_NONE; 
+
+    if(gs_hv_st.hv_dsp_conn_st != HV_DSP_CONNECTED)
+    {
+        gs_hv_st.hv_dsp_conn_st = HV_DSP_CONNECTED;
+        becare = true;
+    }
+
+    for(uint16_t idx = 0; idx < reg_cnt; ++idx)
+    {
+        switch(reg_addr_start + idx)
+        {
+            case VoltSet:     // 5,          /*5管电压设置值*/
+                gs_hv_st.expo_volt_kv = data_arr[idx];
+                becare = true;
+                break;
+
+            case FilamentSet:     // 6,      /*6 管设置值电流 （决定灯丝电流决定管电流）*/
+                gs_hv_st.expo_am_ua = data_arr[idx];
+                becare = true;
+                break;
+
+            case ExposureTime:     // 7,     /*曝光时间*/
+                gs_hv_st.expo_dura_ms = data_arr[idx];
+                becare = true;
+                break;
+
+            case ExposureStart:     // 13,   /*曝光启动*/
+                gs_hv_st.expo_st = EXPOSURE_ST_ALARM; 
+                becare = true;
+                ret = MB_RW_REG_RET_USE_SHORT_WAIT_TIME;
+                break;
+
+            case RangeIndicationStatus:
+                /*TO BE COMPLEMENTED: start/stop TOF thread.*/
+                break;
+
+            default:
+                ;
+        }
+    }
+    if(becare)
+    {
+        update_device_st_pool(pthread_self(), 
+                update_dev_st_pool_from_main_loop_th, &gs_hv_st);
+        update_lcd_display(pthread_self(), updata_lcd_from_main_loop_th, &gs_hv_st);
+    }
+
+    return ret;
+}
+
+static mb_rw_reg_ret_t mb_server_read_reg_sniff(uint16_t reg_addr_start,
+                                     uint16_t * data_arr, uint16_t reg_cnt)
+{
+    bool becare = false;
+    mb_rw_reg_ret_t ret = MB_RW_REG_RET_NONE; 
+
+    if(gs_hv_st.hv_dsp_conn_st != HV_DSP_CONNECTED)
+    {
+        gs_hv_st.hv_dsp_conn_st = HV_DSP_CONNECTED;
+        becare = true;
+    }
+
+    for(uint16_t idx = 0; idx < reg_cnt; ++idx)
+    {
+        switch(reg_addr_start + idx)
+        {
+            case ExposureStatus:    // = 11),                /*曝光状态*/
+                if(gs_hv_st.expo_st != data_arr[idx])
+                {
+                    gs_hv_st.expo_st = data_arr[idx];
+                    becare = true;
+
+                    if(EXPOSURE_ST_IDLE == gs_hv_st.expo_st)
+                    {
+                        ret = MB_RW_REG_RET_USE_LONG_WAIT_TIME;
+                    }
+                    else
+                    {
+                        ret = MB_RW_REG_RET_USE_SHORT_WAIT_TIME;
+                    }
+                }
+                break;
+
+            default:
+                break;
+        }
+    }
+    return ret;
+}
+
+static mb_rw_reg_ret_t mb_server_process_req(uint8_t * req_msg, int req_msg_len,
+                                             bool server_only)
+{
+    mb_rw_reg_ret_t process_ret = MB_RW_REG_RET_NONE; 
+    bool check_ret;
+    uint8_t func_code = 255;
+    uint16_t reg_addr_start = 0, reg_cnt = 0;
+    uint32_t exception_code;
+    int ret_len;
+
     if(NULL == req_msg)
     {
         DIY_LOG(LOG_ERROR, "%smodbus server: receive NULL msg.\n",
                 gs_mb_server_log_header );
-        return -1;
+        return MB_RW_REG_RET_ERROR;
     }
-    uint8_t func_code = 255;
-    uint16_t reg_addr_start = 0, reg_cnt = 0;
-    uint32_t exception_code;
-    bool ret;
-    int ret_len;
 
-    ret = mb_server_check_func_reg_cnt(req_msg, 
+    check_ret = mb_server_check_func_reg_cnt(req_msg, 
                                       &func_code, &reg_addr_start, &reg_cnt, &exception_code);
     DIY_LOG(LOG_INFO, "%sfunc_code:%u.\n", gs_mb_server_log_header, func_code); 
     switch(func_code)
@@ -176,18 +309,18 @@ static int mb_server_process_req(uint8_t * req_msg, int req_msg_len, bool server
             ;
     }
 
-    if(!ret)
+    if(!check_ret)
     {
         DIY_LOG(LOG_ERROR, "%sinvalid req, %u:%s\n", gs_mb_server_log_header, 
                             exception_code,
                             mb_exception_string(exception_code));
         modbus_reply_exception(gs_mb_srvr_ctx, req_msg, exception_code);
-        return -1;
+        return MB_RW_REG_RET_ERROR;
     }
 
     if(server_only)
     {
-        return 0;
+        return process_ret;
     }
 
     switch(func_code)
@@ -203,8 +336,12 @@ static int mb_server_process_req(uint8_t * req_msg, int req_msg_len, bool server
                {
                     DIY_LOG(LOG_ERROR, "%sreply error with ret_len %d, %d:%s.\n",
                         gs_mb_server_log_header, ret_len, errno, modbus_strerror(errno));
-                    return -1;
+                    return MB_RW_REG_RET_ERROR ;
                }
+               process_ret = mb_server_read_reg_sniff(reg_addr_start,
+                                        &gs_mb_mapping->tab_registers[reg_addr_start],
+                                        reg_cnt);
+
             }
             else
             {
@@ -212,7 +349,7 @@ static int mb_server_process_req(uint8_t * req_msg, int req_msg_len, bool server
                                     gs_mb_server_log_header);
                 modbus_reply_exception(gs_mb_srvr_ctx, req_msg, 
                                         MODBUS_EXCEPTION_NOT_DEFINED);
-                return -1;
+                return MB_RW_REG_RET_ERROR ;
             }
         }
         break;
@@ -229,8 +366,10 @@ static int mb_server_process_req(uint8_t * req_msg, int req_msg_len, bool server
                 {
                      DIY_LOG(LOG_ERROR, "%sreply error with ret_len %d, %d:%s.\n",
                          gs_mb_server_log_header, ret_len, errno, modbus_strerror(errno));
-                     return -1;
+                     return MB_RW_REG_RET_ERROR;
                 }
+                process_ret = mb_server_write_reg_sniff(reg_addr_start,
+                                        &gs_mb_mapping->tab_registers[reg_addr_start], 1);
             }
             else
             {
@@ -238,7 +377,7 @@ static int mb_server_process_req(uint8_t * req_msg, int req_msg_len, bool server
                                     gs_mb_server_log_header);
                 modbus_reply_exception(gs_mb_srvr_ctx, req_msg, 
                                         MODBUS_EXCEPTION_NOT_DEFINED);
-                return -1;
+                return MB_RW_REG_RET_ERROR;
             }
         }
         break;
@@ -260,8 +399,10 @@ static int mb_server_process_req(uint8_t * req_msg, int req_msg_len, bool server
                {
                     DIY_LOG(LOG_ERROR, "%sreply error with ret_len %d, %d:%s.\n",
                         gs_mb_server_log_header, ret_len, errno, modbus_strerror(errno));
-                    return -1;
+                    return MB_RW_REG_RET_ERROR;
                }
+               process_ret = mb_server_write_reg_sniff(reg_addr_start,
+                                    &gs_mb_mapping->tab_registers[reg_addr_start], reg_cnt);
             }
             else
             {
@@ -269,7 +410,7 @@ static int mb_server_process_req(uint8_t * req_msg, int req_msg_len, bool server
                                     gs_mb_server_log_header);
                 modbus_reply_exception(gs_mb_srvr_ctx, req_msg, 
                                         MODBUS_EXCEPTION_NOT_DEFINED);
-                return -1;
+                return MB_RW_REG_RET_ERROR;
             }
         }
         break;
@@ -279,11 +420,31 @@ static int mb_server_process_req(uint8_t * req_msg, int req_msg_len, bool server
                     gs_mb_server_log_header, func_code);
             modbus_reply_exception(gs_mb_srvr_ctx, req_msg, 
                     MODBUS_EXCEPTION_ILLEGAL_FUNCTION);
-            return -1;
-            ;
+            return MB_RW_REG_RET_ERROR;
     }
 
-    return 0;
+    return process_ret;
+}
+
+static mb_rw_reg_ret_t read_hv_st_from_internal()
+{
+    mb_rw_reg_ret_t process_ret = MB_RW_REG_RET_NONE; 
+    if(hv_controller_read_uint16s(ExposureStatus,
+                &gs_mb_mapping->tab_registers[ExposureStatus], 1))
+    {
+       process_ret = mb_server_read_reg_sniff(reg_addr_start,
+                                &gs_mb_mapping->tab_registers[reg_addr_start],
+                                reg_cnt);
+
+    }
+    else
+    {
+        DIY_LOG(LOG_ERROR, "%sread registers from hv_controller error.\n",
+                            gs_mb_server_log_header);
+        modbus_reply_exception(gs_mb_srvr_ctx, req_msg, 
+                                MODBUS_EXCEPTION_NOT_DEFINED);
+        return MB_RW_REG_RET_ERROR ;
+    }
 }
 
 mb_server_exit_code_t  mb_server_loop(mb_server_params_t * srvr_params, bool debug_flag, bool server_only)
@@ -298,6 +459,17 @@ mb_server_exit_code_t  mb_server_loop(mb_server_params_t * srvr_params, bool deb
     /* Maximum file descriptor number */
     int fdmax;
     uint32_t resp_timeout_ms = 500;
+    struct timeval timeout;
+    bool timeout_updated = false;
+
+    if(!srvr_params)
+    {
+        DIY_LOG(LOG_ERROR, "%smserver parameters pointer is NULL.\n");
+        return MB_SERVER_EXIT_INIT_FAIL;
+    }
+
+    timeout.tv_sec = 0;
+    timeout.tv_usec = (suseconds_t)(srvr_params->long_select_wait_time * 1000000);
 
     gs_mb_srvr_ctx = modbus_new_tcp(srvr_params->srvr_ip, srvr_params->srvr_port);
     if(NULL == gs_mb_srvr_ctx)
@@ -385,12 +557,13 @@ mb_server_exit_code_t  mb_server_loop(mb_server_params_t * srvr_params, bool deb
     for (;;) 
     {
         rdset = refset;
-        if (select(fdmax + 1, &rdset, NULL, NULL, NULL) == -1)
+        if (select(fdmax + 1, &rdset, NULL, NULL, &timeout) == -1)
         {
             DIY_LOG(LOG_ERROR, "%sServer select() failure.\n", gs_mb_server_log_header);
             /*leaving for caller to release resource.*/
             return MB_SERVER_EXIT_COMM_FATAL_ERROR;
         }
+        timeout_updated = false;
 
         /* Run through the existing connections looking for data to be read */
         for (master_socket = 0; master_socket <= fdmax; master_socket++)
@@ -445,6 +618,7 @@ mb_server_exit_code_t  mb_server_loop(mb_server_params_t * srvr_params, bool deb
             }
             else
             {
+                mb_rw_reg_ret_t process_ret;
                 int get_peer_name_ret = 0;
                 get_peer_name_ret = getpeername(master_socket,
                                                 (struct sockaddr*)&clientaddr, &addrlen);
@@ -471,7 +645,22 @@ mb_server_exit_code_t  mb_server_loop(mb_server_params_t * srvr_params, bool deb
                                clientaddr.sin_port);
                     }
 
-                    mb_server_process_req(query, rc, server_only);
+                    process_ret = mb_server_process_req(query, rc, server_only);
+                    if(MB_RW_REG_RET_USE_SHORT_WAIT_TIME == process_ret)
+                    {
+                        timeout.tv_sec = 0;
+                        timeout.tv_usec 
+                            = (suseconds_t)(srvr_params->short_select_wait_time * 1000000);
+
+                        timeout_updated = true;
+                    }
+                    else if(MB_RW_REG_RET_USE_LONG_WAIT_TIME == process_ret)
+                    {
+                        timeout.tv_sec = 0;
+                        timeout.tv_usec 
+                            = (suseconds_t)(srvr_params->long_select_wait_time * 1000000);
+                        timeout_updated = true;
+                    }
                 }
                 else if (rc == -1)
                 {
@@ -502,6 +691,11 @@ mb_server_exit_code_t  mb_server_loop(mb_server_params_t * srvr_params, bool deb
                     }
                 }
             }
+        }
+        if(!timeout_updated)
+        {
+            timeout.tv_sec = 0;
+            timeout.tv_usec = (suseconds_t)(srvr_params->long_select_wait_time * 1000000);
         }
     }
 

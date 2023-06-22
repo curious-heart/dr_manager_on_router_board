@@ -10,6 +10,8 @@
 #include "hv_registers.h"
 #include "hv_controller.h"
 #include "dr_manager.h"
+#include "get_opt_helper.h"
+#include "pthread_helper.h"
 
 static const char* gs_def_mb_rtu_serialPortName="/dev/ttyS0";
 static const int32_t gs_def_mb_rtu_serialBaudRate=9600;
@@ -188,16 +190,6 @@ static void get_mb_rtu_params(mb_rtu_params_t * rtu_params)
     }
 }
 
-const char* gs_tof_th_desc = "TOF-Measurement";
-#define PTHREAD_ERR_CHECK(s, str_h, str_m, str_t, e) \
-    if(s != 0)\
-    {\
-        DIY_LOG(LOG_ERROR, "%s", str_h);\
-        DIY_LOG(LOG_ERROR + LOG_ONLY_INFO_STR, "%s", str_m);\
-        DIY_LOG(LOG_ERROR + LOG_ONLY_INFO_STR, "%s", str_t);\
-        DIY_LOG(LOG_ERROR + LOG_ONLY_INFO_STR, " :%d.\n", s);\
-        if(e) return false;\
-    }
 static bool start_assit_thread(const char* desc, pthread_t * th_id, bool detach,
         pthread_func_t func, void* arg)
 {
@@ -302,54 +294,6 @@ static const char* gs_opt_mb_server_w_short_time_str = "mb_server_short_time";
 #define MAX_IP_ADDR_STR_SIZE 17 
 char gs_mb_rtu_dev_name[MAX_TTY_DEV_NAME_SIZE];
 char gs_mb_tcp_ip_str[MAX_IP_ADDR_STR_SIZE];
-#define TYPE_STR_OF_VAR(x) _Generic((x), \
-        char*: "char*",\
-        int: "int",\
-        uint16_t: "uint16_t",\
-        uint32_t: "uint32_t",\
-        float: "float",\
-        double: "double",\
-        default: "int")
-/* Be careful when using the following macro.
- * Improper use may leads to subtle error or memory leak (when x is of type char*).
- */
-#define CONVERT_FUNC(var, value) _Generic((var),\
-        char*: strdup(value),\
-        int: (int)atoi(value),\
-        uint16_t: (uint16_t)atoi(value),\
-        uint32_t: (uint32_t)atoi(value),\
-        float: (float)atof(value),\
-        double: (double)atof(value),\
-        default: (int)atoi(value))
-#define SHOULD_BE_NE_0(x) ((x) != 0 ? 1 : 0)
-#define SHOULD_BE_EQ_0(x) ((x) == 0 ? 1 : 0)
-#define SHOULD_BE_GT_0(x) ((x) > 0 ? 1 : 0)
-#define SHOULD_BE_GE_0(x) ((x) >= 0 ? 1 : 0)
-#define SHOULD_BE_LT_0(x) ((x) < 0 ? 1 : 0)
-#define SHOULD_BE_LE_0(x) ((x) <= 0 ? 1 : 0)
-#define OPT_CHECK_AND_DRAW(option_arr,check_str, var, value_check) \
-if(!strcmp(option_arr[longindex].name, check_str))\
-{\
-    if(optarg && optarg[0] != ':' && optarg[0] != '?')\
-    {\
-        (var) = CONVERT_FUNC(var, optarg);\
-        if(!value_check)\
-        {\
-            DIY_LOG(LOG_ERROR,\
-                    "The --%s param value %s is invalid.\n",\
-                    check_str, optarg);\
-            arg_parse_result = false;\
-        }\
-    }\
-    else\
-    {\
-        DIY_LOG(LOG_ERROR,\
-                "if option --%s are provided, an %s parameter is necessary.\n", \
-                check_str, TYPE_STR_OF_VAR(var));\
-        arg_parse_result = false;\
-    }\
-    break;\
-}
 
 int main(int argc, char *argv[])
 {
@@ -477,15 +421,22 @@ int main(int argc, char *argv[])
                     printf("%s\n", APP_VER_STR);
                     return 0;
                 }
-                OPT_CHECK_AND_DRAW(l_opt_arr, gs_opt_dev_monitor_th_period_str,
-                        dev_monitor_th_parm.sch_period, 
-                        SHOULD_BE_GT_0(dev_monitor_th_parm.sch_period));
-                OPT_CHECK_AND_DRAW(l_opt_arr, gs_opt_mb_server_w_long_time_str,
-                        srvr_params.long_select_wait_time, 
-                        SHOULD_BE_GT_0(srvr_params.long_select_wait_time));
-                OPT_CHECK_AND_DRAW(l_opt_arr, gs_opt_mb_server_w_short_time_str,
+                OPT_CHECK_AND_DRAW(l_opt_arr, 
+                        gs_opt_dev_monitor_th_period_str, dev_monitor_th_parm.sch_period, 
+                        SHOULD_BE_GT_0(dev_monitor_th_parm.sch_period),
+                        CONVERT_FUNC_ATOF(dev_monitor_th_parm.sch_period, optarg),
+                        type_float);
+                OPT_CHECK_AND_DRAW(l_opt_arr, 
+                        gs_opt_mb_server_w_long_time_str, srvr_params.long_select_wait_time, 
+                        SHOULD_BE_GT_0(srvr_params.long_select_wait_time),
+                        CONVERT_FUNC_ATOF(srvr_params.long_select_wait_time, optarg),
+                        type_float);
+                OPT_CHECK_AND_DRAW(l_opt_arr,
+                        gs_opt_mb_server_w_short_time_str,
                         srvr_params.short_select_wait_time,
-                        SHOULD_BE_GT_0(srvr_params.short_select_wait_time));
+                        SHOULD_BE_GT_0(srvr_params.short_select_wait_time),
+                        CONVERT_FUNC_ATOF(srvr_params.short_select_wait_time, optarg),
+                        type_float);
                 break;
 
             default:
