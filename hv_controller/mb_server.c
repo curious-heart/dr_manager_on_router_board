@@ -286,8 +286,7 @@ static int mb_server_process_req(uint8_t * req_msg, int req_msg_len, bool server
     return 0;
 }
 
-mb_server_exit_code_t  mb_server_loop(const char* srv_ip, uint16_t srv_port, bool debug_flag,
-        bool server_only)
+mb_server_exit_code_t  mb_server_loop(mb_server_params_t * srvr_params, bool debug_flag, bool server_only)
 {
     uint8_t query[MODBUS_TCP_MAX_ADU_LENGTH];
     int master_socket;
@@ -300,7 +299,7 @@ mb_server_exit_code_t  mb_server_loop(const char* srv_ip, uint16_t srv_port, boo
     int fdmax;
     uint32_t resp_timeout_ms = 500;
 
-    gs_mb_srvr_ctx = modbus_new_tcp(srv_ip, srv_port);
+    gs_mb_srvr_ctx = modbus_new_tcp(srvr_params->srvr_ip, srvr_params->srvr_port);
     if(NULL == gs_mb_srvr_ctx)
     {
         DIY_LOG(LOG_ERROR, "%smodbus_new_tcp error: %d: %s.\n",
@@ -373,7 +372,7 @@ mb_server_exit_code_t  mb_server_loop(const char* srv_ip, uint16_t srv_port, boo
     }
     DIY_LOG(LOG_INFO + LOG_ONLY_INFO_STR, "\n\n");
     DIY_LOG(LOG_INFO, "%smodbus server listenning on %s:%d, socket fd: %d...\n",
-            gs_mb_server_log_header, srv_ip, srv_port, gs_mb_server_socket);
+            gs_mb_server_log_header, srvr_params->srvr_ip, srvr_params->srvr_port, gs_mb_server_socket);
 
     /* Clear the reference set of socket */
     FD_ZERO(&refset);

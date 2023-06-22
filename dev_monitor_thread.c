@@ -6,7 +6,7 @@
 
 const char* g_dev_monitor_th_desc = "Device-State-Monitor";
 
-uint32_t gs_dev_sch_period = DEV_MONITOR_DEF_PERIOD;
+float gs_dev_sch_period = DEV_MONITOR_DEF_PERIOD;
 dr_device_st_pool_t g_device_st_pool;
 static pthread_mutex_t gs_dev_st_pool_mutex, gs_lcd_upd_mutex;
 
@@ -55,7 +55,7 @@ void* dev_monitor_thread_func(void* arg)
         gs_dev_sch_period = parm->sch_period;
     }
 
-    DIY_LOG(LOG_INFO, "%s therad starts, with sch period %d seconds!\n", 
+    DIY_LOG(LOG_INFO, "%s therad starts, with sch period %f seconds!\n", 
             g_dev_monitor_th_desc, gs_dev_sch_period);
     while(true)
     {
@@ -69,7 +69,7 @@ void* dev_monitor_thread_func(void* arg)
         update_device_st_pool(pthread_self(), update_dev_st_pool_from_monitor_th);
         update_lcd_display(pthread_self(), updata_lcd_from_monitor_th);
 
-        sleep(gs_dev_sch_period);
+        usleep(gs_dev_sch_period * 1000000);
     }
     return NULL;
 }

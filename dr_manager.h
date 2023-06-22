@@ -87,7 +87,7 @@ void update_lcd_display(pthread_t pth_id, update_lcd_func_t func);
 
 typedef struct
 {
-    uint32_t sch_period;
+    float sch_period;
 }dev_monitor_th_parm_t;
 extern const char* g_dev_monitor_th_desc;
 void* dev_monitor_thread_func(void* arg);

@@ -22,6 +22,7 @@ static const int32_t gs_def_mb_rtu_serverAddress=1;
 
 static const char* gs_local_loop_ip = "0.0.0.0";
 static const uint16_t gs_def_mb_srvr_port = 502;
+static const float gs_mb_srvr_long_wait_time = 10, gs_mb_srvr_short_wait_time = 0.5;
 
 static void mb_reg_only_write(hv_mb_reg_e_t reg_addr)
 {
@@ -153,8 +154,7 @@ static void rtu_master_test(mb_rtu_params_t* rtu_params )
     hv_controller_close();
 }
 
-static void print_modbus_params(mb_rtu_params_t * rtu_params,
-        const char* ip_addr, uint16_t tcp_port)
+static void print_modbus_params(mb_rtu_params_t * rtu_params, mb_server_params_t * srvr_params)
 {
     DIY_LOG(LOG_INFO, "++++++++++++++++++++\nRTU info:\nserialPortName: %s\n",
             rtu_params->serialPortName);
@@ -169,7 +169,7 @@ static void print_modbus_params(mb_rtu_params_t * rtu_params,
     DIY_LOG(LOG_INFO + LOG_ONLY_INFO_STR,
             "====================\nTCP server info:\n"
             "ip address: %s\ntcp port: %u\n--------------------\n",
-            ip_addr, tcp_port);
+            srvr_params->srvr_ip, srvr_params->srvr_port);
 }
 
 static void get_mb_rtu_params(mb_rtu_params_t * rtu_params)
@@ -189,14 +189,14 @@ static void get_mb_rtu_params(mb_rtu_params_t * rtu_params)
 }
 
 const char* gs_tof_th_desc = "TOF-Measurement";
-#define PTHREAD_ERR_CHECK(s, str_h, str_m, str_t) \
+#define PTHREAD_ERR_CHECK(s, str_h, str_m, str_t, e) \
     if(s != 0)\
     {\
         DIY_LOG(LOG_ERROR, "%s", str_h);\
         DIY_LOG(LOG_ERROR + LOG_ONLY_INFO_STR, "%s", str_m);\
         DIY_LOG(LOG_ERROR + LOG_ONLY_INFO_STR, "%s", str_t);\
         DIY_LOG(LOG_ERROR + LOG_ONLY_INFO_STR, " :%d.\n", s);\
-        return false;\
+        if(e) return false;\
     }
 static bool start_assit_thread(const char* desc, pthread_t * th_id, bool detach,
         pthread_func_t func, void* arg)
@@ -210,19 +210,19 @@ static bool start_assit_thread(const char* desc, pthread_t * th_id, bool detach,
 
 
     s = pthread_attr_init(&attr);
-    PTHREAD_ERR_CHECK(s, "init pthread attribute for ", desc, " fails");
+    PTHREAD_ERR_CHECK(s, "init pthread attribute for ", desc, " fails", true);
 
     if(detach)
     {
         s = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-        PTHREAD_ERR_CHECK(s, "Set thread detach state for ", desc, " fails");
+        PTHREAD_ERR_CHECK(s, "Set thread detach state for ", desc, " fails", true);
     }
 
     s = pthread_create(&l_th_id, &attr, func, arg);
-    PTHREAD_ERR_CHECK(s, "Create thread ", desc, " failes");
+    PTHREAD_ERR_CHECK(s, "Create thread ", desc, " failes", true);
 
     s= pthread_attr_destroy(&attr);
-    PTHREAD_ERR_CHECK(s, "Destory attr for ", desc, " failes");
+    PTHREAD_ERR_CHECK(s, "Destory attr for ", desc, " failes", true);
 
     if(th_id) *th_id = l_th_id;
 
@@ -234,10 +234,15 @@ static bool start_assit_thread(const char* desc, pthread_t * th_id, bool detach,
 static bool clear_threads()
 {
     int s;
+    bool ret = true;
     s = destroy_dev_st_pool_mutex();
+    PTHREAD_ERR_CHECK(s, "destory_dev_st_pool_mutex", "", " failes", false);
+    ret = ret && s;
     s = destroy_lcd_upd_mutex();
+    PTHREAD_ERR_CHECK(s, "destory_lcd_upd_mutex", "", " failes", false);
+    ret = ret && s;
 
-    return true;
+    return ret;
 }
 
 static void clear_for_exit()
@@ -291,10 +296,61 @@ static const char* gs_opt_tcp_server_only_str = "tcp_server_only";
 #define gs_opt_tcp_server_only_c 's'
 static const char* gs_opt_version_str = "version";
 static const char* gs_opt_dev_monitor_th_period_str = "dev_monitor_p";
+static const char* gs_opt_mb_server_w_long_time_str = "mb_server_long_time";
+static const char* gs_opt_mb_server_w_short_time_str = "mb_server_short_time";
 #define MAX_TTY_DEV_NAME_SIZE 17 
 #define MAX_IP_ADDR_STR_SIZE 17 
 char gs_mb_rtu_dev_name[MAX_TTY_DEV_NAME_SIZE];
 char gs_mb_tcp_ip_str[MAX_IP_ADDR_STR_SIZE];
+#define TYPE_STR_OF_VAR(x) _Generic((x), \
+        char*: "char*",\
+        int: "int",\
+        uint16_t: "uint16_t",\
+        uint32_t: "uint32_t",\
+        float: "float",\
+        double: "double",\
+        default: "int")
+/* Be careful when using the following macro.
+ * Improper use may leads to subtle error or memory leak (when x is of type char*).
+ */
+#define CONVERT_FUNC(var, value) _Generic((var),\
+        char*: strdup(value),\
+        int: (int)atoi(value),\
+        uint16_t: (uint16_t)atoi(value),\
+        uint32_t: (uint32_t)atoi(value),\
+        float: (float)atof(value),\
+        double: (double)atof(value),\
+        default: (int)atoi(value))
+#define SHOULD_BE_NE_0(x) ((x) != 0 ? 1 : 0)
+#define SHOULD_BE_EQ_0(x) ((x) == 0 ? 1 : 0)
+#define SHOULD_BE_GT_0(x) ((x) > 0 ? 1 : 0)
+#define SHOULD_BE_GE_0(x) ((x) >= 0 ? 1 : 0)
+#define SHOULD_BE_LT_0(x) ((x) < 0 ? 1 : 0)
+#define SHOULD_BE_LE_0(x) ((x) <= 0 ? 1 : 0)
+#define OPT_CHECK_AND_DRAW(option_arr,check_str, var, value_check) \
+if(!strcmp(option_arr[longindex].name, check_str))\
+{\
+    if(optarg && optarg[0] != ':' && optarg[0] != '?')\
+    {\
+        (var) = CONVERT_FUNC(var, optarg);\
+        if(!value_check)\
+        {\
+            DIY_LOG(LOG_ERROR,\
+                    "The --%s param value %s is invalid.\n",\
+                    check_str, optarg);\
+            arg_parse_result = false;\
+        }\
+    }\
+    else\
+    {\
+        DIY_LOG(LOG_ERROR,\
+                "if option --%s are provided, an %s parameter is necessary.\n", \
+                check_str, TYPE_STR_OF_VAR(var));\
+        arg_parse_result = false;\
+    }\
+    break;\
+}
+
 int main(int argc, char *argv[])
 {
     /*should be consistent with usage string in print_usage function.*/
@@ -311,6 +367,8 @@ int main(int argc, char *argv[])
         {gs_opt_help_str, no_argument, 0, gs_opt_help_c}, 
         {gs_opt_version_str, no_argument, 0, 0}, 
         {gs_opt_dev_monitor_th_period_str , required_argument, 0, 0}, 
+        {gs_opt_mb_server_w_long_time_str, required_argument, 0, 0}, 
+        {gs_opt_mb_server_w_short_time_str , required_argument, 0, 0}, 
         {0, 0, 0, 0},
     };
     int opt_c;
@@ -320,8 +378,8 @@ int main(int argc, char *argv[])
     int longindex;
 
     mb_rtu_params_t rtu_params;
-    const char* srvr_ip = gs_local_loop_ip;
-    uint16_t srvr_port = gs_def_mb_srvr_port;
+    mb_server_params_t srvr_params
+        = {gs_local_loop_ip, gs_def_mb_srvr_port, gs_mb_srvr_long_wait_time, gs_mb_srvr_short_wait_time};
     bool mb_tcp_debug_flag = false;
     struct in_addr srvr_ip_in_addr;
     mb_server_exit_code_t mb_server_ret;
@@ -362,7 +420,7 @@ int main(int argc, char *argv[])
                     }
                     else
                     {
-                        srvr_ip = gs_mb_tcp_ip_str;
+                        srvr_params.srvr_ip = gs_mb_tcp_ip_str;
                     }
                 }
                 else
@@ -376,8 +434,8 @@ int main(int argc, char *argv[])
             case (int)gs_opt_port_c:
                 if(optarg && optarg[0] != ':' && optarg[0] != '?')
                 {
-                    srvr_port = (uint16_t)atoi(optarg);
-                    if(0 == srvr_port)
+                    srvr_params.srvr_port = (uint16_t)atoi(optarg);
+                    if(0 == srvr_params.srvr_port)
                     {
                         DIY_LOG(LOG_ERROR, "The modbus server port %s is invalid.\n", optarg);
                         arg_parse_result = false;
@@ -385,7 +443,9 @@ int main(int argc, char *argv[])
                 }
                 else
                 {
-                    DIY_LOG(LOG_ERROR, "if option -%c or --%s are provided, modbus server port is necessary.\n", 
+                    DIY_LOG(LOG_ERROR,
+                            "if option -%c or --%s are provided,"
+                            "modbus server port is necessary.\n", 
                             gs_opt_port_c, gs_opt_port_str);
                     arg_parse_result = false;
                 }
@@ -417,28 +477,15 @@ int main(int argc, char *argv[])
                     printf("%s\n", APP_VER_STR);
                     return 0;
                 }
-                else if(!strcmp(l_opt_arr[longindex].name, gs_opt_dev_monitor_th_period_str))
-                {
-                    if(optarg && optarg[0] != ':' && optarg[0] != '?')
-                    {
-                        dev_monitor_th_parm.sch_period = (uint32_t)atoi(optarg);
-                        if(0 == dev_monitor_th_parm.sch_period)
-                        {
-                            DIY_LOG(LOG_ERROR,
-                                    "The --%s param value %s (%s thread period in int second)"                                     "is invalid.\n",
-                                    gs_opt_dev_monitor_th_period_str, optarg, 
-                                    g_dev_monitor_th_desc);
-                            arg_parse_result = false;
-                        }
-                    }
-                    else
-                    {
-                        DIY_LOG(LOG_ERROR,
-                                "if option --%s are provided, an int peroid is necessary.\n", 
-                                gs_opt_dev_monitor_th_period_str);
-                        arg_parse_result = false;
-                    }
-                }
+                OPT_CHECK_AND_DRAW(l_opt_arr, gs_opt_dev_monitor_th_period_str,
+                        dev_monitor_th_parm.sch_period, 
+                        SHOULD_BE_GT_0(dev_monitor_th_parm.sch_period));
+                OPT_CHECK_AND_DRAW(l_opt_arr, gs_opt_mb_server_w_long_time_str,
+                        srvr_params.long_select_wait_time, 
+                        SHOULD_BE_GT_0(srvr_params.long_select_wait_time));
+                OPT_CHECK_AND_DRAW(l_opt_arr, gs_opt_mb_server_w_short_time_str,
+                        srvr_params.short_select_wait_time,
+                        SHOULD_BE_GT_0(srvr_params.short_select_wait_time));
                 break;
 
             default:
@@ -451,7 +498,7 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-    print_modbus_params(&rtu_params, srvr_ip, srvr_port);
+    print_modbus_params(&rtu_params, &srvr_params);
 
     if(!start_assit_thread(g_dev_monitor_th_desc, &dev_monitor_th_id, 
             true, dev_monitor_thread_func, &dev_monitor_th_parm))
@@ -485,7 +532,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    mb_server_ret = mb_server_loop(srvr_ip, srvr_port, mb_tcp_debug_flag, server_only);
+    mb_server_ret = mb_server_loop(&srvr_params, mb_tcp_debug_flag, server_only);
     switch(mb_server_ret)
     {
         case MB_SERVER_EXIT_INIT_FAIL:
