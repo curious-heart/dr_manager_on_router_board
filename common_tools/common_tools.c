@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <time.h>
 
 #include "common_tools.h"
 
@@ -96,4 +95,9 @@ char choose_read_or_write()
         }
     }
     return op;
+}
+
+bool check_time_out_of_curr_time(time_t last_point, time_t time_out)
+{
+    return (time(NULL) - last_point >= time_out);
 }

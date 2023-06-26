@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <time.h>
 
 #define ROUNDUP_UINT16_TO_10(x) ((unsigned short)(((unsigned short)(((x) + 5) / 10)) * 10))
 #define ARRAY_ITEM_CNT(a) sizeof(a)/sizeof((a)[0])
@@ -25,5 +26,5 @@ bool get_datetime_str(char* buf, int len);
  * */
 char choose_read_or_write();
 
-
+bool check_time_out_of_curr_time(time_t last_point, time_t time_out);
 #endif // COMMON_TOOL_FUNC_H

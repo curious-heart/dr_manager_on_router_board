@@ -25,7 +25,6 @@ static void update_dev_st_pool_from_monitor_th(void* d)
     dr_main_dev_st_t * main_dev_st = (dr_main_dev_st_t*)d;
 
     g_device_st_pool.main_dev_st.bat_chg_st = main_dev_st->bat_chg_st;
-    g_device_st_pool.main_dev_st.bat_lvl = main_dev_st->bat_lvl;
     g_device_st_pool.main_dev_st.wan_bear = main_dev_st->wan_bear;
     g_device_st_pool.main_dev_st.cellular_st = main_dev_st->cellular_st;
     g_device_st_pool.main_dev_st.wifi_wan_st = main_dev_st->wifi_wan_st;
@@ -41,8 +40,6 @@ static void updata_lcd_from_monitor_th(void* arg)
     /* use gs_main_dev_st (the arg) to update lcd display.*/
     DIY_LOG(LOG_INFO, "bat_chg_st: %d\n",
             gs_main_dev_st.bat_chg_st);
-    DIY_LOG(LOG_INFO + LOG_ONLY_INFO_STR, "bat_lvl: %d\n",
-            gs_main_dev_st.bat_lvl);
     DIY_LOG(LOG_INFO + LOG_ONLY_INFO_STR, "wan_bear: %d\n",
             gs_main_dev_st.wan_bear);
     DIY_LOG(LOG_INFO + LOG_ONLY_INFO_STR, "cellular_st: %d\n",
@@ -71,7 +68,6 @@ void* dev_monitor_thread_func(void* arg)
     while(true)
     {
         gs_main_dev_st.bat_chg_st = 0;
-        gs_main_dev_st.bat_lvl = (gs_main_dev_st.bat_lvl + 1) % 101;
         gs_main_dev_st.wan_bear += 1;
         gs_main_dev_st.cellular_st += 1;
         gs_main_dev_st.wifi_wan_st += 1;

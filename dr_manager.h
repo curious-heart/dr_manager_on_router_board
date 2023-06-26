@@ -61,7 +61,6 @@ typedef enum
 typedef struct
 {
     battery_chg_st_t bat_chg_st;
-    uint16_t bat_lvl;
     wwan_bear_type_t wan_bear;
     cellular_srv_st_t cellular_st;
     wifi_wan_st_t wifi_wan_st;
@@ -70,6 +69,7 @@ typedef struct
 
 typedef struct
 {
+    uint16_t bat_lvl; //for historical reason, battery level is measured by hv dsp.
     hv_dsp_conntion_state_t hv_dsp_conn_st;
     uint16_t expo_volt_kv /*uint: kV*/, expo_dura_ms /*uint: ms*/;
     uint32_t expo_am_ua; /*unit: uA*/
