@@ -221,7 +221,7 @@ int main(int argc, char *argv[])
             case (int)gs_opt_ip_addr_c:
                 if(optarg && optarg[0] != ':' && optarg[0] != '?')
                 {
-                    snprintf(gs_mb_tcp_ip_str, MAX_IP_ADDR_STR_SIZE, optarg);
+                    snprintf(gs_mb_tcp_ip_str, MAX_IP_ADDR_STR_SIZE,"%s", optarg);
                     if(0 == inet_aton(gs_mb_tcp_ip_str, &srvr_ip_in_addr))
                     {
                         DIY_LOG(LOG_ERROR,

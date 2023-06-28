@@ -675,7 +675,7 @@ static unsigned char* get_img_file_data(const char* img_file_name, int *px_wh)
         printf("get info of file %s error, errno is %d.\n", img_file_name, errno);
         return NULL;
     }
-    printf("File size: %ld\n", f_stat_buf.st_size);
+    printf("File size: %lld\n", f_stat_buf.st_size);
 
     img_f = fopen(img_file_name, "rb");
     if(NULL == img_f)

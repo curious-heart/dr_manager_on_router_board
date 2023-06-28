@@ -49,7 +49,7 @@ void end_log_thread();
                         __FILE__, __LINE__, __FUNCTION__);\
             }\
             printf("\t");\
-            printf(log_info_buf);\
+            printf("%s", log_info_buf);\
         }\
         else\
         {\

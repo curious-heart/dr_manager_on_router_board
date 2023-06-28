@@ -108,25 +108,25 @@ int destroy_lcd_upd_mutex()
  * */
 void update_device_st_pool(pthread_t pth_id, update_device_status_pool_func_t func, void* arg)
 {
-    DIY_LOG(LOG_INFO, "thread %lu try to update device status pool.\n", pth_id);
+    DIY_LOG(LOG_INFO, "thread %u try to update device status pool.\n", (uint32_t)pth_id);
     if(func)
     {
         pthread_mutex_lock(&gs_dev_st_pool_mutex);
         func(arg);
         pthread_mutex_unlock(&gs_dev_st_pool_mutex);
     }
-    DIY_LOG(LOG_INFO, "thread %lu finished updating device status pool.\n", pth_id);
+    DIY_LOG(LOG_INFO, "thread %u finished updating device status pool.\n", (uint32_t)pth_id);
 }
 
 void update_lcd_display(pthread_t pth_id, update_lcd_func_t func, void* arg)
 {
-    DIY_LOG(LOG_INFO, "thread %lu try to update lcd.\n", pth_id);
+    DIY_LOG(LOG_INFO, "thread %u try to update lcd.\n", (uint32_t)pth_id);
     if(func)
     {
         pthread_mutex_lock(&gs_lcd_upd_mutex);
         func(arg);
         pthread_mutex_unlock(&gs_lcd_upd_mutex);
     }
-    DIY_LOG(LOG_INFO, "thread %lu finished updating lcd.\n", pth_id);
+    DIY_LOG(LOG_INFO, "thread %u finished updating lcd.\n", (uint32_t)pth_id);
 }
 
