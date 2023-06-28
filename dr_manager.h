@@ -2,6 +2,7 @@
 #define _DR_MANAGER_H
 
 #include <stdint.h>
+#include <stdbool.h>
 #include <pthread.h>
 
 typedef enum
@@ -58,48 +59,70 @@ typedef enum
     HV_DSP_CONNECTED,
 }hv_dsp_conntion_state_t;
 
-typedef struct
-{
-    battery_chg_st_t bat_chg_st;
-    wwan_bear_type_t wan_bear;
-    cellular_srv_st_t cellular_st;
-    wifi_wan_st_t wifi_wan_st;
-    sim_card_st_t sim_card_st;
-}dr_main_dev_st_t;
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+/*Define device status related macros, for state record and display.*/
+#undef ST_PARAM_DEF
+#define ST_PARAM_DEF(var_t, var_n) enum_##var_n,
+#undef COLLECTION_END_FLAG
+#define COLLECTION_END_FLAG enum_st_end_flag,
+#define ST_PARAMS_COLLECTION \
+{\
+    ST_PARAM_DEF(battery_chg_st_t, bat_chg_st)\
+    ST_PARAM_DEF(wwan_bear_type_t, wan_bear)\
+    ST_PARAM_DEF(cellular_srv_st_t, cellular_st)\
+    ST_PARAM_DEF(wifi_wan_st_t, wifi_wan_st)\
+    ST_PARAM_DEF(sim_card_st_t, sim_card_st)\
+    ST_PARAM_DEF(uint16_t, bat_lvl)\
+    ST_PARAM_DEF(hv_dsp_conntion_state_t, hv_dsp_conn_st)\
+    ST_PARAM_DEF(uint16_t, expo_volt_kv) /*uint: kV*/\
+    ST_PARAM_DEF(uint16_t, expo_dura_ms) /*uint: ms*/\
+    ST_PARAM_DEF(uint32_t, expo_am_ua) /*unit: uA*/\
+    ST_PARAM_DEF(exposure_state_t, expo_st)\
+\
+    COLLECTION_END_FLAG /*this is for enum type end flag.*/\
+}
+typedef enum ST_PARAMS_COLLECTION dr_device_st_enum_t;
 
-typedef struct
-{
-    uint16_t bat_lvl; //for historical reason, battery level is measured by hv dsp.
-    hv_dsp_conntion_state_t hv_dsp_conn_st;
-    uint16_t expo_volt_kv /*uint: kV*/, expo_dura_ms /*uint: ms*/;
-    uint32_t expo_am_ua; /*unit: uA*/
-    exposure_state_t expo_st;
-}dr_hv_st_t;
-
-typedef struct
-{
-    dr_main_dev_st_t main_dev_st;
-    dr_hv_st_t hv_st;
-}dr_device_st_pool_t;
+#undef COLLECTION_END_FLAG
+#define COLLECTION_END_FLAG
+#undef ST_PARAM_DEF
+#define ST_PARAM_DEF(var_t, var_n) var_t var_n; bool var_n##_upd;
+typedef struct ST_PARAMS_COLLECTION dr_device_st_pool_t;
 extern dr_device_st_pool_t g_device_st_pool;
+
+#undef ST_PARAM_DEF
+#define ST_PARAM_DEF(var_t, var_n) var_t var_n;
+typedef struct ST_PARAMS_COLLECTION dr_device_st_local_buf_t;
+
+#define ST_PARAM_SET_UPD(var, ele, value) var.ele = value; var.ele##_upd = true
+#define ST_PARAM_CLEAR_UPD(var, ele) var.ele##_upd = false
+#undef ST_PARAM_DEF
+#define ST_PARAM_DEF(var, ele) g_device_st_pool.ele##_upd = false;
+#define ST_PARAM_CEAR_UPD_ALL ST_PARAMS_COLLECTION;
+
+
+/*------------------------------------------------------------*/
 
 typedef void* (*pthread_func_t)(void*);
 int init_dev_st_pool_mutex();
 int destroy_dev_st_pool_mutex();
 typedef void (*update_device_status_pool_func_t)(void*);
 void update_device_st_pool(pthread_t pth_id, update_device_status_pool_func_t func, void* arg);
+void copy_device_st_pool(pthread_t pth_id, dr_device_st_pool_t * buf);
 
 int init_lcd_upd_mutex();
 int destroy_lcd_upd_mutex();
 typedef void (*update_lcd_func_t)(void*);
-void update_lcd_display(pthread_t pth_id, update_lcd_func_t func, void* arg);
+void update_lcd_display(pthread_t pth_id);
 
 typedef struct
 {
     float sch_period;
 }dev_monitor_th_parm_t;
 extern const char* g_dev_monitor_th_desc;
+extern const char* g_lcd_refresh_th_desc;
 void* dev_monitor_thread_func(void* arg);
+void* lcd_refresh_func(void* arg);
 #define DEV_MONITOR_DEF_PERIOD 3
 
 #endif

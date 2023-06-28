@@ -1,5 +1,6 @@
 #include <unistd.h>
 #include <pthread.h>
+#include <string.h>
 
 #include "logger.h"
 #include "dr_manager.h"
@@ -8,10 +9,10 @@ const char* g_dev_monitor_th_desc = "Device-State-Monitor";
 
 float gs_dev_sch_period = DEV_MONITOR_DEF_PERIOD;
 dr_device_st_pool_t g_device_st_pool;
-static pthread_mutex_t gs_dev_st_pool_mutex, gs_lcd_upd_mutex;
+static pthread_mutex_t gs_dev_st_pool_mutex;
 
 /*This global static var should only be accessed from monitor thread.*/
-dr_main_dev_st_t gs_main_dev_st;
+dr_device_st_local_buf_t gs_main_dev_st;
 
 /*
  * DO NOT call this function directly because it is not thread safe.
@@ -22,32 +23,13 @@ static void update_dev_st_pool_from_monitor_th(void* d)
 {
     if(!d) return;
 
-    dr_main_dev_st_t * main_dev_st = (dr_main_dev_st_t*)d;
+    dr_device_st_local_buf_t *main_dev_st = (dr_device_st_local_buf_t*)d;
 
-    g_device_st_pool.main_dev_st.bat_chg_st = main_dev_st->bat_chg_st;
-    g_device_st_pool.main_dev_st.wan_bear = main_dev_st->wan_bear;
-    g_device_st_pool.main_dev_st.cellular_st = main_dev_st->cellular_st;
-    g_device_st_pool.main_dev_st.wifi_wan_st = main_dev_st->wifi_wan_st;
-    g_device_st_pool.main_dev_st.sim_card_st = main_dev_st->sim_card_st;
-}
-/*
- * DO NOT call this function directly because it is not thread safe.
- * Use it as a function point parameter of function update_lcd_display.
- */
-static void updata_lcd_from_monitor_th(void* arg)
-{
-    /* TO BE COMPLETED.*/
-    /* use gs_main_dev_st (the arg) to update lcd display.*/
-    DIY_LOG(LOG_INFO, "bat_chg_st: %d\n",
-            gs_main_dev_st.bat_chg_st);
-    DIY_LOG(LOG_INFO + LOG_ONLY_INFO_STR, "wan_bear: %d\n",
-            gs_main_dev_st.wan_bear);
-    DIY_LOG(LOG_INFO + LOG_ONLY_INFO_STR, "cellular_st: %d\n",
-            gs_main_dev_st.cellular_st);
-    DIY_LOG(LOG_INFO + LOG_ONLY_INFO_STR, "wifi_wan_st: %d\n",
-            gs_main_dev_st.wifi_wan_st);
-    DIY_LOG(LOG_INFO + LOG_ONLY_INFO_STR, "sim_card_st: %d\n",
-            gs_main_dev_st.sim_card_st);
+    ST_PARAM_SET_UPD(g_device_st_pool, bat_chg_st, main_dev_st->bat_chg_st);
+    ST_PARAM_SET_UPD(g_device_st_pool, wan_bear, main_dev_st->wan_bear);
+    ST_PARAM_SET_UPD(g_device_st_pool, cellular_st, main_dev_st->cellular_st);
+    ST_PARAM_SET_UPD(g_device_st_pool, wifi_wan_st, main_dev_st->wifi_wan_st);
+    ST_PARAM_SET_UPD(g_device_st_pool, sim_card_st, main_dev_st->sim_card_st);
 }
 
 void* dev_monitor_thread_func(void* arg)
@@ -75,7 +57,7 @@ void* dev_monitor_thread_func(void* arg)
 
         update_device_st_pool(pthread_self(), update_dev_st_pool_from_monitor_th,
                                               &gs_main_dev_st);
-        update_lcd_display(pthread_self(), updata_lcd_from_monitor_th, &gs_main_dev_st);
+        update_lcd_display(pthread_self());
 
         usleep(gs_dev_sch_period * 1000000);
     }
@@ -92,22 +74,11 @@ int destroy_dev_st_pool_mutex()
     return pthread_mutex_destroy(&gs_dev_st_pool_mutex);
 }
 
-int init_lcd_upd_mutex()
-{
-    return pthread_mutex_init(&gs_lcd_upd_mutex, NULL);
-}
-
-int destroy_lcd_upd_mutex()
-{
-    return pthread_mutex_destroy(&gs_lcd_upd_mutex);
-}
-
-/*In current program, g_device_st_pool is not really used. threads use their own 
- * global static var to hold state info.
- * maybe in future the global g_device_st_pool can be used.
- * */
 void update_device_st_pool(pthread_t pth_id, update_device_status_pool_func_t func, void* arg)
 {
+    /* every thread that may update device status should have its own private function to write 
+     * the global pool, and use this function to call that private funciton.
+     * */
     DIY_LOG(LOG_INFO, "thread %u try to update device status pool.\n", (uint32_t)pth_id);
     if(func)
     {
@@ -118,15 +89,16 @@ void update_device_st_pool(pthread_t pth_id, update_device_status_pool_func_t fu
     DIY_LOG(LOG_INFO, "thread %u finished updating device status pool.\n", (uint32_t)pth_id);
 }
 
-void update_lcd_display(pthread_t pth_id, update_lcd_func_t func, void* arg)
+void copy_device_st_pool(pthread_t pth_id, dr_device_st_pool_t * buf)
 {
-    DIY_LOG(LOG_INFO, "thread %u try to update lcd.\n", (uint32_t)pth_id);
-    if(func)
+    /*copy the global status pool to a local buffer.*/
+    DIY_LOG(LOG_INFO, "thread %u try to read device status pool.\n", (uint32_t)pth_id);
+    if(buf)
     {
-        pthread_mutex_lock(&gs_lcd_upd_mutex);
-        func(arg);
-        pthread_mutex_unlock(&gs_lcd_upd_mutex);
+        pthread_mutex_lock(&gs_dev_st_pool_mutex);
+        memcpy(buf, &g_device_st_pool, sizeof(dr_device_st_pool_t));
+        pthread_mutex_unlock(&gs_dev_st_pool_mutex);
     }
-    DIY_LOG(LOG_INFO, "thread %u finished updating lcd.\n", (uint32_t)pth_id);
+    DIY_LOG(LOG_INFO, "thread %u finished updating device status pool.\n", (uint32_t)pth_id);
 }
 

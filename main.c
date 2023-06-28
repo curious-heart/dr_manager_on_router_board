@@ -328,7 +328,7 @@ int main(int argc, char *argv[])
     struct in_addr srvr_ip_in_addr;
     mb_server_exit_code_t mb_server_ret;
 
-    pthread_t dev_monitor_th_id, tof_th_id;
+    pthread_t dev_monitor_th_id, lcd_refresh_th_id, tof_th_id;
     dev_monitor_th_parm_t dev_monitor_th_parm = {DEV_MONITOR_DEF_PERIOD};
 
     get_mb_rtu_params(&rtu_params);
@@ -451,11 +451,17 @@ int main(int argc, char *argv[])
 
     print_modbus_params(&rtu_params, &srvr_params);
 
+    /*start other threads. ++++++++++++++++++++++++++++++*/
     if(!start_assit_thread(g_dev_monitor_th_desc, &dev_monitor_th_id, 
             true, dev_monitor_thread_func, &dev_monitor_th_parm))
     {
         return -1;
     }
+    if(!start_assit_thread(g_lcd_refresh_th_desc, &lcd_refresh_th_id, true, lcd_refresh_func, NULL))
+    {
+        return -1;
+    }
+    /*------------------------------*/
 
     switch(work_mode)
     {

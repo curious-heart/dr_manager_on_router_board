@@ -42,7 +42,7 @@ static const char* gs_mb_server_log_header = "modbus server: ";
 static time_t gs_time_point_for_conn_check;
 
 /*This global static var should only be accessed from main loop thread.*/
-static dr_hv_st_t gs_hv_st;
+static dr_device_st_local_buf_t gs_hv_st;
 
 void mb_server_exit()
 {
@@ -158,22 +158,13 @@ static bool mb_server_check_func_reg_cnt(uint8_t * req_msg,
  */
 static void update_dev_st_pool_from_main_loop_th(void* d)
 {
-    dr_hv_st_t * hv_st = (dr_hv_st_t*)d;
+    dr_device_st_local_buf_t * hv_st = (dr_device_st_local_buf_t*)d;
 
-    g_device_st_pool.hv_st.hv_dsp_conn_st = hv_st->hv_dsp_conn_st;
-    g_device_st_pool.hv_st.expo_volt_kv = hv_st->expo_volt_kv;
-    g_device_st_pool.hv_st.expo_dura_ms = hv_st->expo_dura_ms;
-    g_device_st_pool.hv_st.expo_am_ua = hv_st->expo_am_ua;
-    g_device_st_pool.hv_st.expo_st = hv_st->expo_st;
-}
-/*
- * DO NOT call this function directly because it is not thread safe.
- * Use it as a function point parameter of function update_lcd_display.
- */
-static void updata_lcd_from_main_loop_th(void* arg)
-{
-    /* TO BE COMPLETED.*/
-    /* use gs_hv_st(the arg) to update lcd display.*/
+    ST_PARAM_SET_UPD(g_device_st_pool, hv_dsp_conn_st, hv_st->hv_dsp_conn_st);
+    ST_PARAM_SET_UPD(g_device_st_pool, expo_volt_kv, hv_st->expo_volt_kv);
+    ST_PARAM_SET_UPD(g_device_st_pool, expo_dura_ms, hv_st->expo_dura_ms);
+    ST_PARAM_SET_UPD(g_device_st_pool, expo_am_ua, hv_st->expo_am_ua);
+    ST_PARAM_SET_UPD(g_device_st_pool, expo_st, hv_st->expo_st);
 }
 
 typedef enum
@@ -234,7 +225,7 @@ static mb_rw_reg_ret_t mb_server_write_reg_sniff(uint16_t reg_addr_start,
     {
         update_device_st_pool(pthread_self(), 
                 update_dev_st_pool_from_main_loop_th, &gs_hv_st);
-        update_lcd_display(pthread_self(), updata_lcd_from_main_loop_th, &gs_hv_st);
+        update_lcd_display(pthread_self());
     }
 
     gs_time_point_for_conn_check = time(NULL);
@@ -283,7 +274,7 @@ static mb_rw_reg_ret_t mb_server_read_reg_sniff(uint16_t reg_addr_start,
     {
         update_device_st_pool(pthread_self(), 
                 update_dev_st_pool_from_main_loop_th, &gs_hv_st);
-        update_lcd_display(pthread_self(), updata_lcd_from_main_loop_th, &gs_hv_st);
+        update_lcd_display(pthread_self());
     }
 
     gs_time_point_for_conn_check = time(NULL);
@@ -362,7 +353,7 @@ static mb_rw_reg_ret_t read_hv_st_from_internal(float timeout_sec)
     {
         update_device_st_pool(pthread_self(), 
                 update_dev_st_pool_from_main_loop_th, &gs_hv_st);
-        update_lcd_display(pthread_self(), updata_lcd_from_main_loop_th, &gs_hv_st);
+        update_lcd_display(pthread_self());
     }
 
     return process_ret;

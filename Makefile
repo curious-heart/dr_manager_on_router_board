@@ -18,7 +18,7 @@ prepare:
 
 INCLUDES = $(wildcard $(addsuffix /*.h, $(INC)))
 SOURCES = $(wildcard $(addsuffix /*.c, $(SRC)))
-TCP_SRVR_TEST_SOURCES = $(wildcard $(addsuffix /*.c, $(TCP_SRVR_TEST_SRC))) dev_monitor_thread.c
+TCP_SRVR_TEST_SOURCES = $(wildcard $(addsuffix /*.c, $(TCP_SRVR_TEST_SRC))) dev_monitor_thread.c lcd_refresh_thread.c
 
 # These variables hold the name of the compilation tool, the compilation flags and the link flags
 # We make use of these variables in the package manifest
