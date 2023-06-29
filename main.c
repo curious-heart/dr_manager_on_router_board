@@ -26,6 +26,8 @@ static const char* gs_local_loop_ip = "0.0.0.0";
 static const uint16_t gs_def_mb_srvr_port = 502;
 static const float gs_mb_srvr_long_wait_time = 10, gs_mb_srvr_short_wait_time = 0.5;
 
+pthread_t gs_dev_monitor_th_id, gs_lcd_refresh_th_id, gs_tof_th_id;
+
 static void mb_reg_only_write(hv_mb_reg_e_t reg_addr)
 {
     uint32_t write_data;
@@ -227,6 +229,9 @@ static bool clear_threads()
 {
     int s;
     bool ret = true;
+    pthread_cancel(gs_dev_monitor_th_id);
+    pthread_cancel(gs_lcd_refresh_th_id);
+
     s = destroy_dev_st_pool_mutex();
     PTHREAD_ERR_CHECK(s, "destory_dev_st_pool_mutex", "", " failes", false);
     ret = ret && s;
@@ -328,7 +333,6 @@ int main(int argc, char *argv[])
     struct in_addr srvr_ip_in_addr;
     mb_server_exit_code_t mb_server_ret;
 
-    pthread_t dev_monitor_th_id, lcd_refresh_th_id, tof_th_id;
     dev_monitor_th_parm_t dev_monitor_th_parm = {DEV_MONITOR_DEF_PERIOD};
 
     get_mb_rtu_params(&rtu_params);
@@ -452,12 +456,12 @@ int main(int argc, char *argv[])
     print_modbus_params(&rtu_params, &srvr_params);
 
     /*start other threads. ++++++++++++++++++++++++++++++*/
-    if(!start_assit_thread(g_dev_monitor_th_desc, &dev_monitor_th_id, 
+    if(!start_assit_thread(g_dev_monitor_th_desc, &gs_dev_monitor_th_id, 
             true, dev_monitor_thread_func, &dev_monitor_th_parm))
     {
         return -1;
     }
-    if(!start_assit_thread(g_lcd_refresh_th_desc, &lcd_refresh_th_id, true, lcd_refresh_func, NULL))
+    if(!start_assit_thread(g_lcd_refresh_th_desc, &gs_lcd_refresh_th_id, true, lcd_refresh_thread_func, NULL))
     {
         return -1;
     }

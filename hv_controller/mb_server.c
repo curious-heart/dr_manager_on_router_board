@@ -154,7 +154,7 @@ static bool mb_server_check_func_reg_cnt(uint8_t * req_msg,
 
 /*
  * DO NOT call this function directly because it is not thread safe.
- * Use it as a function point parameter of function update_device_st_pool.
+ * Use it as a function point parameter of function access_device_st_pool.
  */
 static void update_dev_st_pool_from_main_loop_th(void* d)
 {
@@ -223,7 +223,7 @@ static mb_rw_reg_ret_t mb_server_write_reg_sniff(uint16_t reg_addr_start,
     }
     if(becare)
     {
-        update_device_st_pool(pthread_self(), 
+        access_device_st_pool(pthread_self(), 
                 update_dev_st_pool_from_main_loop_th, &gs_hv_st);
         update_lcd_display(pthread_self());
     }
@@ -272,7 +272,7 @@ static mb_rw_reg_ret_t mb_server_read_reg_sniff(uint16_t reg_addr_start,
     }
     if(becare)
     {
-        update_device_st_pool(pthread_self(), 
+        access_device_st_pool(pthread_self(), 
                 update_dev_st_pool_from_main_loop_th, &gs_hv_st);
         update_lcd_display(pthread_self());
     }
@@ -351,7 +351,7 @@ static mb_rw_reg_ret_t read_hv_st_from_internal(float timeout_sec)
 
     if(becare)
     {
-        update_device_st_pool(pthread_self(), 
+        access_device_st_pool(pthread_self(), 
                 update_dev_st_pool_from_main_loop_th, &gs_hv_st);
         update_lcd_display(pthread_self());
     }

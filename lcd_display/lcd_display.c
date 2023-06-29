@@ -188,7 +188,7 @@ static ssize_t lcd_write_io(void* buf, ssize_t cnt)
 }
 
 /*buf contains img in 2D array arrange, and the data should be consecutive.*/
-ssize_t write_img_into_col_pg_rect(uint8_t* buf, int d_col_bytes, int d_row_bytes,
+ssize_t write_img_into_col_pg_rect(const uint8_t* buf, int d_col_bytes, int d_row_bytes,
                                          int col_s, int pg_s, int col_cnt, int pg_cnt)
 {
     uint8_t w_cmd_buf[I2C_W_CMD_BUF_SIZE];
@@ -297,7 +297,7 @@ ssize_t write_img_into_col_pg_rect(uint8_t* buf, int d_col_bytes, int d_row_byte
 }
 
 /*buf contains img in 2D array arrange, and the data should be consecutive.*/
-ssize_t write_img_into_col_pg_pos(uint8_t* buf, int d_col_bytes, int d_row_bytes,
+ssize_t write_img_into_col_pg_pos(const uint8_t* buf, int d_col_bytes, int d_row_bytes,
                                          int col_s, int pg_s)
 {
     int col_cnt = DDRAM_MAX_COL_NUM - col_s;
@@ -480,7 +480,7 @@ bool close_lcd_dev()
  * img_pw_h may not be times of 8, and if so, the higer bits are ignored.
  * 
  * */
-void write_img_to_px_rect(unsigned char* img_buf, int img_px_w, int img_px_h, 
+void write_img_to_px_rect(const unsigned char* img_buf, int img_px_w, int img_px_h, 
                       int scrn_px_x, int scrn_px_y, int scrn_px_w, int scrn_px_h)
 {
     int clipped_scrn_px_w, clipped_scrn_px_h;
@@ -648,7 +648,7 @@ void write_img_to_px_rect(unsigned char* img_buf, int img_px_w, int img_px_h,
 /* This function write image at screen pos (scrn_px_x, scrn_px_y).
  * Refer to the comments of write_img_to_px_rect for the parameters and operation.
  * */
-void write_img_to_px_pos(unsigned char* img_buf, int img_px_w, int img_px_h, int scrn_px_x, int scrn_px_y)
+void write_img_to_px_pos(const unsigned char* img_buf, int img_px_w, int img_px_h, int scrn_px_x, int scrn_px_y)
 {
     int scrn_px_w = SCRN_PX_COL_NUM - scrn_px_x, scrn_px_h = SCRN_PX_ROW_NUM - scrn_px_y;
     write_img_to_px_rect(img_buf, img_px_w, img_px_h, scrn_px_x, scrn_px_y, scrn_px_w, scrn_px_h);

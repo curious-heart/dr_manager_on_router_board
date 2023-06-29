@@ -5,7 +5,7 @@ OBJ = ./obj
 
 INC = . ./common_tools ./hv_controller ./lcd_display ./tof_measure ./tof_measure/core/inc ./tof_measure/platform/inc ./mb_tcp_server_test
 SRC = . ./common_tools ./hv_controller ./lcd_display ./tof_measure ./tof_measure/core/src ./tof_measure/platform/src
-TCP_SRVR_TEST_SRC = ./mb_tcp_server_test ./common_tools ./hv_controller
+TCP_SRVR_TEST_SRC = ./mb_tcp_server_test ./common_tools ./hv_controller ./lcd_display
 
 TARGET = dr_manager
 TCP_SRVR_TEST_TARGET = mb_tcp_test_client
@@ -62,4 +62,5 @@ $(TCP_SRVR_TEST_TARGET): $(TCP_SRVR_TEST_OBJECTS)
 .PHONY: prepare clean
  
 clean:
-	rm -f $(TARGET) $(TCP_SRVR_TEST_TARGET) $(OBJ)/*.o  
+	rm -f $(TARGET) $(TCP_SRVR_TEST_TARGET)
+	rm -rf $(OBJ)  

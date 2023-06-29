@@ -1,4 +1,5 @@
 #include <unistd.h>
+#include <errno.h>
 #include <pthread.h>
 #include <string.h>
 
@@ -6,9 +7,9 @@
 #include "dr_manager.h"
 
 const char* g_dev_monitor_th_desc = "Device-State-Monitor";
-
-float gs_dev_sch_period = DEV_MONITOR_DEF_PERIOD;
 dr_device_st_pool_t g_device_st_pool;
+
+static float gs_dev_sch_period = DEV_MONITOR_DEF_PERIOD;
 static pthread_mutex_t gs_dev_st_pool_mutex;
 
 /*This global static var should only be accessed from monitor thread.*/
@@ -16,7 +17,7 @@ dr_device_st_local_buf_t gs_main_dev_st;
 
 /*
  * DO NOT call this function directly because it is not thread safe.
- * Use it as a function point parameter of function update_device_st_pool.
+ * Use it as a function point parameter of function access_device_st_pool.
  */
 
 static void update_dev_st_pool_from_monitor_th(void* d)
@@ -55,7 +56,7 @@ void* dev_monitor_thread_func(void* arg)
         gs_main_dev_st.wifi_wan_st += 1;
         gs_main_dev_st.sim_card_st += 1;
 
-        update_device_st_pool(pthread_self(), update_dev_st_pool_from_monitor_th,
+        access_device_st_pool(pthread_self(), update_dev_st_pool_from_monitor_th,
                                               &gs_main_dev_st);
         update_lcd_display(pthread_self());
 
@@ -66,7 +67,11 @@ void* dev_monitor_thread_func(void* arg)
 
 int init_dev_st_pool_mutex()
 {
-    return pthread_mutex_init(&gs_dev_st_pool_mutex, NULL);
+    pthread_mutexattr_t attr;
+
+    pthread_mutexattr_init(&attr);
+    pthread_mutexattr_setrobust(&attr, PTHREAD_MUTEX_ROBUST);
+    return pthread_mutex_init(&gs_dev_st_pool_mutex, &attr);
 }
 
 int destroy_dev_st_pool_mutex()
@@ -74,7 +79,7 @@ int destroy_dev_st_pool_mutex()
     return pthread_mutex_destroy(&gs_dev_st_pool_mutex);
 }
 
-void update_device_st_pool(pthread_t pth_id, update_device_status_pool_func_t func, void* arg)
+void access_device_st_pool(pthread_t pth_id, access_device_status_pool_func_t func, void* arg)
 {
     /* every thread that may update device status should have its own private function to write 
      * the global pool, and use this function to call that private funciton.
@@ -82,21 +87,13 @@ void update_device_st_pool(pthread_t pth_id, update_device_status_pool_func_t fu
     DIY_LOG(LOG_INFO, "thread %u try to update device status pool.\n", (uint32_t)pth_id);
     if(func)
     {
-        pthread_mutex_lock(&gs_dev_st_pool_mutex);
+        int ret;
+        ret = pthread_mutex_lock(&gs_dev_st_pool_mutex);
+        if(EOWNERDEAD == ret)
+        {
+            pthread_mutex_consistent(&gs_dev_st_pool_mutex);
+        }
         func(arg);
-        pthread_mutex_unlock(&gs_dev_st_pool_mutex);
-    }
-    DIY_LOG(LOG_INFO, "thread %u finished updating device status pool.\n", (uint32_t)pth_id);
-}
-
-void copy_device_st_pool(pthread_t pth_id, dr_device_st_pool_t * buf)
-{
-    /*copy the global status pool to a local buffer.*/
-    DIY_LOG(LOG_INFO, "thread %u try to read device status pool.\n", (uint32_t)pth_id);
-    if(buf)
-    {
-        pthread_mutex_lock(&gs_dev_st_pool_mutex);
-        memcpy(buf, &g_device_st_pool, sizeof(dr_device_st_pool_t));
         pthread_mutex_unlock(&gs_dev_st_pool_mutex);
     }
     DIY_LOG(LOG_INFO, "thread %u finished updating device status pool.\n", (uint32_t)pth_id);
