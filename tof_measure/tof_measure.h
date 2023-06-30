@@ -4,7 +4,7 @@
 #define TOF_CONTI_MEAS_MIN_COUNT 1
 #define TOF_CONTI_MEAS_MAX_COUNT 5000 
 #define TOF_CONTI_MEAS_MIN_INTERVAL 0.1
-#define TOF_CONTI_MEAS_MAX_INTERVAL 3
+#define TOF_CONTI_MEAS_MAX_INTERVAL 10.0
 
 int tof_open();
 int tof_close();

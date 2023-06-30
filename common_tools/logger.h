@@ -15,6 +15,7 @@ enum LOG_LEVEL {
     LOG_ONLY_INFO_STR = 0x80,
     LOG_ONLY_INFO_STR_COMP = 0x90,
 };
+extern enum LOG_LEVEL g_APP_LOG_LEVEL;
 
 extern const char* g_log_level_str[];
 
@@ -38,7 +39,7 @@ void end_log_thread();
         only_info_str = true;\
         v_level -= LOG_ONLY_INFO_STR;\
     }\
-    if(v_level >= APP_LOG_LEVEL)\
+    if(v_level >= g_APP_LOG_LEVEL)\
     {\
         char log_info_buf[MAX_LOG_INFO_STR_LEN + 1];\
         char date_time_str[DATE_STRING_LEN + 1 + TIME_STRING_SEC_LEN + 1];\

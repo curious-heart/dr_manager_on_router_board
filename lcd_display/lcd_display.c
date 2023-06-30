@@ -15,6 +15,8 @@ I2C接口
 #include <linux/i2c-dev.h>
 #include <errno.h>
 #include <stdbool.h>
+
+#include "logger.h"
 #include "common_tools.h"
 
 #include "lcd_display.h"
@@ -158,11 +160,11 @@ static ssize_t lcd_read_io(void* buf, ssize_t cnt)
         read_ret = read(lcd_fd, buf, cnt);
         if(read_ret < 0)
         {
-            printf("read error, errno %d, read %d\n", errno, read_ret);
+            DIY_LOG(LOG_ERROR, "read error, errno %d, read %d\n", errno, read_ret);
         }
         if(0 == read_ret)
         {
-            printf("read 0 bytes!\n");
+            DIY_LOG(LOG_WARN, "read 0 bytes!\n");
         }
 
     }
@@ -177,11 +179,11 @@ static ssize_t lcd_write_io(void* buf, ssize_t cnt)
         write_ret = write(lcd_fd, buf, cnt);
         if(write_ret < 0)
         {
-            printf("write errno: %d. written: %d\n", errno, write_ret);
+            DIY_LOG(LOG_ERROR, "write errno: %d. written: %d\n", errno, write_ret);
         }
         if(0 == write_ret)
         {
-            printf("write 0 bytes!\n");
+            DIY_LOG(LOG_WARN, "write 0 bytes!\n");
         }
     }
     return write_ret;
@@ -203,21 +205,21 @@ ssize_t write_img_into_col_pg_rect(const uint8_t* buf, int d_col_bytes, int d_ro
     ssize_t actual_written_data;
     ddram_rw_case_t rw_type;
 
-    printf("write_img_into_col_pg_rect:\n");
-    printf("d_col_bytes %d, d_row_bytes %d, col_s %d, pg_s %d, col_cnt %d, pg_cnt %d\n",
+    DIY_LOG(LOG_DEBUG, "write_img_into_col_pg_rect:\n");
+    DIY_LOG(LOG_DEBUG, "d_col_bytes %d, d_row_bytes %d, col_s %d, pg_s %d, col_cnt %d, pg_cnt %d\n",
            d_col_bytes, d_row_bytes, col_s, pg_s, col_cnt, pg_cnt);
 
     if(!clip_col_pg_rect(col_s, pg_s, col_cnt, pg_cnt, &clipped_col_cnt, &clipped_pg_cnt)
             || d_col_bytes < 0 || d_row_bytes < 0)
     {
-        printf("Invalid pos and size parameters!\n");
+        DIY_LOG(LOG_ERROR, "Invalid pos and size parameters!\n");
         return 0;
     }
-    printf("clipped_col_cnt: %d; clipped_pg_cnt: %d\n", clipped_col_cnt, clipped_pg_cnt);
+    DIY_LOG(LOG_DEBUG, "clipped_col_cnt: %d; clipped_pg_cnt: %d\n", clipped_col_cnt, clipped_pg_cnt);
 
     area_col_cnt = MIN(d_col_bytes, clipped_col_cnt);
     area_pg_cnt = MIN(d_row_bytes, clipped_pg_cnt);
-    printf("area_col_cnt: %d, area_pg_cnt: %d\n", area_col_cnt, area_pg_cnt);
+    DIY_LOG(LOG_DEBUG, "area_col_cnt: %d, area_pg_cnt: %d\n", area_col_cnt, area_pg_cnt);
     remained_bytes = area_col_cnt * area_pg_cnt;
     pg_ptr = pg_s; col_ptr = col_s;
     while(remained_bytes > 0)
@@ -257,7 +259,7 @@ ssize_t write_img_into_col_pg_rect(const uint8_t* buf, int d_col_bytes, int d_ro
             w_idx += this_cycle_col_cnt;
         }
         /*
-        printf("lcd_address: col_s %d, pg_s %d, col_cnt %d, pg_cnt %d.\n",
+        DIY_LOG(LOG_DEBUG, "lcd_address: col_s %d, pg_s %d, col_cnt %d, pg_cnt %d.\n",
                 col_ptr, pg_ptr, this_cycle_col_cnt, this_cycle_pg_cnt);
         print_bytes_arr(w_cmd_buf, w_idx, 16);
         */
@@ -270,7 +272,7 @@ ssize_t write_img_into_col_pg_rect(const uint8_t* buf, int d_col_bytes, int d_ro
         actual_written_data = write_ret - I2C_CMD_WITH_PARM_PREFIX_LEN;
         if(actual_written_data <= 0)
         {
-            printf("Written data bytes fail...\n");
+            DIY_LOG(LOG_ERROR, "Written data bytes fail...\n");
             break;
         }
         switch(rw_type)
@@ -303,7 +305,7 @@ ssize_t write_img_into_col_pg_pos(const uint8_t* buf, int d_col_bytes, int d_row
     int col_cnt = DDRAM_MAX_COL_NUM - col_s;
     int pg_cnt = DDRAM_MAX_PAGE_NUM - pg_s;
 
-    printf("write_img_into_col_pg_pos: d_col_bytes %d, d_row_bytes %d, col_s %d, pg_s %d\n",
+    DIY_LOG(LOG_DEBUG, "write_img_into_col_pg_pos: d_col_bytes %d, d_row_bytes %d, col_s %d, pg_s %d\n",
            d_col_bytes, d_row_bytes,  col_s, pg_s);
     return write_img_into_col_pg_rect(buf, d_col_bytes, d_row_bytes,
             col_s, pg_s, col_cnt, pg_cnt);
@@ -336,7 +338,7 @@ static ssize_t transfer_command_lcd(uint8_t cmd, uint8_t* parm, ssize_t parm_len
 static void initial_lcd()
 {
     uint8_t cmd_parm[I2C_NON_RW_CMD_PARM_MAX_LEN];
-    printf("enter initial...\n");
+    DIY_LOG(LOG_DEBUG, "enter initial...\n");
 
     ssize_t parm_len;
     transfer_command_lcd(0x30, NULL, 0); //EXT=0
@@ -400,10 +402,10 @@ static void initial_lcd()
     cmd_parm[0] = 0x0B;//D0=regulator ; D1=follower ; D3=booste, on:1 off:0
     transfer_command_lcd(0x20, cmd_parm, 1); //Power Control
     
-    printf("Open display.\n");
+    DIY_LOG(LOG_DEBUG, "Open display.\n");
     transfer_command_lcd(0xAF, NULL, 0);//打开显示
                                //
-    printf("intialization finished.\n");
+    DIY_LOG(LOG_INFO, "LCD intialization finished.\n");
 }
 
 /*写 LCD 行列地址：X 为起始的列地址，Y 为起始的行地址，x_total,y_total 分别为列地址及行地址的起点到终点的差值 */
@@ -423,7 +425,7 @@ static void lcd_address(int x,int y,int x_total,int y_total)
 /*清屏*/
 void clear_screen()
 {
-    printf("Clear screen.\n");
+    DIY_LOG(LOG_DEBUG, "Clear screen.\n");
     memset(gs_local_frame_buf, 0, sizeof(gs_local_frame_buf));
     write_img_into_col_pg_pos(gs_local_frame_buf, DDRAM_MAX_COL_NUM, DDRAM_MAX_PAGE_NUM, 0, 0);
 }
@@ -435,21 +437,21 @@ bool open_lcd_dev()
     lcd_fd = open("/dev/i2c-0", O_RDWR);
     if(lcd_fd < 0)
     {
-        printf("open i2c-0 error. errno: %d\n", errno);
+        DIY_LOG(LOG_ERROR, "open i2c-0 error. errno: %d\n", errno);
         return false;
     }
 
     ret = ioctl(lcd_fd, I2C_SLAVE, LCD_I2C_ADDR);
     if(0 != ret)
     {
-        printf("ioctl set lcd address error, ret %d, errno: %d\n", ret, errno);
+        DIY_LOG(LOG_ERROR, "ioctl set lcd address error, ret %d, errno: %d\n", ret, errno);
         close_lcd_dev();
         lcd_fd = -1;
         return false;
     }
     
     //对液晶模块进行初始化设置
-    printf("initial_lcd\n");
+    DIY_LOG(LOG_DEBUG, "initial_lcd\n");
     initial_lcd();
     return true;
 }
@@ -459,7 +461,7 @@ bool close_lcd_dev()
     int ret = close(lcd_fd);
     if(0 != ret)
     {
-        printf("close_lcd_dev error: %d\n", ret);
+        DIY_LOG(LOG_ERROR, "close_lcd_dev error: %d\n", ret);
         return false;
     }
     else
@@ -495,21 +497,21 @@ void write_img_to_px_rect(const unsigned char* img_buf, int img_px_w, int img_px
     }
     area_px_w = MIN(img_px_w, clipped_scrn_px_w);
     area_px_h = MIN(img_px_h, clipped_scrn_px_h);
-    printf("img_px_w: %d, img_px_h: %d, scrn_px_x: %d, scrn_px_y: %d, scrn_px_w: %d, scrn_px_h: %d\n",
+    DIY_LOG(LOG_DEBUG, "img_px_w: %d, img_px_h: %d, scrn_px_x: %d, scrn_px_y: %d, scrn_px_w: %d, scrn_px_h: %d\n",
             img_px_w, img_px_h, scrn_px_x, scrn_px_y, scrn_px_w, scrn_px_h);
-    printf("area_px_w: %d, area_px_h: %d\n", area_px_w, area_px_h);
+    DIY_LOG(LOG_DEBUG, "area_px_w: %d, area_px_h: %d\n", area_px_w, area_px_h);
 
     /*Write image into local frame buffer.*/
     fb_col_s = scrn_px_x;
     fb_col_len = area_px_w;
     fb_pg_s = (int)floor(scrn_px_y / 8.0);
     fb_pg_len = (int)ceil((scrn_px_y + area_px_h) / 8.0) - fb_pg_s;
-    printf("fb_col_s: %d, fb_pg_s: %d, fb_col_len: %d, fb_pg_len: %d\n",
+    DIY_LOG(LOG_DEBUG, "fb_col_s: %d, fb_pg_s: %d, fb_col_len: %d, fb_pg_len: %d\n",
           fb_col_s, fb_pg_s, fb_col_len, fb_pg_len);
 
     int img_pg_len = (int)ceil(area_px_h / 8.0);
     int img_pg_idx, img_col_idx = 0;
-    printf("img_pg_len: %d\n", img_pg_len);
+    DIY_LOG(LOG_DEBUG, "img_pg_len: %d\n", img_pg_len);
 
     int fb_pg_idx = fb_pg_s, fb_col_idx = fb_col_s;
     int fb_px_y = scrn_px_y;
@@ -618,14 +620,14 @@ void write_img_to_px_rect(const unsigned char* img_buf, int img_px_w, int img_px
         }
     }
 
-    printf("gs_local_frame_buf updted!\n");
+    DIY_LOG(LOG_DEBUG, "gs_local_frame_buf updted!\n");
 
     /*Collect the updated bytes in local frame buffer into a consecutive buffer.*/
     int to_ddram_bytes_num = fb_col_len * fb_pg_len;
     uint8_t* to_ddram_buf = malloc(to_ddram_bytes_num);
     if(!to_ddram_buf)
     {
-        printf("malloc error!\n");
+        DIY_LOG(LOG_ERROR, "malloc error!\n");
         return;
     }
     fb_pg_idx = fb_pg_s;
@@ -672,32 +674,33 @@ static unsigned char* get_img_file_data(const char* img_file_name, int *px_wh)
     f_ret = stat(img_file_name, &f_stat_buf);
     if(f_ret < 0)
     {
-        printf("get info of file %s error, errno is %d.\n", img_file_name, errno);
+        DIY_LOG(LOG_ERROR, "get info of file %s error, errno is %d.\n", img_file_name, errno);
         return NULL;
     }
-    printf("File size: %lld\n", f_stat_buf.st_size);
+    DIY_LOG(LOG_DEBUG, "File size: %lld\n", f_stat_buf.st_size);
 
     img_f = fopen(img_file_name, "rb");
     if(NULL == img_f)
     {
-        printf("Open file %s error.\n", img_file_name);
+        DIY_LOG(LOG_ERROR, "Open file %s error.\n", img_file_name);
         return NULL;
     }
     fread_cnt = fread(l_px_wh, sizeof(l_px_wh[0]), ARRAY_ITEM_CNT(l_px_wh), img_f);
     if(fread_cnt < ARRAY_ITEM_CNT(l_px_wh))
     {
-        printf("fread file %s width-height error, %d.\n", img_file_name, fread_cnt);
+        DIY_LOG(LOG_ERROR, "fread file %s width-height error, %u.\n", img_file_name, fread_cnt);
         fclose(img_f);
         return NULL;
     }
-    printf("img width and height (in pixel): %d, %d\n", l_px_wh[0], l_px_wh[1]);
+    DIY_LOG(LOG_DEBUG, "img width and height (in pixel): %d, %d\n", l_px_wh[0], l_px_wh[1]);
 
     img_data_len = f_stat_buf.st_size - sizeof(l_px_wh);
     if(((int)ceil(l_px_wh[1] / 8.0)) * l_px_wh[0] != img_data_len)
     {
-        printf("File size invalid: img width and height does not match the size indicators at the first two int of the file.\n");
-        printf("should-be len: %d\n",((int)ceil(l_px_wh[1] / 8.0)) * l_px_wh[0]);
-        printf("img_data_len: %d\n", img_data_len);
+        DIY_LOG(LOG_ERROR, 
+            "File size invalid: img width and height does not match the size indicators at the first two int of the file.\n");
+        DIY_LOG(LOG_ERROR + LOG_ONLY_INFO_STR, "should-be len: %d\n",((int)ceil(l_px_wh[1] / 8.0)) * l_px_wh[0]);
+        DIY_LOG(LOG_ERROR + LOG_ONLY_INFO_STR, "img_data_len: %u\n", img_data_len);
         fclose(img_f);
         return NULL;
     }
@@ -705,16 +708,15 @@ static unsigned char* get_img_file_data(const char* img_file_name, int *px_wh)
     img_data = malloc(img_data_len);
     if(NULL == img_data)
     {
-        printf("malloc error for file %s, size %u + %u.\n",
-                img_file_name, sizeof(l_px_wh),  img_data_len); 
+        DIY_LOG(LOG_ERROR, "malloc error for file %s, size %u + %u.\n", img_file_name, sizeof(l_px_wh),  img_data_len); 
         fclose(img_f);
         return NULL;
     }
     fread_cnt = fread(img_data, 1, img_data_len, img_f);
-    printf("read image data %d bytes.\n", fread_cnt);
+    DIY_LOG(LOG_DEBUG, "read image data %u bytes.\n", fread_cnt);
     if(fread_cnt != img_data_len)
     {
-        printf("read image data error.\n");
+        DIY_LOG(LOG_ERROR, "read image data error.\n");
         free(img_data);
         fclose(img_f);
         return NULL;

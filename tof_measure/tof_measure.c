@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <unistd.h>
 
+#include "logger.h"
 #include "tof_measure.h"
 
 
@@ -12,7 +13,7 @@ static void print_pal_error(VL53L0X_Error Status)
 {
     char buf[VL53L0X_MAX_STRING_LENGTH];
     VL53L0X_GetPalErrorString(Status, buf);
-    printf("API Status: %i : %s\n", Status, buf);
+    DIY_LOG(LOG_DEBUG, "API Status: %i : %s\n", Status, buf);
 }
 
 static void print_range_status(VL53L0X_RangingMeasurementData_t* pRangingMeasurementData)
@@ -27,7 +28,7 @@ static void print_range_status(VL53L0X_RangingMeasurementData_t* pRangingMeasure
     RangeStatus = pRangingMeasurementData->RangeStatus;
 
     VL53L0X_GetRangeStatusString(RangeStatus, buf);
-    printf("Range Status: %i : %s\n", RangeStatus, buf);
+    DIY_LOG(LOG_DEBUG, "Range Status: %i : %s\n", RangeStatus, buf);
 
 }
 
@@ -103,7 +104,7 @@ static VL53L0X_Error tof_measure_prepare()
 
     if(Status == VL53L0X_ERROR_NONE)
     {
-        printf ("Call of VL53L0X_StaticInit\n");
+        DIY_LOG(LOG_DEBUG, "Call of VL53L0X_StaticInit\n");
         Status = VL53L0X_StaticInit(pMyDevice); // Device Initialization
         // StaticInit will set interrupt by default
         print_pal_error(Status);
@@ -111,7 +112,7 @@ static VL53L0X_Error tof_measure_prepare()
     
     if(Status == VL53L0X_ERROR_NONE)
     {
-        printf ("Call of VL53L0X_PerformRefCalibration\n");
+        DIY_LOG(LOG_DEBUG, "Call of VL53L0X_PerformRefCalibration\n");
         Status = VL53L0X_PerformRefCalibration(pMyDevice,
         		&VhvSettings, &PhaseCal); // Device Initialization
         print_pal_error(Status);
@@ -119,7 +120,7 @@ static VL53L0X_Error tof_measure_prepare()
 
     if(Status == VL53L0X_ERROR_NONE)
     {
-        printf ("Call of VL53L0X_PerformRefSpadManagement\n");
+        DIY_LOG(LOG_DEBUG, "Call of VL53L0X_PerformRefSpadManagement\n");
         Status = VL53L0X_PerformRefSpadManagement(pMyDevice,
         		&refSpadCount, &isApertureSpads); // Device Initialization
         print_pal_error(Status);
@@ -146,7 +147,7 @@ int tof_open()
     Status = VL53L0X_i2c_init(gs_i2c_dev_name, gs_i2c_tof_8b_addr);
     if (Status != VL53L0X_ERROR_NONE) 
     {
-        printf("i2c init error.\n");
+        DIY_LOG(LOG_ERROR, "i2c init error.\n");
         return -1;
     }
 
@@ -173,14 +174,14 @@ int tof_open()
 
     if(Status == VL53L0X_ERROR_NONE)
     {
-        printf("VL53L0X API Version: Your firmware has %d.%d.%d (revision %d)",
+        DIY_LOG(LOG_DEBUG, "VL53L0X API Version: Your firmware has %d.%d.%d (revision %d)",
                 pVersion->major, pVersion->minor, pVersion->build, pVersion->revision);
     }
 
     // End of implementation specific
     if(Status == VL53L0X_ERROR_NONE)
     {
-        printf ("Call of VL53L0X_DataInit\n");
+        DIY_LOG(LOG_DEBUG, "Call of VL53L0X_DataInit\n");
         Status = VL53L0X_DataInit(pMyDevice); // Data initialization
         print_pal_error(Status);
     }
@@ -191,18 +192,18 @@ int tof_open()
     }
     if(Status == VL53L0X_ERROR_NONE)
     {
-        printf("VL53L0X_GetDeviceInfo:\n");
-        printf("Device Name : %s\n", DeviceInfo.Name);
-        printf("Device Type : %s\n", DeviceInfo.Type);
-        printf("Device ID : %s\n", DeviceInfo.ProductId);
-        printf("ProductRevisionMajor : %d\n", DeviceInfo.ProductRevisionMajor);
-        printf("ProductRevisionMinor : %d\n", DeviceInfo.ProductRevisionMinor);
+        DIY_LOG(LOG_DEBUG, "VL53L0X_GetDeviceInfo:\n");
+        DIY_LOG(LOG_DEBUG + LOG_ONLY_INFO_STR_COMP, "Device Name : %s\n", DeviceInfo.Name);
+        DIY_LOG(LOG_DEBUG + LOG_ONLY_INFO_STR_COMP, "Device Type : %s\n", DeviceInfo.Type);
+        DIY_LOG(LOG_DEBUG + LOG_ONLY_INFO_STR_COMP, "Device ID : %s\n", DeviceInfo.ProductId);
+        DIY_LOG(LOG_DEBUG + LOG_ONLY_INFO_STR_COMP, "ProductRevisionMajor : %d\n", DeviceInfo.ProductRevisionMajor);
+        DIY_LOG(LOG_DEBUG + LOG_ONLY_INFO_STR_COMP, "ProductRevisionMinor : %d\n", DeviceInfo.ProductRevisionMinor);
     }
     
     Status = tof_measure_prepare();
     if(Status != VL53L0X_ERROR_NONE)
     {
-        printf("tof measure prepare error.\n");
+        DIY_LOG(LOG_ERROR, "tof measure prepare error.\n");
     }
 
     return Status;
@@ -242,14 +243,14 @@ int tof_continuous_measure(unsigned short* result_buf, int count, float interval
     if(interval < TOF_CONTI_MEAS_MIN_INTERVAL) interval = TOF_CONTI_MEAS_MIN_INTERVAL;
     if(interval > TOF_CONTI_MEAS_MAX_INTERVAL) interval = TOF_CONTI_MEAS_MAX_INTERVAL;
 
-    printf("tof continuous measure, count %d, interval %.02f seconds.\n",
+    DIY_LOG(LOG_DEBUG, "tof continuous measure, count %d, interval %.02f seconds.\n",
             count, interval);
 
     /*
     Status = tof_measure_prepare();
     if(Status != VL53L0X_ERROR_NONE)
     {
-        printf("tof measure prepare error.\n");
+        DIY_LOG(LOG_ERROR, "tof measure prepare error.\n");
         return measure_cnt;
     }
     */
@@ -285,7 +286,7 @@ int tof_continuous_measure(unsigned short* result_buf, int count, float interval
                     *(result_buf + measure_cnt) = pRangingMeasurementData->RangeMilliMeter;
                 }
 
-                printf("%d: %d\n", print_cnt++, pRangingMeasurementData->RangeMilliMeter);
+                DIY_LOG(LOG_DEBUG, "%d: %d\n", print_cnt++, pRangingMeasurementData->RangeMilliMeter);
                 // Clear the interrupt
                 VL53L0X_ClearInterruptMask(pMyDevice, VL53L0X_REG_SYSTEM_INTERRUPT_GPIO_NEW_SAMPLE_READY);
                 VL53L0X_PollingDelay(pMyDevice);
@@ -339,7 +340,7 @@ unsigned short tof_single_measure()
     Status = tof_measure_prepare();
     if(Status != VL53L0X_ERROR_NONE)
     {
-        printf("tof measure prepare error.\n");
+        DIY_LOG(LOG_ERROR, "tof measure prepare error.\n");
         return measure_ret;
     }
     */
@@ -382,7 +383,7 @@ unsigned short tof_single_measure()
         Status = VL53L0X_PerformSingleRangingMeasurement(pMyDevice,
                 &RangingMeasurementData);
 
-        printf("Single Ranging Measurement Finished.\n");
+        DIY_LOG(LOG_DEBUG, "Single Ranging Measurement Finished.\n");
 
 
         print_pal_error(Status);
@@ -391,7 +392,7 @@ unsigned short tof_single_measure()
         VL53L0X_GetLimitCheckCurrent(pMyDevice,
                 VL53L0X_CHECKENABLE_RANGE_IGNORE_THRESHOLD, &LimitCheckCurrent);
 
-        printf("RANGE IGNORE THRESHOLD: %f\n\n", (float)LimitCheckCurrent/65536.0);
+        DIY_LOG(LOG_DEBUG, "RANGE IGNORE THRESHOLD: %f\n\n", (float)LimitCheckCurrent/65536.0);
 
         if (Status == VL53L0X_ERROR_NONE) 
         {

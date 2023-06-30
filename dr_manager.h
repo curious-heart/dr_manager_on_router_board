@@ -110,12 +110,12 @@ typedef struct
 {
     float sch_period;
 }dev_monitor_th_parm_t;
+void* dev_monitor_thread_func(void* arg);
 extern const char* g_dev_monitor_th_desc;
-void* lcd_refresh_thread_func(void* arg);
 #define DEV_MONITOR_DEF_PERIOD 3
 
+void* lcd_refresh_thread_func(void* arg);
 extern const char* g_lcd_refresh_th_desc;
-void* dev_monitor_thread_func(void* arg);
 
 typedef struct
 {

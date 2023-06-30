@@ -1,5 +1,5 @@
 # Global target; when 'make' is run without arguments, this is what it should do
-APP_LOG_LEVEL=0 #0-DEBUG, 1-INFO, 2-WARN, 3-ERROR. refer to logger.h.
+#APP_LOG_LEVEL=0 #0-DEBUG, 1-INFO, 2-WARN, 3-ERROR. refer to logger.h.
 
 OBJ = ./obj
 
@@ -22,7 +22,7 @@ TCP_SRVR_TEST_SOURCES = ./mb_tcp_server_test/mb_tcp_server_test.c ./hv_controlle
 # These variables hold the name of the compilation tool, the compilation flags and the link flags
 # We make use of these variables in the package manifest
 CC = gcc
-override CFLAGS += -Wall $(addprefix -I, $(INC)) -DAPP_LOG_LEVEL=$(APP_LOG_LEVEL) -pthread
+override CFLAGS += -Wall $(addprefix -I, $(INC)) -pthread
 override LDLIBS += -lm -lmodbus -pthread
  
 DEPS = $(INCLUDES)

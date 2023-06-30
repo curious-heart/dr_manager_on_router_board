@@ -24,11 +24,12 @@
 #include <sys/socket.h>
 #endif
 
+#include "common_tools.h"
 #include "logger.h"
+#include "pthread_helper.h"
 #include "hv_registers.h"
 #include "hv_controller.h"
 #include "dr_manager.h"
-#include "common_tools.h"
 
 extern float g_tof_measure_period; 
 
@@ -180,6 +181,35 @@ typedef enum
     MB_RW_REG_RET_USE_LONG_WAIT_TIME,
 }mb_rw_reg_ret_t;
 
+void check_and_start_tof_th()
+{
+    if(gs_tof_th_started)
+    {
+        DIY_LOG(LOG_WARN, "%s thread has already been started!\n", gs_tof_th_desc);
+    }
+    else
+    {
+        if(start_assit_thread(gs_tof_th_desc, &gs_tof_th_id, true,
+                tof_thread_func, &g_tof_measure_period))
+        {
+            gs_tof_th_started = true;
+        }
+    }
+}
+
+void check_and_cancel_tof_th()
+{
+    if(!gs_tof_th_started)
+    {
+        DIY_LOG(LOG_WARN, "%s thread has not been started.\n", gs_tof_th_desc);
+    }
+    else
+    {
+        cancel_assit_thread(&gs_tof_th_id);
+        gs_tof_th_started = false;
+    }
+}
+
 static mb_rw_reg_ret_t mb_server_write_reg_sniff(uint16_t reg_addr_start,
                                      uint16_t * data_arr, uint16_t reg_cnt)
 {
@@ -221,30 +251,11 @@ static mb_rw_reg_ret_t mb_server_write_reg_sniff(uint16_t reg_addr_start,
             case RangeIndicationStart:
                 if(data_arr[idx]) //turn on range indicator
                 {
-                    if(gs_tof_th_started)
-                    {
-                        DIY_LOG(LOG_WARN, "%s thread has already been started!\n", gs_tof_th_desc);
-                    }
-                    else
-                    {
-                        if(start_assit_thread(gs_tof_th_desc, &gs_tof_th_id, true,
-                                tof_thread_func, &g_tof_measure_period))
-                        {
-                            gs_tof_th_started = true;
-                        }
-                    }
+                    check_and_start_tof_th();
                 }
                 else //turn off range indicator
                 {
-                    if(!gs_tof_th_started)
-                    {
-                        DIY_LOG(LOG_WARN, "%s thread has not been started.\n", gs_tof_th_desc);
-                    }
-                    else
-                    {
-                        cancel_assit_thread(&gs_tof_th_id);
-                        gs_tof_th_started = false;
-                    }
+                    check_and_cancel_tof_th();
                 }
                 break;
 

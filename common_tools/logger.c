@@ -2,6 +2,7 @@
 #include "version_def.h"
 
 
+enum LOG_LEVEL g_APP_LOG_LEVEL = LOG_INFO; //0-DEBUG, 1-INFO, 2-WARN, 3-ERROR. refer to logger.h.
 const char* g_log_level_str[] =
 {
     "LOG_DEBUG",
