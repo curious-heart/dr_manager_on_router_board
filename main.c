@@ -12,6 +12,7 @@
 #include "dr_manager.h"
 #include "get_opt_helper.h"
 #include "pthread_helper.h"
+#include "tof_measure.h"
 
 static const char* gs_def_mb_rtu_serialPortName="/dev/ttyS0";
 static const int32_t gs_def_mb_rtu_serialBaudRate=9600;
@@ -25,8 +26,10 @@ static const int32_t gs_def_mb_rtu_serverAddress=1;
 static const char* gs_local_loop_ip = "0.0.0.0";
 static const uint16_t gs_def_mb_srvr_port = 502;
 static const float gs_mb_srvr_long_wait_time = 10, gs_mb_srvr_short_wait_time = 0.5;
+float g_tof_measure_period = TOF_MEASUREMENT_DEF_PERIOD; 
+const char* g_main_thread_desc = "Main-thread";
 
-pthread_t gs_dev_monitor_th_id, gs_lcd_refresh_th_id, gs_tof_th_id;
+static pthread_t gs_dev_monitor_th_id, gs_lcd_refresh_th_id;
 
 static void mb_reg_only_write(hv_mb_reg_e_t reg_addr)
 {
@@ -192,38 +195,6 @@ static void get_mb_rtu_params(mb_rtu_params_t * rtu_params)
     }
 }
 
-static bool start_assit_thread(const char* desc, pthread_t * th_id, bool detach,
-        pthread_func_t func, void* arg)
-{
-    int s;
-    pthread_attr_t attr;
-    pthread_t l_th_id;
-
-    init_dev_st_pool_mutex();
-    init_lcd_upd_mutex();
-
-
-    s = pthread_attr_init(&attr);
-    PTHREAD_ERR_CHECK(s, "init pthread attribute for ", desc, " fails", true);
-
-    if(detach)
-    {
-        s = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-        PTHREAD_ERR_CHECK(s, "Set thread detach state for ", desc, " fails", true);
-    }
-
-    s = pthread_create(&l_th_id, &attr, func, arg);
-    PTHREAD_ERR_CHECK(s, "Create thread ", desc, " failes", true);
-
-    s= pthread_attr_destroy(&attr);
-    PTHREAD_ERR_CHECK(s, "Destory attr for ", desc, " failes", true);
-
-    if(th_id) *th_id = l_th_id;
-
-    DIY_LOG(LOG_INFO, "%s thread created successfully, the id is %u.\n",
-            desc, (uint32_t)l_th_id);
-    return true;
-}
 
 static bool clear_threads()
 {
@@ -254,6 +225,12 @@ static void close_sigint(int dummy)
     DIY_LOG(LOG_INFO, "SIGINT received, now exit...\n");
     clear_for_exit();
     exit(dummy);
+}
+
+static void init_thread_syncs()
+{
+    init_dev_st_pool_mutex();
+    init_lcd_upd_mutex();
 }
 
 static void print_usage()
@@ -295,6 +272,7 @@ static const char* gs_opt_version_str = "version";
 static const char* gs_opt_dev_monitor_th_period_str = "dev_monitor_p";
 static const char* gs_opt_mb_server_w_long_time_str = "mb_server_long_time";
 static const char* gs_opt_mb_server_w_short_time_str = "mb_server_short_time";
+static const char* gs_opt_tof_measure_period_str = "tof_measure_period";
 #define MAX_TTY_DEV_NAME_SIZE 17 
 #define MAX_IP_ADDR_STR_SIZE 17 
 char gs_mb_rtu_dev_name[MAX_TTY_DEV_NAME_SIZE];
@@ -315,9 +293,10 @@ int main(int argc, char *argv[])
         {gs_opt_tcp_server_only_str, no_argument, 0, gs_opt_tcp_server_only_c}, 
         {gs_opt_help_str, no_argument, 0, gs_opt_help_c}, 
         {gs_opt_version_str, no_argument, 0, 0}, 
-        {gs_opt_dev_monitor_th_period_str , required_argument, 0, 0}, 
+        {gs_opt_dev_monitor_th_period_str, required_argument, 0, 0}, 
         {gs_opt_mb_server_w_long_time_str, required_argument, 0, 0}, 
-        {gs_opt_mb_server_w_short_time_str , required_argument, 0, 0}, 
+        {gs_opt_mb_server_w_short_time_str, required_argument, 0, 0}, 
+        {gs_opt_tof_measure_period_str, required_argument, 0, 0}, 
         {0, 0, 0, 0},
     };
     int opt_c;
@@ -441,6 +420,12 @@ int main(int argc, char *argv[])
                         SHOULD_BE_GT_0(srvr_params.short_select_wait_time),
                         CONVERT_FUNC_ATOF(srvr_params.short_select_wait_time, optarg),
                         type_float);
+                OPT_CHECK_AND_DRAW(l_opt_arr,
+                        gs_opt_tof_measure_period_str,
+                        g_tof_measure_period, 
+                        SHOULD_BE_IN_INCLUDED(g_tof_measure_period, TOF_CONTI_MEAS_MIN_INTERVAL, TOF_CONTI_MEAS_MAX_INTERVAL),
+                        CONVERT_FUNC_ATOF(g_tof_measure_period, optarg),
+                        type_float);
                 break;
 
             default:
@@ -455,6 +440,8 @@ int main(int argc, char *argv[])
 
     print_modbus_params(&rtu_params, &srvr_params);
 
+    /*Init necessary mutexes or other elements for synchronization.*/
+    init_thread_syncs();
     /*start other threads. ++++++++++++++++++++++++++++++*/
     if(!start_assit_thread(g_dev_monitor_th_desc, &gs_dev_monitor_th_id, 
             true, dev_monitor_thread_func, &dev_monitor_th_parm))

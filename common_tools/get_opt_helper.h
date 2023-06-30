@@ -24,6 +24,8 @@ extern const char* type_id_str_arr[];
 #define SHOULD_BE_GE_0(x) ((x) >= 0 ? 1 : 0)
 #define SHOULD_BE_LT_0(x) ((x) < 0 ? 1 : 0)
 #define SHOULD_BE_LE_0(x) ((x) <= 0 ? 1 : 0)
+#define SHOULD_BE_IN_INCLUDED(x, l, r) (((l) <= (x)) && ((x) <= (r)) ? 1 : 0)
+#define SHOULD_BE_IN_EXCLUDED(x, l, r) ((l) < (x)) && ((x) < (r)) ? 1 : 0
 
 /* Be careful when using the following macro CONVERT_FUNC.
  * Improper use may leads to subtle error or memory leak (when x is of type char*).

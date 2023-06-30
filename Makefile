@@ -5,7 +5,6 @@ OBJ = ./obj
 
 INC = . ./common_tools ./hv_controller ./lcd_display ./tof_measure ./tof_measure/core/inc ./tof_measure/platform/inc ./mb_tcp_server_test
 SRC = . ./common_tools ./hv_controller ./lcd_display ./tof_measure ./tof_measure/core/src ./tof_measure/platform/src
-TCP_SRVR_TEST_SRC = ./mb_tcp_server_test ./common_tools ./hv_controller ./lcd_display
 
 TARGET = dr_manager
 TCP_SRVR_TEST_TARGET = mb_tcp_test_client
@@ -18,7 +17,7 @@ prepare:
 
 INCLUDES = $(wildcard $(addsuffix /*.h, $(INC)))
 SOURCES = $(wildcard $(addsuffix /*.c, $(SRC)))
-TCP_SRVR_TEST_SOURCES = $(wildcard $(addsuffix /*.c, $(TCP_SRVR_TEST_SRC))) dev_monitor_thread.c lcd_refresh_thread.c
+TCP_SRVR_TEST_SOURCES = ./mb_tcp_server_test/mb_tcp_server_test.c ./hv_controller/hv_controller.c ./common_tools/logger.c ./common_tools/get_opt_helper.c ./common_tools/common_tools.c
 
 # These variables hold the name of the compilation tool, the compilation flags and the link flags
 # We make use of these variables in the package manifest

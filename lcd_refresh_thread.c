@@ -8,6 +8,14 @@
 #include "lcd_display.h"
 
 
+/* WHEN you want to add/modify LCD display elements, check the following things:
+ * 1) ST_PARAMS_COLLECTION macro definition in dr_manager.h.
+ * 2) COLLECTION_END_FLAG macro definition for dr_device_st_enum_t type definition in this file.
+ * 3) gs_lcd_areas array in this file.
+ * 4) gs_write_info_to_lcd_func_list struct in this file.
+ *
+ */
+
 static pthread_mutex_t gs_lcd_upd_mutex;
 static pthread_cond_t gs_lcd_refresh_cond = PTHREAD_COND_INITIALIZER;
 static dr_device_st_pool_t gs_device_st_pool_of_lcd;
@@ -221,7 +229,8 @@ void* lcd_refresh_thread_func(void* arg)
 
         pthread_cond_wait(&gs_lcd_refresh_cond, &gs_lcd_upd_mutex);
 
-        access_device_st_pool(pthread_self(), access_g_st_pool_from_lcd_refresh_th, &gs_device_st_pool_of_lcd);
+        access_device_st_pool(pthread_self(), g_lcd_refresh_th_desc, access_g_st_pool_from_lcd_refresh_th,
+                &gs_device_st_pool_of_lcd);
 
         pthread_mutex_unlock(&gs_lcd_upd_mutex);
 
@@ -257,10 +266,17 @@ int destroy_lcd_upd_mutex()
     return ret;
 }
 
-void update_lcd_display(pthread_t pth_id)
+void update_lcd_display(pthread_t pth_id, const char* desc)
 {
     int ret;
-    DIY_LOG(LOG_INFO, "thread %u try to update lcd, send signal to %s thread.\n", (uint32_t)pth_id, g_lcd_refresh_th_desc);
+
+    DIY_LOG(LOG_INFO, "thread %u ", (uint32_t)pth_id);
+    if(desc)
+    {
+        DIY_LOG(LOG_INFO + LOG_ONLY_INFO_STR_COMP, "%s ", desc);
+    }
+    DIY_LOG(LOG_INFO + LOG_ONLY_INFO_STR_COMP, "try to update lcd.\n");
+
     ret = pthread_mutex_lock(&gs_lcd_upd_mutex);
     if(EOWNERDEAD == ret)
     {
@@ -270,6 +286,12 @@ void update_lcd_display(pthread_t pth_id)
     pthread_cond_signal(&gs_lcd_refresh_cond);
 
     pthread_mutex_unlock(&gs_lcd_upd_mutex);
-    DIY_LOG(LOG_INFO, "thread %u finished sending signal to %s thread.\n", (uint32_t)pth_id, g_lcd_refresh_th_desc);
+
+    DIY_LOG(LOG_INFO, "thread %u ", (uint32_t)pth_id);
+    if(desc)
+    {
+        DIY_LOG(LOG_INFO + LOG_ONLY_INFO_STR_COMP, "%s ", desc);
+    }
+    DIY_LOG(LOG_INFO + LOG_ONLY_INFO_STR_COMP, "finished updating lcd.\n");
 }
 

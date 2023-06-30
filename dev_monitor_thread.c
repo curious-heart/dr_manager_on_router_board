@@ -56,9 +56,9 @@ void* dev_monitor_thread_func(void* arg)
         gs_main_dev_st.wifi_wan_st += 1;
         gs_main_dev_st.sim_card_st += 1;
 
-        access_device_st_pool(pthread_self(), update_dev_st_pool_from_monitor_th,
+        access_device_st_pool(pthread_self(), g_dev_monitor_th_desc, update_dev_st_pool_from_monitor_th,
                                               &gs_main_dev_st);
-        update_lcd_display(pthread_self());
+        update_lcd_display(pthread_self(), g_dev_monitor_th_desc);
 
         usleep(gs_dev_sch_period * 1000000);
     }
@@ -79,12 +79,18 @@ int destroy_dev_st_pool_mutex()
     return pthread_mutex_destroy(&gs_dev_st_pool_mutex);
 }
 
-void access_device_st_pool(pthread_t pth_id, access_device_status_pool_func_t func, void* arg)
+void access_device_st_pool(pthread_t pth_id, const char* desc, access_device_status_pool_func_t func, void* arg)
 {
     /* every thread that may update device status should have its own private function to write 
      * the global pool, and use this function to call that private funciton.
      * */
-    DIY_LOG(LOG_INFO, "thread %u try to update device status pool.\n", (uint32_t)pth_id);
+    DIY_LOG(LOG_INFO, "thread %u ", (uint32_t)pth_id);
+    if(desc)
+    {
+        DIY_LOG(LOG_INFO + LOG_ONLY_INFO_STR_COMP, "%s ", desc);
+    }
+    DIY_LOG(LOG_INFO + LOG_ONLY_INFO_STR_COMP, "try to update device status pool.\n");
+
     if(func)
     {
         int ret;
@@ -96,6 +102,12 @@ void access_device_st_pool(pthread_t pth_id, access_device_status_pool_func_t fu
         func(arg);
         pthread_mutex_unlock(&gs_dev_st_pool_mutex);
     }
-    DIY_LOG(LOG_INFO, "thread %u finished updating device status pool.\n", (uint32_t)pth_id);
+
+    DIY_LOG(LOG_INFO, "thread %u ", (uint32_t)pth_id);
+    if(desc)
+    {
+        DIY_LOG(LOG_INFO + LOG_ONLY_INFO_STR_COMP, "%s ", desc);
+    }
+    DIY_LOG(LOG_INFO + LOG_ONLY_INFO_STR_COMP, "finished updating device status pool.\n");
 }
 

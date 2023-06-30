@@ -91,27 +91,38 @@ typedef struct ST_PARAMS_COLLECTION dr_device_st_local_buf_t;
 #define ST_PARAM_SET_UPD(var, ele, value) var.ele = value; var.ele##_upd = true
 #define ST_PARAM_CLEAR_UPD(var, ele) var.ele##_upd = false
 /*------------------------------------------------------------*/
-extern dr_device_st_pool_t g_device_st_pool;
 
-typedef void* (*pthread_func_t)(void*);
+extern dr_device_st_pool_t g_device_st_pool;
+extern const char* g_main_thread_desc;
+
+
 int init_dev_st_pool_mutex();
 int destroy_dev_st_pool_mutex();
 typedef void (*access_device_status_pool_func_t)(void*);
-void access_device_st_pool(pthread_t pth_id, access_device_status_pool_func_t func, void* arg);
+void access_device_st_pool(pthread_t pth_id, const char* desc, access_device_status_pool_func_t func, void* arg);
 
 int init_lcd_upd_mutex();
 int destroy_lcd_upd_mutex();
 typedef void (*update_lcd_func_t)(void*);
-void update_lcd_display(pthread_t pth_id);
+void update_lcd_display(pthread_t pth_id, const char* desc);
 
 typedef struct
 {
     float sch_period;
 }dev_monitor_th_parm_t;
 extern const char* g_dev_monitor_th_desc;
-extern const char* g_lcd_refresh_th_desc;
-void* dev_monitor_thread_func(void* arg);
 void* lcd_refresh_thread_func(void* arg);
 #define DEV_MONITOR_DEF_PERIOD 3
+
+extern const char* g_lcd_refresh_th_desc;
+void* dev_monitor_thread_func(void* arg);
+
+typedef struct
+{
+    float measure_period;
+}tof_thread_parm_t;
+extern const char* gs_tof_th_desc;
+void* tof_thread_func(void* arg);
+#define TOF_MEASUREMENT_DEF_PERIOD 1
 
 #endif

@@ -13,6 +13,7 @@ enum LOG_LEVEL {
     LOG_ERROR,   //错误
 
     LOG_ONLY_INFO_STR = 0x80,
+    LOG_ONLY_INFO_STR_COMP = 0x90,
 };
 
 extern const char* g_log_level_str[];
@@ -24,9 +25,15 @@ void end_log_thread();
 
 #define DIY_LOG(level, ...) \
 {\
-    bool only_info_str = false;\
+    bool only_info_str = false, compact = false;\
     int v_level = level;\
-    if(v_level >= LOG_ONLY_INFO_STR)\
+    if(v_level >= LOG_ONLY_INFO_STR_COMP)\
+    {\
+        only_info_str = true;\
+        v_level -= LOG_ONLY_INFO_STR_COMP;\
+        compact = true;\
+    }\
+    else if(v_level >= LOG_ONLY_INFO_STR)\
     {\
         only_info_str = true;\
         v_level -= LOG_ONLY_INFO_STR;\
@@ -48,7 +55,10 @@ void end_log_thread();
                         date_time_str, g_log_level_str[v_level], \
                         __FILE__, __LINE__, __FUNCTION__);\
             }\
-            printf("\t");\
+            if(!compact)\
+            {\
+                printf("\t");\
+            }\
             printf("%s", log_info_buf);\
         }\
         else\
