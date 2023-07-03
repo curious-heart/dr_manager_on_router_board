@@ -33,17 +33,23 @@ static void upd_g_st_pool_from_tof_th(void* arg)
 void* tof_thread_func(void* arg)
 {
     tof_thread_parm_t * parm = (tof_thread_parm_t*)arg;
-    float period = TOF_MEASUREMENT_DEF_PERIOD; 
+    float period;
     int ret;
     unsigned short distance;
 
-    if(parm) period = parm->measure_period;
-    DIY_LOG(LOG_INFO, "%s therad starts, with measure period %f seconds!\n", 
-            gs_tof_th_desc, period);
-
     pthread_cleanup_push(tof_th_cleanup_h, NULL);
 
-    ret = tof_open();
+    if(!parm)
+    {
+        DIY_LOG(LOG_ERROR, "Arguments passed to tof_thread_func is NULL.\n");
+        return NULL;
+    }
+
+    period = parm->measure_period;
+    DIY_LOG(LOG_INFO, "%s thread starts, with measure period %f seconds!\n", 
+            gs_tof_th_desc, period);
+
+    ret = tof_open(parm->dev_name, parm->dev_addr);
     if(0 != ret)
     {
         DIY_LOG(LOG_ERROR, "%s thread open tof error: %d\n", gs_tof_th_desc, ret);

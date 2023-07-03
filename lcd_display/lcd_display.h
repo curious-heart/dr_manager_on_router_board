@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-bool open_lcd_dev();
+bool open_lcd_dev(const char* dev_name, uint8_t i2c_addr);
 bool close_lcd_dev();
 void clear_screen();
 void write_img_to_px_rect(const uint8_t* img_buf, int img_px_w, int img_px_h, 

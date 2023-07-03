@@ -27,11 +27,10 @@
 #include "common_tools.h"
 #include "logger.h"
 #include "pthread_helper.h"
+#include "option_configuration_process.h"
 #include "hv_registers.h"
 #include "hv_controller.h"
 #include "dr_manager.h"
-
-extern float g_tof_measure_period; 
 
 static pthread_t gs_tof_th_id;
 static bool gs_tof_th_started = false;
@@ -181,6 +180,7 @@ typedef enum
     MB_RW_REG_RET_USE_LONG_WAIT_TIME,
 }mb_rw_reg_ret_t;
 
+extern cmd_line_opt_collection_t g_cmd_line_opt_collection;
 void check_and_start_tof_th()
 {
     if(gs_tof_th_started)
@@ -190,7 +190,7 @@ void check_and_start_tof_th()
     else
     {
         if(start_assit_thread(gs_tof_th_desc, &gs_tof_th_id, true,
-                tof_thread_func, &g_tof_measure_period))
+                tof_thread_func, &g_cmd_line_opt_collection.tof_th_parm))
         {
             gs_tof_th_started = true;
         }
@@ -205,7 +205,7 @@ void check_and_cancel_tof_th()
     }
     else
     {
-        cancel_assit_thread(&gs_tof_th_id);
+        cancel_assit_thread(gs_tof_th_started, &gs_tof_th_id);
         gs_tof_th_started = false;
     }
 }
@@ -551,7 +551,7 @@ static mb_rw_reg_ret_t mb_server_process_req(uint8_t * req_msg, int req_msg_len,
     return process_ret;
 }
 
-mb_server_exit_code_t  mb_server_loop(mb_server_params_t * srvr_params, bool debug_flag, bool server_only)
+mb_server_exit_code_t  mb_server_loop(mb_server_params_t * srvr_params, bool server_only)
 {
     uint8_t query[MODBUS_TCP_MAX_ADU_LENGTH];
     int master_socket;
@@ -584,7 +584,7 @@ mb_server_exit_code_t  mb_server_loop(mb_server_params_t * srvr_params, bool deb
         return MB_SERVER_EXIT_INIT_FAIL;
     }
 
-    if(0 != modbus_set_debug(gs_mb_srvr_ctx, debug_flag))
+    if(0 != modbus_set_debug(gs_mb_srvr_ctx, srvr_params->debug_flag))
     {
         DIY_LOG(LOG_WARN, "%sset debug fail:%d: %s, ",
                 gs_mb_server_log_header, errno, modbus_strerror(errno));

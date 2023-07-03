@@ -88,9 +88,6 @@ static VL53L0X_Error WaitStopCompleted(VL53L0X_DEV Dev)
     return Status;
 }
     
-static const char* gs_i2c_dev_name = "/dev/i2c-0";
-static const u8 gs_i2c_tof_8b_addr = 0x52;
-
 /*------------------------------------------------------------*/
 static VL53L0X_Dev_t gs_MyDevice;
 static VL53L0X_Error tof_measure_prepare()
@@ -129,7 +126,7 @@ static VL53L0X_Error tof_measure_prepare()
     return Status;
 }
 
-int tof_open()
+int tof_open(const char* dev_name, unsigned char dev_addr)
 {
     VL53L0X_Error Status = VL53L0X_ERROR_NONE;
     VL53L0X_Dev_t *pMyDevice = &gs_MyDevice;
@@ -139,12 +136,12 @@ int tof_open()
 
     int32_t status_int;
 
-    pMyDevice->I2cDevAddr      = gs_i2c_tof_8b_addr;
+    pMyDevice->I2cDevAddr      = dev_addr;
     pMyDevice->comms_type      =  1;
     pMyDevice->comms_speed_khz =  400;
 
 
-    Status = VL53L0X_i2c_init(gs_i2c_dev_name, gs_i2c_tof_8b_addr);
+    Status = VL53L0X_i2c_init(dev_name, dev_addr);
     if (Status != VL53L0X_ERROR_NONE) 
     {
         DIY_LOG(LOG_ERROR, "i2c init error.\n");
@@ -409,18 +406,19 @@ void tof_ref_register_test()
     int i;
     u8 one_byte_data;
     u16 two_byte_data;
+    VL53L0X_Dev_t *pMyDevice = &gs_MyDevice;
     for(i = 0; i < sizeof(test_reg_idx); ++i)
     {
         if(i < 3)
         {
-            ret = VL53L0X_read_byte(gs_i2c_tof_8b_addr,
+            ret = VL53L0X_read_byte(pMyDevice->I2cDevAddr,
                     test_reg_idx[i], &one_byte_data);
             printf("ret: %d, register 0x%02X data: 0x%02X.\n",
                     ret, test_reg_idx[i], one_byte_data);
         }
         else
         {
-            ret = VL53L0X_read_word(gs_i2c_tof_8b_addr,
+            ret = VL53L0X_read_word(pMyDevice->I2cDevAddr,
                     test_reg_idx[i], &two_byte_data);
             printf("ret: %d, register 0x%02X data: 0x%04X.\n",
                     ret, test_reg_idx[i], two_byte_data);

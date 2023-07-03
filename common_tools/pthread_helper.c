@@ -8,19 +8,19 @@ bool start_assit_thread(const char* desc, pthread_t * th_id, bool detach, pthrea
     pthread_t l_th_id;
 
     s = pthread_attr_init(&attr);
-    PTHREAD_ERR_CHECK(s, "init pthread attribute for ", desc, " fails", true);
+    PTHREAD_ERR_CHECK(s, "init pthread attribute for ", desc, " fails", true, false);
 
     if(detach)
     {
         s = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-        PTHREAD_ERR_CHECK(s, "Set thread detach state for ", desc, " fails", true);
+        PTHREAD_ERR_CHECK(s, "Set thread detach state for ", desc, " fails", true, false);
     }
 
     s = pthread_create(&l_th_id, &attr, func, arg);
-    PTHREAD_ERR_CHECK(s, "Create thread ", desc, " failes", true);
+    PTHREAD_ERR_CHECK(s, "Create thread ", desc, " failes", true, false);
 
     s= pthread_attr_destroy(&attr);
-    PTHREAD_ERR_CHECK(s, "Destory attr for ", desc, " failes", true);
+    PTHREAD_ERR_CHECK(s, "Destory attr for ", desc, " failes", true, false);
 
     if(th_id) *th_id = l_th_id;
 
@@ -29,9 +29,9 @@ bool start_assit_thread(const char* desc, pthread_t * th_id, bool detach, pthrea
     return true;
 }
 
-void cancel_assit_thread(pthread_t * th_id)
+void cancel_assit_thread(bool flag, pthread_t * th_id)
 {
-    if(th_id)
+    if(flag && th_id)
     {
         pthread_cancel(*th_id);
     }

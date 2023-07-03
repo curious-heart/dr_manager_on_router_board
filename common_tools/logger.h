@@ -1,6 +1,7 @@
 ﻿#ifndef LOGGER_H
 #define LOGGER_H
 
+#include <stdint.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -15,7 +16,7 @@ enum LOG_LEVEL {
     LOG_ONLY_INFO_STR = 0x80,
     LOG_ONLY_INFO_STR_COMP = 0x90,
 };
-extern enum LOG_LEVEL g_APP_LOG_LEVEL;
+extern uint8_t g_APP_LOG_LEVEL;
 
 extern const char* g_log_level_str[];
 

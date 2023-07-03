@@ -114,12 +114,19 @@ void* dev_monitor_thread_func(void* arg);
 extern const char* g_dev_monitor_th_desc;
 #define DEV_MONITOR_DEF_PERIOD 3
 
+typedef struct
+{
+    const char* dev_name;
+    uint8_t dev_addr;
+}lcd_refresh_th_parm_t;
 void* lcd_refresh_thread_func(void* arg);
 extern const char* g_lcd_refresh_th_desc;
 
 typedef struct
 {
     float measure_period;
+    const char* dev_name;
+    uint8_t dev_addr;
 }tof_thread_parm_t;
 extern const char* gs_tof_th_desc;
 void* tof_thread_func(void* arg);

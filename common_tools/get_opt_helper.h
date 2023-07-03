@@ -17,12 +17,11 @@
 }
 typedef enum TYPE_LIST data_type_id_t;
 
-#undef TYPE_ID
-#define TYPE_ID(t, name) t name##_val;
 typedef struct
 {
     const char* desc;
-    union TYPE_LIST def_val;
+    const void* def_val_ptr;
+    const void* work_val_ptr;
     data_type_id_t type_ind;
 }cmd_opt_desc_val_t;
 
@@ -30,6 +29,8 @@ typedef struct
 #define TYPE_ID(t, name) #name
 extern const char* type_id_str_arr[];
 
+#define SHOULD_BE_NON_NULL_STR(x) (((x) && (x)[0]) ? 1 : 0)
+#define SHOULD_BE_NON_NULL_STR_LOG DIY_LOG(LOG_ERROR + LOG_ONLY_INFO_STR_COMP, " should be non-empty string.")
 #define SHOULD_BE_NE_0(x) ((x) != 0 ? 1 : 0)
 #define SHOULD_BE_NE_0_LOG DIY_LOG(LOG_ERROR + LOG_ONLY_INFO_STR_COMP, " should be <> 0.")
 #define SHOULD_BE_EQ_0(x) ((x) == 0 ? 1 : 0)
@@ -52,6 +53,8 @@ extern const char* type_id_str_arr[];
     DIY_LOG(LOG_ERROR + LOG_ONLY_INFO_STR_COMP, " should be in range (%d, %d).", (l), (r))
 #define SHOULD_BE_IN_EXCLUDED_FLOAT_LOG(l, r) \
     DIY_LOG(LOG_ERROR + LOG_ONLY_INFO_STR_COMP, " should be in range (%f, %f).", (l), (r))
+#define VALID_IP_STR(ip_str, in_addr_ptr) (0 == inet_aton(ip_str, in_addr_ptr))
+#define INVALID_IP_STR_LOG(ip_str) DIY_LOG(LOG_ERROR + LOG_ONLY_INFO_STR_COMP, " not a valid IP address.")
 
 #define CHECK_COM_PARITY(c) ((c == 'N' || c == 'E' || c == 'O') ? 1: 0)
 #define CHECK_COM_PARITY_LOG DIY_LOG(LOG_ERROR + LOG_ONLY_INFO_STR_COMP, " should be of \'N\' or \'E\' or \'O\'.")
@@ -60,37 +63,40 @@ extern const char* type_id_str_arr[];
 #define MIN_SERIAL_STOP_BITS 1
 #define MAX_SERIAL_STOP_BITS 2
 
-#define TYPE_STR_OF_VAR(x, type_id) type_id_str_arr[type_id]
+#define MAX_OPT_STR_SIZE 32 
+#define MAX_IP_ADDR_STR_SIZE 17 
+
+#define TYPE_STR_OF_VAR(type_id) type_id_str_arr[type_id]
 /* Be careful when using the following macro CONVERT_FUNC.
- * Improper use may leads to subtle error or memory leak (when x is of type char*).
+ * Improper use may leads to subtle error.
  */
 #ifndef _Generic
-#define CONVERT_FUNC_STRDUP(var, value) strdup(value)
-#define CONVERT_FUNC_ATOC(var, value) (char)(value)[0]
-#define CONVERT_FUNC_ATOS(var, value) (short)atoi(value)
-#define CONVERT_FUNC_ATOI(var, value) atoi(value)
-#define CONVERT_FUNC_ATOINT8(var, value) (int8_t)atoi(value)
-#define CONVERT_FUNC_ATOINT16(var, value) (int16_t)atoi(value)
-#define CONVERT_FUNC_ATOINT32(var, value) (int32_t)atoi(value)
-#define CONVERT_FUNC_ATOUINT8(var, value) (uint8_t)atoi(value)
-#define CONVERT_FUNC_ATOUINT16(var, value) (uint16_t)atoi(value)
-#define CONVERT_FUNC_ATOUINT32(var, value) (uint32_t)atoi(value)
-#define CONVERT_FUNC_ATOF(var, value) (float)atof(value)
-#define CONVERT_FUNC_ATODB(var, value) (double)atof(value)
+#define CONVERT_FUNC_STRCPY(var, value) snprintf(var, MAX_OPT_STR_SIZE, "%s", value)
+#define CONVERT_FUNC_ATOC(var, value) var = (char)(value)[0]
+#define CONVERT_FUNC_ATOS(var, value) var = (short)strtol(value, NULL, 0)
+#define CONVERT_FUNC_ATOI(var, value) var = (int)strtol(value, NULL, 0)
+#define CONVERT_FUNC_ATOINT8(var, value) var = (int8_t)strtol(value, NULL, 0)
+#define CONVERT_FUNC_ATOINT16(var, value) var = (int16_t)strtol(value, NULL, 0)
+#define CONVERT_FUNC_ATOINT32(var, value) var = (int32_t)strtol(value, NULL, 0)
+#define CONVERT_FUNC_ATOUINT8(var, value) var = (uint8_t)strtol(value, NULL, 0)
+#define CONVERT_FUNC_ATOUINT16(var, value) var = (uint16_t)strtol(value, NULL, 0)
+#define CONVERT_FUNC_ATOUINT32(var, value) var = (uint32_t)strtol(value, NULL, 0)
+#define CONVERT_FUNC_ATOF(var, value) var = (float)atof(value)
+#define CONVERT_FUNC_ATODB(var, value) var = (double)atof(value)
 
 #else
 #define CONVERT_FUNC(var, value) _Generic((var),\
-        char*: strdup(value),\
-        char: (char)(value)[0],\
-        short: (short)atoi(value),\
-        int: (int)atoi(value),\
-        uint8_t: (uint8_t)atoi(value),\
-        uint16_t: (uint16_t)atoi(value),\
-        uint32_t: (uint32_t)atoi(value),\
-        float: (float)atof(value),\
-        double: (double)atof(value),\
-        default: (int)atoi(value)
-#define CONVERT_FUNC_STRDUP(var, value) CONVERT_FUNC(var, value)
+        char*: snprintf(var, MAX_OPT_STR_SIZE, "%s", value), \
+        char: var = (char)(value)[0],\
+        short: var = (short)strtol(value, NULL, 0),\
+        int: var = (int)strtol(value, NULL, 0),\
+        uint8_t: var = (uint8_t)strtol(value, NULL, 0),\
+        uint16_t: var = (uint16_t)strtol(value, NULL, 0),\
+        uint32_t: var = (uint32_t)strtol(value, NULL, 0),\
+        float: var = (float)atof(value),\
+        double: var = (double)atof(value),\
+        default: var = (int)strtol(value, NULL, 0)
+#define CONVERT_FUNC_STRCPY(var, value) CONVERT_FUNC(var, value)
 #define CONVERT_FUNC_ATOC(var, value) CONVERT_FUNC(var, value)
 #define CONVERT_FUNC_ATOS(var, value) CONVERT_FUNC(var, value)
 #define CONVERT_FUNC_ATOI(var, value) CONVERT_FUNC(var, value)
@@ -106,26 +112,26 @@ extern const char* type_id_str_arr[];
 /*
  * This macro should be used with getoptlong. See the main.c in dr_manager. 
  */
-#define OPT_CHECK_AND_DRAW(option_arr,check_str, var, value_check, check_log, draw_value, type_id) \
-if(!strcmp(option_arr[longindex].name, check_str))\
+#define OPT_CHECK_AND_DRAW(option_str,check_str, draw_value, value_check, check_log, type_id) \
+if(!strcmp(option_str, check_str))\
 {\
     if(optarg && optarg[0] != ':' && optarg[0] != '?')\
     {\
-        (var) = draw_value;\
+        draw_value;\
         if(!value_check)\
         {\
             DIY_LOG(LOG_ERROR, "The --%s param value %s is invalid:", check_str, optarg);\
             check_log;\
             DIY_LOG(LOG_ERROR + LOG_ONLY_INFO_STR_COMP, "\n");\
-            arg_parse_result = false;\
+            options_valid = false;\
         }\
     }\
     else\
     {\
         DIY_LOG(LOG_ERROR,\
-                "if option --%s are provided, an %s parameter is necessary.\n", \
-                check_str, TYPE_STR_OF_VAR(var, type_id));\
-        arg_parse_result = false;\
+                "if option --%s are provided, an parameter of type %s is necessary.\n", \
+                check_str, TYPE_STR_OF_VAR(type_id));\
+        options_valid = false;\
     }\
     break;\
 }

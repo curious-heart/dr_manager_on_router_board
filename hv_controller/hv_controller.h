@@ -14,7 +14,7 @@ typedef struct
     uint32_t timeout_ms;
     int32_t numberOfRetries;
     int32_t serverAddress;
-    bool debug_flag;
+    int debug_flag;
 }mb_rtu_params_t;
 
 typedef struct
@@ -23,6 +23,7 @@ typedef struct
     uint16_t srvr_port;
 
     float long_select_wait_time, short_select_wait_time; //in seconds
+    int debug_flag;
 }mb_server_params_t;
 
 bool hv_controller_open(mb_rtu_params_t* rtu_params);
@@ -39,7 +40,7 @@ typedef enum
     MB_SERVER_EXIT_COMM_FATAL_ERROR, 
 }mb_server_exit_code_t;
 
-mb_server_exit_code_t mb_server_loop(mb_server_params_t * srvr_params, bool debug_flag, bool server_only);
+mb_server_exit_code_t mb_server_loop(mb_server_params_t * srvr_params, bool server_only);
 void mb_server_exit();
 
 #endif // HV_CONTROLLER_H

@@ -44,7 +44,6 @@ static uint8_t gs_local_frame_buf[2048];
 #define I2C_W_CMD_PARM_MAX_LEN \
     (I2C_W_CMD_BUF_SIZE - I2C_CMD_WITH_PARM_PREFIX_LEN) 
 
-static unsigned char LCD_I2C_ADDR = 0x3C;
 
 static int lcd_fd = -1;
 
@@ -430,18 +429,18 @@ void clear_screen()
     write_img_into_col_pg_pos(gs_local_frame_buf, DDRAM_MAX_COL_NUM, DDRAM_MAX_PAGE_NUM, 0, 0);
 }
 
-bool open_lcd_dev()
+bool open_lcd_dev(const char* dev_name, uint8_t i2c_addr)
 {
     int ret;
 
-    lcd_fd = open("/dev/i2c-0", O_RDWR);
+    lcd_fd = open(dev_name, O_RDWR);
     if(lcd_fd < 0)
     {
-        DIY_LOG(LOG_ERROR, "open i2c-0 error. errno: %d\n", errno);
+        DIY_LOG(LOG_ERROR, "open %s error. errno: %d\n", dev_name,  errno);
         return false;
     }
 
-    ret = ioctl(lcd_fd, I2C_SLAVE, LCD_I2C_ADDR);
+    ret = ioctl(lcd_fd, I2C_SLAVE, i2c_addr);
     if(0 != ret)
     {
         DIY_LOG(LOG_ERROR, "ioctl set lcd address error, ret %d, errno: %d\n", ret, errno);

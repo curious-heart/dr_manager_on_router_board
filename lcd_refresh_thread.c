@@ -211,11 +211,19 @@ static void init_lcd_display()
 
 void* lcd_refresh_thread_func(void* arg)
 {
+    lcd_refresh_th_parm_t * parm = (lcd_refresh_th_parm_t*)arg;
+
     DIY_LOG(LOG_INFO, "%s thread start!\n", g_lcd_refresh_th_desc);
 
     pthread_cleanup_push(lcd_refresh_thread_cleanup_h, NULL);
 
-    gs_lcd_opened = open_lcd_dev();
+    if(!parm)
+    {
+        DIY_LOG(LOG_ERROR, "Argument passed to lcd_refresh_thread_func is NULL.\n");
+        return NULL;
+    }
+
+    gs_lcd_opened = open_lcd_dev(parm->dev_name, parm->dev_addr);
     if(!gs_lcd_opened)
     {
         return NULL;
