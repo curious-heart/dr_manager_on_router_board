@@ -41,7 +41,8 @@ void* tof_thread_func(void* arg)
 
     if(!parm)
     {
-        DIY_LOG(LOG_ERROR, "Arguments passed to tof_thread_func is NULL.\n");
+        DIY_LOG(LOG_ERROR, "Arguments passed to tof_thread_func is NULL.\n"
+                "Thread %s exit.\n", gs_tof_th_desc);
         return NULL;
     }
 
@@ -52,7 +53,7 @@ void* tof_thread_func(void* arg)
     ret = tof_open(parm->dev_name, parm->dev_addr);
     if(0 != ret)
     {
-        DIY_LOG(LOG_ERROR, "%s thread open tof error: %d\n", gs_tof_th_desc, ret);
+        DIY_LOG(LOG_ERROR, "%s thread exit due to open tof error: %d.\n", gs_tof_th_desc, ret);
         return NULL;
     }
     gs_tof_opened = true;

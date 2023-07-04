@@ -53,7 +53,7 @@ extern const char* type_id_str_arr[];
     DIY_LOG(LOG_ERROR + LOG_ONLY_INFO_STR_COMP, " should be in range (%d, %d).", (l), (r))
 #define SHOULD_BE_IN_EXCLUDED_FLOAT_LOG(l, r) \
     DIY_LOG(LOG_ERROR + LOG_ONLY_INFO_STR_COMP, " should be in range (%f, %f).", (l), (r))
-#define VALID_IP_STR(ip_str, in_addr_ptr) (0 == inet_aton(ip_str, in_addr_ptr))
+#define VALID_IP_STR(ip_str, in_addr_ptr) (inet_aton(ip_str, in_addr_ptr))
 #define INVALID_IP_STR_LOG(ip_str) DIY_LOG(LOG_ERROR + LOG_ONLY_INFO_STR_COMP, " not a valid IP address.")
 
 #define CHECK_COM_PARITY(c) ((c == 'N' || c == 'E' || c == 'O') ? 1: 0)

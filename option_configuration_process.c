@@ -23,19 +23,19 @@ static const int32_t gs_def_mb_rtu_numberOfRetries = 3;
 static const int32_t gs_def_mb_rtu_serverAddress = 1;
 static const bool gs_def_mb_rtu_debug_flag = false;
 /*modbus tcp server parameters*/
-static const char* const gs_local_zero_ip = "0.0.0.0";
-static char gs_mb_srvr_tcp_ip_str[MAX_OPT_STR_SIZE];
-static const uint16_t gs_def_mb_srvr_port = 502;
-static const float gs_mb_srvr_long_wait_time = 10, gs_mb_srvr_short_wait_time = 0.5;
-static const bool gs_def_mb_srvr_debug_flag= false;
+static const char* const gs_def_mb_tcp_srvr_ip = "0.0.0.0";
+static char gs_mb_tcp_srvr_ip[MAX_OPT_STR_SIZE];
+static const uint16_t gs_def_mb_tcp_srvr_port = 502;
+static const float gs_def_mb_tcp_srvr_long_wait_time = 10, gs_def_mb_tcp_srvr_short_wait_time = 0.5;
+static const bool gs_def_mb_tcp_srvr_debug_flag= false;
 /*monitor (check device state) period.*/
-static const float gs_dev_monitor_def_period = 3;
+static const float gs_def_dev_monitor_period = 3;
 /*LCD*/
 static const char* const gs_def_lcd_dev_name = "/dev/i2c-0";
 static char gs_lcd_dev_name[MAX_OPT_STR_SIZE];
 static const uint8_t gs_def_lcd_i2c_addr = 0x3C;
 /*TOF*/
-static const float gs_tof_measurement_def_period  = 1;
+static const float gs_def_tof_measure_period  = 1;
 static const char* const gs_def_tof_dev_name = "/dev/i2c-0";
 static char gs_tof_dev_name[MAX_OPT_STR_SIZE];
 static const uint8_t gs_def_tof_i2c_addr = 0x52; //8bit addr.
@@ -62,16 +62,16 @@ cmd_line_opt_collection_t g_cmd_line_opt_collection =
 
     .srvr_params =
     {
-        .srvr_ip = gs_local_zero_ip,
-        .srvr_port = gs_def_mb_srvr_port,
-        .long_select_wait_time = gs_mb_srvr_long_wait_time, //in seconds
-        .short_select_wait_time = gs_mb_srvr_short_wait_time, //in seconds
-        .debug_flag = gs_def_mb_srvr_debug_flag, 
+        .srvr_ip = gs_def_mb_tcp_srvr_ip,
+        .srvr_port = gs_def_mb_tcp_srvr_port,
+        .long_select_wait_time = gs_def_mb_tcp_srvr_long_wait_time, //in seconds
+        .short_select_wait_time = gs_def_mb_tcp_srvr_short_wait_time, //in seconds
+        .debug_flag = gs_def_mb_tcp_srvr_debug_flag, 
     },
 
     .dev_monitor_th_parm = 
     {
-        .sch_period = gs_dev_monitor_def_period,
+        .sch_period = gs_def_dev_monitor_period,
     },
 
     .lcd_refresh_th_parm = 
@@ -82,7 +82,7 @@ cmd_line_opt_collection_t g_cmd_line_opt_collection =
 
     .tof_th_parm = 
     {
-        .measure_period = gs_tof_measurement_def_period,
+        .measure_period = gs_def_tof_measure_period,
         .dev_name = gs_def_tof_dev_name,
         .dev_addr = gs_def_tof_i2c_addr,
     },
@@ -90,8 +90,8 @@ cmd_line_opt_collection_t g_cmd_line_opt_collection =
     .work_mode = gs_def_app_work_mode,
 };
 
-static const char* const gs_opt_com_dev_str = "com_dev";
-#define gs_opt_com_dev_c 'c'
+static const char* const gs_opt_mb_rtu_com_str = "com_dev";
+#define gs_opt_mb_rtu_com_c 'c'
 static const char* const gs_opt_mb_rtu_serialBaudRate_str = "mb_rtu_serialBaudRate";
 static const char* const gs_opt_mb_rtu_serialParity_str = "mb_rtu_serialParity";
 static const char* const gs_opt_mb_rtu_serialDataBits_str = "mb_rtu_serialDataBits";
@@ -99,17 +99,17 @@ static const char* const gs_opt_mb_rtu_serialStopBits_str = "mb_rtu_serialStopBi
 static const char* const gs_opt_mb_rtu_timeout_ms_str = "mb_rtu_timeout_ms";
 static const char* const gs_opt_mb_rtu_numberOfRetries_str = "mb_rtu_numberOfRetries";
 static const char* const gs_opt_mb_rtu_serverAddress_str = "mb_rtu_serverAddress";
-static const char* const gs_opt_rtu_debug_str = "mb_rtu_debug";
+static const char* const gs_opt_mb_rtu_debug_str = "mb_rtu_debug";
 #define gs_opt_rtu_debug_c 'r'
 static const char* const gs_opt_mb_tcp_srvr_ip_addr_str = "mb_tcp_srvr_ip_addr";
 #define gs_opt_mb_tcp_srvr_ip_addr_c 'a'
-static const char* const gs_opt_port_str = "mb_tcp_srvr_port";
-#define gs_opt_port_c 'p'
-static const char* const gs_opt_mb_server_w_long_time_str = "mb_server_long_time";
-static const char* const gs_opt_mb_server_w_short_time_str = "mb_server_short_time";
-static const char* const gs_opt_tcp_debug_str = "mb_tcp_debug";
+static const char* const gs_opt_mb_tcp_srvr_port_str = "mb_tcp_srvr_port";
+#define gs_opt_mb_tcp_srvr_port_c 'p'
+static const char* const gs_opt_mb_tcp_srvr_w_long_time_str = "mb_tcp_srvr_long_time";
+static const char* const gs_opt_mb_tcp_srvr_w_short_time_str = "mb_tcp_srvr_short_time";
+static const char* const gs_opt_mb_tcp_srvr_debug_str = "mb_tcp_debug";
 #define gs_opt_tcp_debug_c 't'
-static const char* const gs_opt_dev_monitor_th_period_str = "dev_monitor_peroid";
+static const char* const gs_opt_dev_monitor_period_str = "dev_monitor_peroid";
 static const char* const gs_opt_lcd_dev_name_str = "lcd_dev_name";
 static const char* const gs_opt_lcd_dev_addr_str = "lcd_dev_addr";
 static const char* const gs_opt_tof_measure_period_str = "tof_measure_period";
@@ -130,7 +130,7 @@ static const char* const gs_opt_version_str = "version";
 #define APP_CMD_OPT_VALUE(desc, def_val_ptr, work_val_ptr, val_type)
 #define APP_CMD_OPT_ARRAY \
 {\
-    APP_CMD_OPT_ITEM(gs_opt_com_dev_str, required_argument, 0, gs_opt_com_dev_c) \
+    APP_CMD_OPT_ITEM(gs_opt_mb_rtu_com_str, required_argument, 0, gs_opt_mb_rtu_com_c) \
     APP_CMD_OPT_VALUE("modbus_com", \
             &gs_def_mb_rtu_serialPortName, &g_cmd_line_opt_collection.rtu_params.serialPortName, c_charp)\
 \
@@ -162,33 +162,33 @@ static const char* const gs_opt_version_str = "version";
     APP_CMD_OPT_VALUE("modbus_com_server_addr", \
             &gs_def_mb_rtu_serverAddress, &g_cmd_line_opt_collection.rtu_params.serverAddress, int32_t)\
 \
-    APP_CMD_OPT_ITEM(gs_opt_rtu_debug_str, no_argument, 0, gs_opt_rtu_debug_c) \
+    APP_CMD_OPT_ITEM(gs_opt_mb_rtu_debug_str, no_argument, 0, gs_opt_rtu_debug_c) \
     APP_CMD_OPT_VALUE("mb_rtu_debug", \
             &gs_def_mb_rtu_debug_flag, &g_cmd_line_opt_collection.rtu_params.debug_flag, int) \
 \
     APP_CMD_OPT_ITEM(gs_opt_mb_tcp_srvr_ip_addr_str, required_argument, 0, gs_opt_mb_tcp_srvr_ip_addr_c)\
     APP_CMD_OPT_VALUE("mb_srvr_ip", \
-            &gs_local_zero_ip, &g_cmd_line_opt_collection.srvr_params.srvr_ip, c_charp)\
+            &gs_def_mb_tcp_srvr_ip, &g_cmd_line_opt_collection.srvr_params.srvr_ip, c_charp)\
 \
-    APP_CMD_OPT_ITEM(gs_opt_port_str, required_argument, 0, gs_opt_port_c) \
+    APP_CMD_OPT_ITEM(gs_opt_mb_tcp_srvr_port_str, required_argument, 0, gs_opt_mb_tcp_srvr_port_c) \
     APP_CMD_OPT_VALUE("mb_srvr_port",\
-           &gs_def_mb_srvr_port, &g_cmd_line_opt_collection.srvr_params.srvr_port, uint16_t)\
+           &gs_def_mb_tcp_srvr_port, &g_cmd_line_opt_collection.srvr_params.srvr_port, uint16_t)\
 \
-    APP_CMD_OPT_ITEM(gs_opt_mb_server_w_long_time_str, required_argument, 0, 0)\
+    APP_CMD_OPT_ITEM(gs_opt_mb_tcp_srvr_w_long_time_str, required_argument, 0, 0)\
     APP_CMD_OPT_VALUE("mb_srvr_wait_time_long(s)",\
-            &gs_mb_srvr_long_wait_time, &g_cmd_line_opt_collection.srvr_params.long_select_wait_time, float) \
+            &gs_def_mb_tcp_srvr_long_wait_time, &g_cmd_line_opt_collection.srvr_params.long_select_wait_time, float) \
 \
-    APP_CMD_OPT_ITEM(gs_opt_mb_server_w_short_time_str, required_argument, 0, 0) \
+    APP_CMD_OPT_ITEM(gs_opt_mb_tcp_srvr_w_short_time_str, required_argument, 0, 0) \
     APP_CMD_OPT_VALUE("mb_srvr_wait_time_short(s)", \
-            &gs_mb_srvr_short_wait_time, &g_cmd_line_opt_collection.srvr_params.short_select_wait_time, float) \
+            &gs_def_mb_tcp_srvr_short_wait_time, &g_cmd_line_opt_collection.srvr_params.short_select_wait_time, float) \
 \
-    APP_CMD_OPT_ITEM(gs_opt_tcp_debug_str, no_argument, 0, gs_opt_tcp_debug_c) \
+    APP_CMD_OPT_ITEM(gs_opt_mb_tcp_srvr_debug_str, no_argument, 0, gs_opt_tcp_debug_c) \
     APP_CMD_OPT_VALUE("mb_tcp_debug",\
-            &gs_def_mb_srvr_debug_flag, &g_cmd_line_opt_collection.srvr_params.debug_flag, int) \
+            &gs_def_mb_tcp_srvr_debug_flag, &g_cmd_line_opt_collection.srvr_params.debug_flag, int) \
 \
-    APP_CMD_OPT_ITEM(gs_opt_dev_monitor_th_period_str, required_argument, 0, 0)\
+    APP_CMD_OPT_ITEM(gs_opt_dev_monitor_period_str, required_argument, 0, 0)\
     APP_CMD_OPT_VALUE("dev_st_monitor_period(s)",\
-            &gs_dev_monitor_def_period, &g_cmd_line_opt_collection.dev_monitor_th_parm.sch_period, float) \
+            &gs_def_dev_monitor_period, &g_cmd_line_opt_collection.dev_monitor_th_parm.sch_period, float) \
 \
     APP_CMD_OPT_ITEM(gs_opt_lcd_dev_name_str, required_argument, 0, 0)\
     APP_CMD_OPT_VALUE("lcd_device_name",\
@@ -200,7 +200,7 @@ static const char* const gs_opt_version_str = "version";
 \
     APP_CMD_OPT_ITEM(gs_opt_tof_measure_period_str, required_argument, 0, 0)\
     APP_CMD_OPT_VALUE("tof_measure_period(s)",\
-            &gs_tof_measurement_def_period, &g_cmd_line_opt_collection.tof_th_parm.measure_period, float) \
+            &gs_def_tof_measure_period, &g_cmd_line_opt_collection.tof_th_parm.measure_period, float) \
 \
     APP_CMD_OPT_ITEM(gs_opt_tof_dev_name_str, required_argument, 0, 0)\
     APP_CMD_OPT_VALUE("tof_device_name",\
@@ -273,6 +273,7 @@ static void print_parameters(default_or_working_params_ind_t ind)
     int i;
     const void* ptr = NULL;
 
+    printf("\n");
     if(DEFAULT_PARAMS == ind)
     {
         printf("The defaul arguments:\n");
@@ -346,6 +347,7 @@ static void print_parameters(default_or_working_params_ind_t ind)
             printf("\n");
         }
     }
+    printf("\n");
 }
 
 static void print_usage()
@@ -364,6 +366,7 @@ static void print_usage()
         printf("] ");
     }
     printf("\n");
+    printf("\n");
 
     print_parameters(DEFAULT_PARAMS);
 }
@@ -381,8 +384,8 @@ option_process_ret_t process_cmd_options(int argc, char *argv[])
     {
         switch(opt_c)
         {
-            case gs_opt_com_dev_c:
-                OPT_CHECK_AND_DRAW(gs_opt_com_dev_str, gs_opt_com_dev_str,
+            case gs_opt_mb_rtu_com_c:
+                OPT_CHECK_AND_DRAW(gs_opt_mb_rtu_com_str, gs_opt_mb_rtu_com_str,
                         {CONVERT_FUNC_STRCPY(gs_mb_rtu_dev_name, optarg); \
                         g_cmd_line_opt_collection.rtu_params.serialPortName = gs_mb_rtu_dev_name;},
                         SHOULD_BE_NON_NULL_STR(g_cmd_line_opt_collection.rtu_params.serialPortName),
@@ -392,14 +395,14 @@ option_process_ret_t process_cmd_options(int argc, char *argv[])
 
             case gs_opt_mb_tcp_srvr_ip_addr_c:
                 OPT_CHECK_AND_DRAW(gs_opt_mb_tcp_srvr_ip_addr_str, gs_opt_mb_tcp_srvr_ip_addr_str,
-                        {CONVERT_FUNC_STRCPY(gs_mb_srvr_tcp_ip_str, optarg);\
-                        g_cmd_line_opt_collection.srvr_params.srvr_ip = gs_mb_srvr_tcp_ip_str;},
+                        {CONVERT_FUNC_STRCPY(gs_mb_tcp_srvr_ip, optarg);\
+                        g_cmd_line_opt_collection.srvr_params.srvr_ip = gs_mb_tcp_srvr_ip;},
                         VALID_IP_STR(optarg, &srvr_ip_in_addr), INVALID_IP_STR_LOG(optarg),
                         type_c_charp);
                 break;
 
-            case gs_opt_port_c:
-                OPT_CHECK_AND_DRAW(gs_opt_port_str, gs_opt_port_str,
+            case gs_opt_mb_tcp_srvr_port_c:
+                OPT_CHECK_AND_DRAW(gs_opt_mb_tcp_srvr_port_str, gs_opt_mb_tcp_srvr_port_str,
                         CONVERT_FUNC_ATOUINT16(g_cmd_line_opt_collection.srvr_params.srvr_port, optarg),
                         SHOULD_BE_NE_0(g_cmd_line_opt_collection.srvr_params.srvr_port), SHOULD_BE_NE_0_LOG,
                         type_uint16_t);
@@ -440,15 +443,15 @@ option_process_ret_t process_cmd_options(int argc, char *argv[])
                             SHOULD_BE_IN_INCLUDED_INT_LOG(LOG_DEBUG, LOG_ERROR),
                             type_uint8_t);
                 }
-                OPT_CHECK_AND_DRAW(gs_long_opt_arr[longindex].name, gs_opt_dev_monitor_th_period_str,
+                OPT_CHECK_AND_DRAW(gs_long_opt_arr[longindex].name, gs_opt_dev_monitor_period_str,
                         CONVERT_FUNC_ATOF(g_cmd_line_opt_collection.dev_monitor_th_parm.sch_period, optarg),
                         SHOULD_BE_GT_0(g_cmd_line_opt_collection.dev_monitor_th_parm.sch_period), SHOULD_BE_GT_0_LOG, 
                         type_float);
-                OPT_CHECK_AND_DRAW(gs_long_opt_arr[longindex].name, gs_opt_mb_server_w_long_time_str,
+                OPT_CHECK_AND_DRAW(gs_long_opt_arr[longindex].name, gs_opt_mb_tcp_srvr_w_long_time_str,
                         CONVERT_FUNC_ATOF(g_cmd_line_opt_collection.srvr_params.long_select_wait_time, optarg),
                         SHOULD_BE_GT_0(g_cmd_line_opt_collection.srvr_params.long_select_wait_time), SHOULD_BE_GT_0_LOG, 
                         type_float);
-                OPT_CHECK_AND_DRAW(gs_long_opt_arr[longindex].name, gs_opt_mb_server_w_short_time_str,
+                OPT_CHECK_AND_DRAW(gs_long_opt_arr[longindex].name, gs_opt_mb_tcp_srvr_w_short_time_str,
                         CONVERT_FUNC_ATOF(g_cmd_line_opt_collection.srvr_params.short_select_wait_time, optarg),
                         SHOULD_BE_GT_0(g_cmd_line_opt_collection.srvr_params.short_select_wait_time), SHOULD_BE_GT_0_LOG, 
                         type_float);
@@ -458,7 +461,7 @@ option_process_ret_t process_cmd_options(int argc, char *argv[])
                             TOF_CONTI_MEAS_MIN_INTERVAL, TOF_CONTI_MEAS_MAX_INTERVAL),
                         SHOULD_BE_IN_INCLUDED_FLOAT_LOG(TOF_CONTI_MEAS_MIN_INTERVAL, TOF_CONTI_MEAS_MAX_INTERVAL),
                         type_float);
-                OPT_CHECK_AND_DRAW(gs_opt_com_dev_str, gs_opt_tof_dev_name_str,
+                OPT_CHECK_AND_DRAW(gs_long_opt_arr[longindex].name, gs_opt_tof_dev_name_str,
                         {CONVERT_FUNC_STRCPY(gs_tof_dev_name, optarg); \
                         g_cmd_line_opt_collection.tof_th_parm.dev_name = gs_tof_dev_name;},
                         SHOULD_BE_NON_NULL_STR(g_cmd_line_opt_collection.tof_th_parm.dev_name),

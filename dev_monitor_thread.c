@@ -9,7 +9,6 @@
 const char* g_dev_monitor_th_desc = "Device-State-Monitor";
 dr_device_st_pool_t g_device_st_pool;
 
-static float gs_dev_sch_period = DEV_MONITOR_DEF_PERIOD;
 static pthread_mutex_t gs_dev_st_pool_mutex;
 
 /*This global static var should only be accessed from monitor thread.*/
@@ -41,13 +40,14 @@ void* dev_monitor_thread_func(void* arg)
      */
     dev_monitor_th_parm_t * parm = (dev_monitor_th_parm_t*) arg;
 
-    if(parm != NULL)
+    if(NULL == parm)
     {
-        gs_dev_sch_period = parm->sch_period;
+        DIY_LOG(LOG_ERROR, "Arguments passed to %s thread is NULL. Thread exit.\n", g_dev_monitor_th_desc);
+        return NULL;
     }
 
     DIY_LOG(LOG_INFO, "%s therad starts, with sch period %f seconds!\n", 
-            g_dev_monitor_th_desc, gs_dev_sch_period);
+            g_dev_monitor_th_desc, parm->sch_period);
     while(true)
     {
         gs_main_dev_st.bat_chg_st = 0;
@@ -60,7 +60,7 @@ void* dev_monitor_thread_func(void* arg)
                                               &gs_main_dev_st);
         update_lcd_display(pthread_self(), g_dev_monitor_th_desc);
 
-        usleep(gs_dev_sch_period * 1000000);
+        usleep(parm->sch_period * 1000000);
     }
     return NULL;
 }

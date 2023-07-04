@@ -157,15 +157,15 @@ static void print_modbus_params(mb_rtu_params_t * rtu_params, mb_server_params_t
     DIY_LOG(LOG_INFO + LOG_ONLY_INFO_STR_COMP, 
             "serialBaudRate: %d\nserialParity: %c\nserialDataBits: %d\nserialStopBits: %d\n"
             "timeout_ms: %u\nnumberOfRetries: %d\n"
-            "serverAddress: %d\n",
+            "serverAddress: %d\ndebug_flag:%d\n",
             rtu_params->serialBaudRate, rtu_params->serialParity,
             rtu_params->serialDataBits, rtu_params->serialStopBits,
             rtu_params->timeout_ms, rtu_params->numberOfRetries,
-            rtu_params->serverAddress);
+            rtu_params->serverAddress, rtu_params->debug_flag);
     DIY_LOG(LOG_INFO + LOG_ONLY_INFO_STR_COMP,
             "====================\nTCP server info:\n"
-            "ip address: %s\ntcp port: %u\n\t--------------------\n",
-            srvr_params->srvr_ip, srvr_params->srvr_port);
+            "ip address: %s\ntcp port: %u\ndebug_flag:%d\n\t--------------------\n",
+            srvr_params->srvr_ip, srvr_params->srvr_port, srvr_params->debug_flag);
 }
 
 static void main_th_exit_handler()

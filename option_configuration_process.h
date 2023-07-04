@@ -6,7 +6,7 @@
 
 typedef enum
 {
-    WORK_MODE_NORMAL,
+    WORK_MODE_NORMAL = 0,
     WORK_MODE_RTU_MASTER_ONLY,
     WORK_MODE_TCP_SERVER_ONLY,
 

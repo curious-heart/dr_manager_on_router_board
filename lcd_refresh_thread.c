@@ -219,13 +219,15 @@ void* lcd_refresh_thread_func(void* arg)
 
     if(!parm)
     {
-        DIY_LOG(LOG_ERROR, "Argument passed to lcd_refresh_thread_func is NULL.\n");
+        DIY_LOG(LOG_ERROR, "Argument passed to lcd_refresh_thread_func is NULL."
+               "%s thread exit.\n", g_lcd_refresh_th_desc);
         return NULL;
     }
 
     gs_lcd_opened = open_lcd_dev(parm->dev_name, parm->dev_addr);
     if(!gs_lcd_opened)
     {
+        DIY_LOG(LOG_ERROR, "Open LCD device fails, %s thread exit.\n", g_lcd_refresh_th_desc);
         return NULL;
     }
     clear_screen();

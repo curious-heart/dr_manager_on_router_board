@@ -112,7 +112,6 @@ typedef struct
 }dev_monitor_th_parm_t;
 void* dev_monitor_thread_func(void* arg);
 extern const char* g_dev_monitor_th_desc;
-#define DEV_MONITOR_DEF_PERIOD 3
 
 typedef struct
 {
@@ -130,6 +129,5 @@ typedef struct
 }tof_thread_parm_t;
 extern const char* gs_tof_th_desc;
 void* tof_thread_func(void* arg);
-#define TOF_MEASUREMENT_DEF_PERIOD 1
 
 #endif
