@@ -198,9 +198,21 @@ static bool clear_threads()
 
 static void clear_for_exit()
 {
-    mb_server_exit();
-    hv_controller_close();
-    clear_threads();
+    static exited = false;
+
+    if(!exited)
+    {
+        DIY_LOG(LOG_INFO, "clear for exit.................\n");
+        mb_server_exit();
+        hv_controller_close();
+        clear_threads();
+
+        exited = true;
+    }
+    else
+    {
+        DIY_LOG(LOG_INFO, "app alread  cleared and exited.\n");
+    }
 }
 
 static void close_sigint(int dummy)
@@ -261,7 +273,6 @@ int main(int argc, char *argv[])
     {
         case WORK_MODE_RTU_MASTER_ONLY:
             rtu_master_test(&g_cmd_line_opt_collection.rtu_params);
-            clear_for_exit();
             return 0;
 
         case WORK_MODE_TCP_SERVER_ONLY:
@@ -279,7 +290,6 @@ int main(int argc, char *argv[])
         if(!hv_controller_open(&g_cmd_line_opt_collection.rtu_params))
         {
             DIY_LOG(LOG_ERROR, "Connecting high volatage board fails.\n");
-            clear_for_exit();
             return -1;;
         }
     }
@@ -301,6 +311,5 @@ int main(int argc, char *argv[])
             close_sigint(mb_server_ret);
     }
 
-    clear_for_exit();
     return 0;
 }
