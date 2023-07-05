@@ -8,16 +8,17 @@ SRC = . ./common_tools ./hv_controller ./lcd_display ./tof_measure ./tof_measure
 
 TARGET = dr_manager
 TCP_SRVR_TEST_TARGET = mb_tcp_test_client
+GPIO_KEY_PROCESSOR_TARGET = gpio_key_monitor
 
-all: prepare $(TARGET) $(TCP_SRVR_TEST_TARGET) 
+all: prepare $(TARGET) $(TCP_SRVR_TEST_TARGET) $(GPIO_KEY_PROCESSOR_TARGET) 
 
 prepare:
 	@mkdir -p $(OBJ)
  
-
 INCLUDES = $(wildcard $(addsuffix /*.h, $(INC)))
 SOURCES = $(wildcard $(addsuffix /*.c, $(SRC)))
 TCP_SRVR_TEST_SOURCES = ./mb_tcp_server_test/mb_tcp_server_test.c ./hv_controller/hv_controller.c ./common_tools/logger.c ./common_tools/get_opt_helper.c ./common_tools/common_tools.c
+GPIO_KEY_PROCESSOR_SOURCES = ./gpio_key_processor/gpio_key_processor.c ./common_tools/logger.c ./common_tools/get_opt_helper.c ./common_tools.c
 
 # These variables hold the name of the compilation tool, the compilation flags and the link flags
 # We make use of these variables in the package manifest
@@ -28,6 +29,7 @@ override LDLIBS += -lm -lmodbus -pthread
 DEPS = $(INCLUDES)
 OBJECTS = $(patsubst %.c, $(OBJ)/%.o, $(notdir $(SOURCES)))
 TCP_SRVR_TEST_OBJECTS = $(patsubst %.c, $(OBJ)/%.o, $(notdir $(TCP_SRVR_TEST_SOURCES)))
+GPIO_KEY_PROCESSOR_OBJECTS = $(patsubst %.c, $(OBJ)/%.o, $(notdir $(GPIO_KEY_PROCESSOR_SOURCES)))
  
 .SECONDEXPANSION:
 # This rule builds individual object files, and depends on the corresponding C source files and the header files
@@ -50,6 +52,8 @@ $(OBJ)/%.o: ./tof_measure/platform/src/%.c $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)
 $(OBJ)/%.o: ./mb_tcp_server_test/%.c $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)
+$(OBJ)/%.o: ./gpio_key_processor/%.c $(DEPS)
+	$(CC) -c -o $@ $< $(CFLAGS)
 
 $(TARGET): $(OBJECTS)
 	$(CC) -o $@ $^ $(LDFLAGS) $(LDLIBS)
@@ -57,9 +61,12 @@ $(TARGET): $(OBJECTS)
 $(TCP_SRVR_TEST_TARGET): $(TCP_SRVR_TEST_OBJECTS)
 	$(CC) -o $@ $^ $(LDFLAGS) $(LDLIBS)
 
+$(GPIO_KEY_PROCESSOR_TARGET): $(GPIO_KEY_PROCESSOR_OBJECTS)
+	$(CC) -o $@ $^ $(LDFLAGS) $(LDLIBS)
+
 # To clean build artifacts, we specify a 'clean' rule, and use PHONY to indicate that this rule never matches with a potential file in the directory
 .PHONY: prepare clean
  
 clean:
-	rm -f $(TARGET) $(TCP_SRVR_TEST_TARGET)
+	rm -f $(TARGET) $(TCP_SRVR_TEST_TARGET) $(GPIO_KEY_PROCESSOR_TARGET)
 	rm -rf $(OBJ)  
