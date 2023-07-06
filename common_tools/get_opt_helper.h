@@ -1,14 +1,20 @@
 #ifndef _GET_OPT_HELPER_H_
 #define _GET_OPT_HELPER_H_
 
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
 #include <stdint.h>
 #include <stdio.h>
+#include <getopt.h>
 #include "logger.h"
 
 #undef TYPE_ID
 #define TYPE_ID(t, name) type_##name,
 #define TYPE_LIST \
 {\
+    TYPE_ID(bool, bool)\
     TYPE_ID(const char*, c_charp) TYPE_ID(char*, charp)\
     TYPE_ID(char, char)  TYPE_ID(short, short)  TYPE_ID(int, int)  \
     TYPE_ID(int8_t, int8_t)  TYPE_ID(int16_t, int16_t) TYPE_ID(int32_t, int32_t) \
@@ -16,14 +22,6 @@
     TYPE_ID(float, float)  TYPE_ID(double, double) \
 }
 typedef enum TYPE_LIST data_type_id_t;
-
-typedef struct
-{
-    const char* desc;
-    const void* def_val_ptr;
-    const void* work_val_ptr;
-    data_type_id_t type_ind;
-}cmd_opt_desc_val_t;
 
 #undef TYPE_ID
 #define TYPE_ID(t, name) #name
@@ -70,6 +68,8 @@ extern const char* type_id_str_arr[];
 /* Be careful when using the following macro CONVERT_FUNC.
  * Improper use may leads to subtle error.
  */
+#define CONVERT_FUNC_ATOBOOL(var, value) var = (bool)strtol(value, NULL, 0)
+#define CONVERT_FUNC_STRSHAR(var, value) var = value
 #ifndef _Generic
 #define CONVERT_FUNC_STRCPY(var, value) snprintf(var, MAX_OPT_STR_SIZE, "%s", value)
 #define CONVERT_FUNC_ATOC(var, value) var = (char)(value)[0]
@@ -110,7 +110,7 @@ extern const char* type_id_str_arr[];
 #define CONVERT_FUNC_ATODB(var, value) CONVERT_FUNC(var, value)
 #endif
 /*
- * This macro should be used with getoptlong. See the main.c in dr_manager. 
+ * This macro should be used with getoptlong. refer to option_configuration_process.c for the usage.
  */
 #define OPT_CHECK_AND_DRAW(option_str,check_str, draw_value, value_check, check_log, type_id) \
 if(!strcmp(option_str, check_str))\
@@ -135,5 +135,32 @@ if(!strcmp(option_str, check_str))\
     }\
     break;\
 }
+
+typedef enum
+{
+    OPTION_PROCESS_GOON = 0,
+    OPTION_PROCESS_EXIT_NORMAL,
+    OPTION_PROCESS_EXIT_ERROR,
+}option_process_ret_t;
+
+typedef enum
+{
+    DEFAULT_PARAMS,
+    WORKING_PARAMS,
+}default_or_working_params_ind_t;
+
+typedef struct
+{
+    const char* desc;
+    const void* def_val_ptr;
+    const void* work_val_ptr;
+    data_type_id_t type_ind;
+}cmd_opt_desc_val_t;
+
+/*The definition of long_opt_arr and opt_desc_arr MUST be in accordance. Refer to the usage in option_configuration_process.c*/
+void construct_short_opt_chars_str(char* buf, struct option * long_opt_arr, int arr_cnt);
+void print_app_cmd_line_usage(struct option* long_opt_arr, cmd_opt_desc_val_t* opt_desc_arr, int arr_cnt);
+void print_app_cmd_line_parameters(default_or_working_params_ind_t ind, struct option* long_opt_arr,
+                                   cmd_opt_desc_val_t *opt_desc_arr, int arr_cnt);
 
 #endif

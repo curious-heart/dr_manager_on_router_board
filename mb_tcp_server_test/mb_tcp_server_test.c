@@ -15,7 +15,7 @@ static modbus_t * gs_mb_tcp_client_ctx = NULL;
 
 static void mb_reg_only_write(hv_mb_reg_e_t reg_addr)
 {
-    uint32_t write_data;
+    uint16_t write_data;
     const char* reg_str;
     reg_str = get_hv_mb_reg_str(reg_addr);
     if(!reg_str)
@@ -26,7 +26,7 @@ static void mb_reg_only_write(hv_mb_reg_e_t reg_addr)
     if(gs_mb_tcp_client_ctx)
     {
         printf("please input the data to be written:");
-        scanf("%u", &write_data);
+        scanf("%hu", &write_data);
         if(modbus_write_register(gs_mb_tcp_client_ctx, reg_addr, write_data) <= 0)
         {
             printf("modbus write register %s error:%d, %s\n",

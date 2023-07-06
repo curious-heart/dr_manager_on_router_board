@@ -1,6 +1,8 @@
 #ifndef _HV_REGISTERS_H_
 #define _HV_REGISTERS_H_
 
+#include <stdint.h>
+
 #define MB_REG_ENUM \
 {\
     C(HSV = 0),                            /*软硬件版本*/\

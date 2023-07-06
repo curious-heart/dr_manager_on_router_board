@@ -7,7 +7,6 @@
 #include "version_def.h"
 #include "tof_measure.h"
 
-#include "get_opt_helper.h"
 #include "option_configuration_process.h"
 
 /*All configurable-parameters.------------------------------*/
@@ -21,13 +20,13 @@ static const int32_t gs_def_mb_rtu_serialStopBits = 1;
 static const uint32_t gs_def_mb_rtu_timeout_ms = 999; //1000;
 static const int32_t gs_def_mb_rtu_numberOfRetries = 3;
 static const int32_t gs_def_mb_rtu_serverAddress = 1;
-static const bool gs_def_mb_rtu_debug_flag = false;
+static const int gs_def_mb_rtu_debug_flag = false;
 /*modbus tcp server parameters*/
 static const char* const gs_def_mb_tcp_srvr_ip = "0.0.0.0";
 static char gs_mb_tcp_srvr_ip[MAX_OPT_STR_SIZE];
 static const uint16_t gs_def_mb_tcp_srvr_port = 502;
 static const float gs_def_mb_tcp_srvr_long_wait_time = 10, gs_def_mb_tcp_srvr_short_wait_time = 0.5;
-static const bool gs_def_mb_tcp_srvr_debug_flag= false;
+static const int gs_def_mb_tcp_srvr_debug_flag= false;
 /*monitor (check device state) period.*/
 static const float gs_def_dev_monitor_period = 3;
 /*LCD*/
@@ -238,139 +237,6 @@ static struct option gs_long_opt_arr[] = APP_CMD_OPT_ARRAY;
 #define APP_CMD_OPT_VALUE(desc, def_val_ptr, work_val_ptr, val_type) {desc, def_val_ptr, work_val_ptr, type_##val_type},
 static cmd_opt_desc_val_t gs_cmd_opt_desc_val[] = APP_CMD_OPT_ARRAY;
 
-/*This function does not check the buffer for security. The caller should guarantee the buffer size.*/
-static void construct_short_opt_chars_str(char* buf)
-{
-    int i, pos;
-    for(i = 0, pos = 0; i < ARRAY_ITEM_CNT(gs_long_opt_arr) - 1; ++i)
-    {
-        if(gs_long_opt_arr[i].val != 0)
-        {
-            buf[pos++] = (char)gs_long_opt_arr[i].val;
-            if(required_argument == gs_long_opt_arr[i].has_arg)
-            {
-                buf[pos++] = ':';
-            }
-            else if(optional_argument == gs_long_opt_arr[i].has_arg)
-            {
-                buf[pos++] = ':';
-                buf[pos++] = ':';
-            }
-        }
-    }
-    buf[pos++] = 0;
-
-    DIY_LOG(LOG_DEBUG, "short option chars string: %s\n", buf);
-}
-
-typedef enum
-{
-    DEFAULT_PARAMS,
-    WORKING_PARAMS,
-}default_or_working_params_ind_t;
-static void print_parameters(default_or_working_params_ind_t ind)
-{
-    int i;
-    const void* ptr = NULL;
-
-    printf("\n");
-    if(DEFAULT_PARAMS == ind)
-    {
-        printf("The defaul arguments:\n");
-    }
-    else
-    {
-        printf("The working arguments:\n");
-    }
-
-    for(i = 0; i < ARRAY_ITEM_CNT(gs_long_opt_arr) - 1; ++i)
-    {
-        if(DEFAULT_PARAMS == ind)
-        {
-            ptr = gs_cmd_opt_desc_val[i].def_val_ptr;
-        }
-        else
-        {
-            ptr = gs_cmd_opt_desc_val[i].work_val_ptr;
-        }
-        if(!ptr)
-        {
-            continue;
-        }
-
-        if(gs_long_opt_arr[i].name && required_argument == gs_long_opt_arr[i].has_arg)
-        {
-            printf("--%s: ", gs_long_opt_arr[i].name);
-            switch(gs_cmd_opt_desc_val[i].type_ind)
-            {
-                case type_c_charp:
-                case type_charp:
-                    printf("%s", *(const char**)ptr);
-                    break;
-                case type_char:
-                    printf("%c", *(const char*)ptr);
-                    break;
-                case type_short:
-                    printf("%d", *(const short*)ptr);
-                    break;
-                case type_int:
-                    printf("%d", *(const int*)ptr);
-                    break;
-                case type_int8_t:
-                    printf("%d", *(const int8_t*)ptr);
-                    break;
-                case type_int16_t:
-                    printf("%d", *(const int16_t*)ptr);
-                    break;
-                case type_int32_t:
-                    printf("%d", *(const int32_t*)ptr);
-                    break;
-                case type_uint8_t:
-                    printf("%u", *(const uint8_t*)ptr);
-                    break;
-                case type_uint16_t:
-                    printf("%u", *(const uint16_t*)ptr);
-                    break;
-                case type_uint32_t:
-                    printf("%u", *(const uint32_t*)ptr);
-                    break;
-                case type_float:
-                    printf("%f", *(const float*)ptr);
-                    break;
-                case type_double:
-                    printf("%f", *(const double*)ptr);
-                    break;
-
-                default:
-                    ;
-            }
-            printf("\n");
-        }
-    }
-    printf("\n");
-}
-
-static void print_usage()
-{
-    int i;
-    printf("\nusage:\ndr_manager ");
-    for(i = 0; i < ARRAY_ITEM_CNT(gs_long_opt_arr) - 1; ++i)
-    {
-        printf("[");
-        if(gs_long_opt_arr[i].name) printf("--%s", gs_long_opt_arr[i].name);
-        if(gs_long_opt_arr[i].val) printf("|-%c", (char)gs_long_opt_arr[i].val);
-        if(required_argument == gs_long_opt_arr[i].has_arg && gs_cmd_opt_desc_val[i].desc)
-        {
-            printf(" %s", gs_cmd_opt_desc_val[i].desc);
-        }
-        printf("] ");
-    }
-    printf("\n");
-    printf("\n");
-
-    print_parameters(DEFAULT_PARAMS);
-}
-
 option_process_ret_t process_cmd_options(int argc, char *argv[])
 {
     char short_opt_chars[3 * ARRAY_ITEM_CNT(gs_long_opt_arr) + 1];
@@ -379,7 +245,7 @@ option_process_ret_t process_cmd_options(int argc, char *argv[])
     struct in_addr srvr_ip_in_addr;
     bool options_valid = true;
 
-    construct_short_opt_chars_str(short_opt_chars);
+    construct_short_opt_chars_str(short_opt_chars, gs_long_opt_arr, ARRAY_ITEM_CNT(gs_long_opt_arr));
     while((opt_c = getopt_long(argc, argv, short_opt_chars, gs_long_opt_arr, &longindex)) >= 0)
     {
         switch(opt_c)
@@ -425,7 +291,7 @@ option_process_ret_t process_cmd_options(int argc, char *argv[])
                 break;
 
             case gs_opt_help_c: 
-                print_usage();
+                print_app_cmd_line_usage(gs_long_opt_arr, gs_cmd_opt_desc_val, ARRAY_ITEM_CNT(gs_long_opt_arr) - 1);
                 return OPTION_PROCESS_EXIT_NORMAL;
 
             case 0:
@@ -523,12 +389,13 @@ option_process_ret_t process_cmd_options(int argc, char *argv[])
 
     if(options_valid)
     {
-        print_parameters(WORKING_PARAMS);
+        print_app_cmd_line_parameters(WORKING_PARAMS,
+                gs_long_opt_arr, gs_cmd_opt_desc_val, ARRAY_ITEM_CNT(gs_long_opt_arr) - 1);
         return OPTION_PROCESS_GOON;
     }
     else
     {
-        print_usage();
+        print_app_cmd_line_usage(gs_long_opt_arr, gs_cmd_opt_desc_val, ARRAY_ITEM_CNT(gs_long_opt_arr) - 1);
         return OPTION_PROCESS_EXIT_ERROR;
     } 
 }

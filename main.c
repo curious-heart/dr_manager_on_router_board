@@ -6,6 +6,7 @@
 #include "logger.h"
 #include "hv_registers.h"
 #include "hv_controller.h"
+#include "mb_tcp_server.h"
 #include "dr_manager.h"
 #include "get_opt_helper.h"
 #include "pthread_helper.h"
@@ -150,7 +151,7 @@ static void rtu_master_test(mb_rtu_params_t* rtu_params )
     hv_controller_close();
 }
 
-static void print_modbus_params(mb_rtu_params_t * rtu_params, mb_server_params_t * srvr_params)
+static void print_modbus_params(mb_rtu_params_t * rtu_params, mb_tcp_server_params_t * srvr_params)
 {
     DIY_LOG(LOG_INFO, "++++++++++++++++++++\nRTU info:\nserialPortName: %s\n",
             rtu_params->serialPortName);

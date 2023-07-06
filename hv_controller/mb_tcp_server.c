@@ -27,10 +27,11 @@
 #include "common_tools.h"
 #include "logger.h"
 #include "pthread_helper.h"
-#include "option_configuration_process.h"
 #include "hv_registers.h"
 #include "hv_controller.h"
 #include "dr_manager.h"
+#include "mb_tcp_server.h"
+#include "option_configuration_process.h"
 
 static pthread_t gs_tof_th_id;
 static bool gs_tof_th_started = false;
@@ -70,7 +71,7 @@ void mb_server_exit()
     gs_mb_header_len = -1;
 }
 
-const char* mb_exception_string(uint32_t exception_code)
+static const char* mb_exception_string(uint32_t exception_code)
 {
     switch(exception_code)
     {
@@ -551,7 +552,7 @@ static mb_rw_reg_ret_t mb_server_process_req(uint8_t * req_msg, int req_msg_len,
     return process_ret;
 }
 
-mb_server_exit_code_t  mb_server_loop(mb_server_params_t * srvr_params, bool server_only)
+mb_server_exit_code_t  mb_server_loop(mb_tcp_server_params_t * srvr_params, bool server_only)
 {
     uint8_t query[MODBUS_TCP_MAX_ADU_LENGTH];
     int master_socket;
