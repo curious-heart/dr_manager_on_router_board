@@ -207,7 +207,7 @@ static key_gpio_handler_t gs_key_gpio_handler_arr[kg_end_flag] =
    [key_exp_start] = exp_start_key_handler,
    [key_dose_add] = dose_adjust_key_handler,
    [key_dose_sub] = dose_adjust_key_handler,
-   [key_reset] = dose_adjust_key_handler, //exp_start_key_handler, //reset_key_handler,
+   [key_reset] = exp_start_key_handler, //reset_key_handler,
    [gpio_charger] = charger_gpio_handler,
 };
 static void process_gbh_uevent(converted_gbh_uevt_s_t * evt)
