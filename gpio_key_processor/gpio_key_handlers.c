@@ -27,9 +27,10 @@ bool begin_key_event_handle()
 
     if(modbus_connect(gs_mb_tcp_client_ctx) == -1)
     {
-         DIY_LOG(LOG_ERROR, "Connection failed, %d:%s\n", errno, modbus_strerror(errno));
-         modbus_free(gs_mb_tcp_client_ctx);
-         return false;
+        DIY_LOG(LOG_ERROR, "Connection failed, %d:%s\n", errno, modbus_strerror(errno));
+        modbus_free(gs_mb_tcp_client_ctx);
+        gs_mb_tcp_client_ctx = NULL;
+        return false;
     }
     return true;
 }

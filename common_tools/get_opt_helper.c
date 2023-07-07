@@ -31,7 +31,7 @@ void construct_short_opt_chars_str(char* buf, struct option * long_opt_arr, int 
 void print_app_cmd_line_usage(const char* app_name, struct option* long_opt_arr, cmd_opt_desc_val_t* opt_desc_arr, int arr_cnt)
 {
     int i;
-    printf("\nusage:\n%s", app_name);
+    printf("\nusage:\n%s ", app_name);
     for(i = 0; i < arr_cnt; ++i)
     {
         printf("[");

@@ -34,9 +34,11 @@ static const char* const gs_opt_mb_tcp_srvr_port_str = "mb_tcp_srvr_port";
 static const char* const gs_opt_mb_tcp_srvr_debug_str = "mb_tcp_debug";
 static const char* const gs_opt_app_log_level_str = "app_log_level";
 static const char* const gs_opt_help_str = "help";
+#define gs_opt_help_c 'h'
 static const char* const gs_opt_version_str = "version";
 
 static const char* const gs_opt_exp_start_key_hold_time_str = "exp_start_key_hold";
+
 #undef APP_CMD_OPT_ITEM
 #define APP_CMD_OPT_ITEM(long_o_s, has_arg, flag, val) {long_o_s, has_arg, flag, val},
 #undef APP_CMD_OPT_VALUE
@@ -59,7 +61,7 @@ static const char* const gs_opt_exp_start_key_hold_time_str = "exp_start_key_hol
     APP_CMD_OPT_VALUE("app_log_level", \
            &gs_def_app_log_level, &g_APP_LOG_LEVEL, uint8_t) \
 \
-    APP_CMD_OPT_ITEM(gs_opt_help_str, no_argument, 0, 0) \
+    APP_CMD_OPT_ITEM(gs_opt_help_str, no_argument, 0, gs_opt_help_c) \
     APP_CMD_OPT_VALUE("help", NULL, NULL, int) \
 \
     APP_CMD_OPT_ITEM(gs_opt_version_str, no_argument, 0, 0) \
@@ -93,6 +95,11 @@ option_process_ret_t process_cmd_line(int argc, char* argv[])
     {
         switch(opt_c)
         {
+            case gs_opt_help_c: 
+                print_app_cmd_line_usage(g_APP_NAME, gs_long_opt_arr, gs_cmd_opt_desc_val,
+                        ARRAY_ITEM_CNT(gs_long_opt_arr) - 1);
+                return OPTION_PROCESS_EXIT_NORMAL;
+
             case 0:
                 if(!strcmp(gs_long_opt_arr[longindex].name, gs_opt_version_str))
                 {
