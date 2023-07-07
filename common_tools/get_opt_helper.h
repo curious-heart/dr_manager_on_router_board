@@ -159,7 +159,8 @@ typedef struct
 
 /*The definition of long_opt_arr and opt_desc_arr MUST be in accordance. Refer to the usage in option_configuration_process.c*/
 void construct_short_opt_chars_str(char* buf, struct option * long_opt_arr, int arr_cnt);
-void print_app_cmd_line_usage(struct option* long_opt_arr, cmd_opt_desc_val_t* opt_desc_arr, int arr_cnt);
+void print_app_cmd_line_usage(const char* app_name, struct option* long_opt_arr, cmd_opt_desc_val_t* opt_desc_arr,
+        int arr_cnt);
 void print_app_cmd_line_parameters(default_or_working_params_ind_t ind, struct option* long_opt_arr,
                                    cmd_opt_desc_val_t *opt_desc_arr, int arr_cnt);
 

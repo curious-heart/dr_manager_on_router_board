@@ -28,10 +28,10 @@ void construct_short_opt_chars_str(char* buf, struct option * long_opt_arr, int 
     DIY_LOG(LOG_DEBUG, "short option chars string: %s\n", buf);
 }
 
-void print_app_cmd_line_usage(struct option* long_opt_arr, cmd_opt_desc_val_t* opt_desc_arr, int arr_cnt)
+void print_app_cmd_line_usage(const char* app_name, struct option* long_opt_arr, cmd_opt_desc_val_t* opt_desc_arr, int arr_cnt)
 {
     int i;
-    printf("\nusage:\ndr_manager ");
+    printf("\nusage:\n%s", app_name);
     for(i = 0; i < arr_cnt; ++i)
     {
         printf("[");

@@ -40,6 +40,11 @@ typedef struct
     uint32_t seqnum;
 }converted_gbh_uevt_s_t;
 
+typedef struct
+{
+    uint32_t exp_start_key_hold_time; //in secnods
+}key_gpio_cfg_params_s_t;
+
 bool begin_key_event_handle();
 void end_key_event_handle();
 

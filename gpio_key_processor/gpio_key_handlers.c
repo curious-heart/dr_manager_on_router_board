@@ -7,6 +7,7 @@
 #include "mb_tcp_server.h"
 
 extern mb_tcp_client_params_t g_mb_tcp_client_params;
+extern key_gpio_cfg_params_s_t g_key_gpio_cfg_params;
 
 static modbus_t * gs_mb_tcp_client_ctx = NULL;
 bool begin_key_event_handle()
@@ -44,6 +45,16 @@ void end_key_event_handle()
     }
 }
 
+#define IGNORE_NON_PRESSED_EVT(evt_ptr) \
+    if(evt_ptr)\
+    {\
+        if(evt_ptr->action != key_pressed)\
+        {\
+            DIY_LOG(LOG_DEBUG, "Not a key_pressed event, ignored.\n");\
+            return;\
+        }\
+    }
+
 void exp_range_led_key_handler(converted_gbh_uevt_s_t* evt)
 {
     static uint16_t write_data = true;
@@ -53,6 +64,7 @@ void exp_range_led_key_handler(converted_gbh_uevt_s_t* evt)
     const char* reg_str;
 
     DIY_LOG(LOG_INFO, "exp_reand_led key handler!\n");
+    IGNORE_NON_PRESSED_EVT(evt);
 
     reg_str = get_hv_mb_reg_str(reg_addr);
     if(gs_mb_tcp_client_ctx)
@@ -76,11 +88,25 @@ void exp_range_led_key_handler(converted_gbh_uevt_s_t* evt)
 
 void exp_start_key_handler(converted_gbh_uevt_s_t* evt)
 {
+    static const uint16_t exp_ready = 1, exp_start = 2;
     hv_mb_reg_e_t reg_addr = ExposureStart;
-    uint16_t write_data = 2;
+    uint16_t write_data = exp_start;
     const char* reg_str;
 
     DIY_LOG(LOG_INFO, "exp_reand_led key handler!\n");
+    IGNORE_NON_PRESSED_EVT(evt);
+
+    if(evt)
+    {
+        if(evt->seen >= g_key_gpio_cfg_params.exp_start_key_hold_time)
+        {
+            write_data = exp_start;
+        }
+        else
+        {
+            write_data = exp_ready;
+        } 
+    }
 
     reg_str = get_hv_mb_reg_str(reg_addr);
     if(gs_mb_tcp_client_ctx)
@@ -104,16 +130,19 @@ void exp_start_key_handler(converted_gbh_uevt_s_t* evt)
 void dose_add_key_handler(converted_gbh_uevt_s_t* evt)
 {
     DIY_LOG(LOG_INFO, "dose_add key handler!\n");
+    IGNORE_NON_PRESSED_EVT(evt);
 }
 
 void dose_sub_key_handler(converted_gbh_uevt_s_t* evt)
 {
     DIY_LOG(LOG_INFO, "dose_sub key handler!\n");
+    IGNORE_NON_PRESSED_EVT(evt);
 }
 
 void reset_key_handler(converted_gbh_uevt_s_t* evt)
 {
     DIY_LOG(LOG_INFO, "reset key handler!\n");
+    IGNORE_NON_PRESSED_EVT(evt);
 }
 
 void charger_gpio_handler(converted_gbh_uevt_s_t* evt)

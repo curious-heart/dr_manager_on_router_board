@@ -29,28 +29,28 @@ static const char* gs_key_gpio_act_name_list[] = KEY_GPIO_ACT_LIST ;
  */
 static const char* gs_cared_subsystem_str = "button";
 #undef GBH_UEVENT_ELE
-#define GBH_UEVENT_ELE(var, e) const char* e;
+#define GBH_UEVENT_ELE(e) const char* e;
 #undef GBH_UEVENT_ELE_END_FLAG
 #define GBH_UEVENT_ELE_END_FLAG
 #define GBH_UEVENT_LIST \
 {\
-    GBH_UEVENT_ELE(var, HOME)\
-    GBH_UEVENT_ELE(var, PATH)\
-    GBH_UEVENT_ELE(var, SUBSYSTEM)\
-    GBH_UEVENT_ELE(var, ACTION)\
-    GBH_UEVENT_ELE(var, BUTTON)\
-    GBH_UEVENT_ELE(var, TYPE)\
-    GBH_UEVENT_ELE(var, SEEN)\
-    GBH_UEVENT_ELE(var, SEQNUM)\
+    GBH_UEVENT_ELE(HOME)\
+    GBH_UEVENT_ELE(PATH)\
+    GBH_UEVENT_ELE(SUBSYSTEM)\
+    GBH_UEVENT_ELE(ACTION)\
+    GBH_UEVENT_ELE(BUTTON)\
+    GBH_UEVENT_ELE(TYPE)\
+    GBH_UEVENT_ELE(SEEN)\
+    GBH_UEVENT_ELE(SEQNUM)\
     GBH_UEVENT_ELE_END_FLAG\
 }
 typedef struct GBH_UEVENT_LIST parsed_gbh_uevt_s_t;
 
 #undef GBH_UEVENT_ELE
-#define GBH_UEVENT_ELE(var, e) #e,
+#define GBH_UEVENT_ELE(e) #e,
 static const char* gs_gbh_uevent_ele_names_arr[] = GBH_UEVENT_LIST; 
 #undef GBH_UEVENT_ELE
-#define GBH_UEVENT_ELE(var, e) enum_##e,
+#define GBH_UEVENT_ELE(e) enum_##e,
 #undef GBH_UEVENT_ELE_END_FLAG
 #define GBH_UEVENT_ELE_END_FLAG gbh_uevent_ele_end_flag,
 typedef enum GBH_UEVENT_LIST gbh_uevent_list_e_t;
@@ -85,10 +85,11 @@ static int open_gbh_uevent_recv_socket(void)
     return s;
 }
 
-static void parse_gbh_uevent(const char *msg, const char** helper[])
+static void parse_gbh_uevent(const char *msg, int max_msg_len, const char** helper[])
 {
     int idx;
     int ele_name_len;
+    int msg_parsed_len;
 
     if(!msg || !helper)
     {
@@ -100,22 +101,33 @@ static void parse_gbh_uevent(const char *msg, const char** helper[])
     {
         DIY_LOG(LOG_INFO, "Received gbh msg:\n");
     }
-    while (*msg)
+    msg_parsed_len = 0;
+    while(*msg && msg_parsed_len < max_msg_len)
     {
         DIY_LOG(LOG_INFO + LOG_ONLY_INFO_STR, "%s\n", msg);
         for(idx = enum_HOME; idx < gbh_uevent_ele_end_flag; ++idx)
         {
-            /*strlen + 1 for the "=". */
-            ele_name_len = strlen(gs_gbh_uevent_ele_names_arr[idx]) + 1;
-            if(!strncmp(msg, gs_gbh_uevent_ele_names_arr[idx], ele_name_len))
+            ele_name_len = strlen(gs_gbh_uevent_ele_names_arr[idx]);
+            if(!strncmp(msg, gs_gbh_uevent_ele_names_arr[idx], ele_name_len)
+                    && '=' == msg[ele_name_len])
             {
-                if(helper[idx]) *(helper[idx]) = msg;
+                /* + 1 for the "=". */
+                ele_name_len += 1;
                 msg += ele_name_len;
+                msg_parsed_len += ele_name_len;
+
+                if(helper[idx]) *(helper[idx]) = msg;
                 break;
             }
         }
-        while(*msg++)
-            ;
+        while(*msg && msg_parsed_len < max_msg_len)
+        {
+            ++msg; ++msg_parsed_len;
+        }
+        if(msg_parsed_len < max_msg_len)
+        {
+            ++msg; ++msg_parsed_len;
+        }
 
         /*
         if (!strncmp(msg, "ACTION=", 7)) {
@@ -191,12 +203,12 @@ static void convert_gbh_string_uevent(parsed_gbh_uevt_s_t * string_uevvt, conver
 static key_gpio_handler_t gs_key_gpio_handler_arr[kg_end_flag] =
 {
     /*The order MUST be consistent with the element order defined in macro KEY_GPIO_LIST. */
-    exp_range_led_key_handler,
-    exp_start_key_handler,
-    dose_add_key_handler,
-    dose_sub_key_handler,
-    reset_key_handler,
-    charger_gpio_handler,
+   [key_exp_range_led] = exp_range_led_key_handler,
+   [key_exp_start] = exp_start_key_handler,
+   [key_dose_add] = dose_add_key_handler,
+   [key_dose_sub] = dose_sub_key_handler,
+   [key_reset] = exp_start_key_handler, //reset_key_handler,
+   [gpio_charger] = charger_gpio_handler,
 };
 static void process_gbh_uevent(converted_gbh_uevt_s_t * evt)
 {
@@ -264,7 +276,7 @@ int main(int argc, char* argv[])
     converted_gbh_uevt_s_t converted_gbh_uevt;
     parsed_gbh_uevt_s_t parsed_gbh_uevt;
 #undef GBH_UEVENT_ELE
-#define GBH_UEVENT_ELE(var, e) &(parsed_gbh_uevt.e),
+#define GBH_UEVENT_ELE(e) &(parsed_gbh_uevt.e),
 #undef GBH_UEVENT_ELE_END_FLAG
 #define GBH_UEVENT_ELE_END_FLAG
     const char** parse_helper[] = GBH_UEVENT_LIST;
@@ -304,6 +316,7 @@ int main(int argc, char* argv[])
     {
         while((n = recv(device_fd, msg, UEVENT_MSG_LEN, 0)) > 0)
         {
+            DIY_LOG(LOG_DEBUG, "recv %d bytes.\n", n);
 
             if(n == UEVENT_MSG_LEN)
                 continue;
@@ -312,7 +325,8 @@ int main(int argc, char* argv[])
             msg[n+1] = '\0';
 
             memset(&parsed_gbh_uevt, 0, sizeof(parsed_gbh_uevt));
-            parse_gbh_uevent(msg, parse_helper);
+            parse_gbh_uevent(msg, n, parse_helper);
+
             converted_gbh_uevt.valid = false;
             convert_gbh_string_uevent(&parsed_gbh_uevt, &converted_gbh_uevt);
             if(converted_gbh_uevt.valid)

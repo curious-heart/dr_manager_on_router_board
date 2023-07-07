@@ -199,7 +199,7 @@ static bool clear_threads()
 
 static void clear_for_exit()
 {
-    static exited = false;
+    static bool exited = false;
 
     if(!exited)
     {

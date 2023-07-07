@@ -291,7 +291,8 @@ option_process_ret_t process_cmd_options(int argc, char *argv[])
                 break;
 
             case gs_opt_help_c: 
-                print_app_cmd_line_usage(gs_long_opt_arr, gs_cmd_opt_desc_val, ARRAY_ITEM_CNT(gs_long_opt_arr) - 1);
+                print_app_cmd_line_usage(g_APP_NAME, gs_long_opt_arr, gs_cmd_opt_desc_val,
+                        ARRAY_ITEM_CNT(gs_long_opt_arr) - 1);
                 return OPTION_PROCESS_EXIT_NORMAL;
 
             case 0:
@@ -395,7 +396,7 @@ option_process_ret_t process_cmd_options(int argc, char *argv[])
     }
     else
     {
-        print_app_cmd_line_usage(gs_long_opt_arr, gs_cmd_opt_desc_val, ARRAY_ITEM_CNT(gs_long_opt_arr) - 1);
+        print_app_cmd_line_usage(g_APP_NAME, gs_long_opt_arr, gs_cmd_opt_desc_val, ARRAY_ITEM_CNT(gs_long_opt_arr) - 1);
         return OPTION_PROCESS_EXIT_ERROR;
     } 
 }
