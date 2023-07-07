@@ -30,4 +30,7 @@ typedef enum
 mb_server_exit_code_t mb_server_loop(mb_tcp_server_params_t * srvr_params, bool server_only);
 void mb_server_exit();
 
+#define MB_REQ_MSG_SINGLE_VALUE_OFFSET_AFTER_HDR 3
+#define MB_REQ_MSG_MULTI_VALUE_OFFSET_AFTER_HDR 6
+
 #endif

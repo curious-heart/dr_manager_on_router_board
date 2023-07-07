@@ -31,7 +31,12 @@
 #include "hv_controller.h"
 #include "dr_manager.h"
 #include "mb_tcp_server.h"
+#include "mb_tcp_server_internal.h"
+#include "mb_tcp_server_ext_reg_handlers.h"
 #include "option_configuration_process.h"
+
+/*Do not use it in area out of modbus tcp server code.*/
+const char* const gp_mb_server_log_header = "modbus server: ";
 
 static pthread_t gs_tof_th_id;
 static bool gs_tof_th_started = false;
@@ -43,7 +48,6 @@ static modbus_t *gs_mb_srvr_ctx = NULL;
 static modbus_mapping_t *gs_mb_mapping;
 static int gs_mb_server_socket = -1;
 static int gs_mb_header_len = -1;
-static const char* gs_mb_server_log_header = "modbus server: ";
 
 static time_t gs_time_point_for_conn_check;
 
@@ -104,17 +108,17 @@ static const char* mb_exception_string(uint32_t exception_code)
     return "MODBUS_EXCEPTION_NOT_DEFINED";
 }
 
-static bool mb_server_check_func_reg_cnt(uint8_t * req_msg, 
+static mb_reg_check_ret_t mb_server_check_func_reg_cnt(uint8_t * req_msg, 
         uint8_t * func, uint16_t * addr, uint16_t * cnt, uint32_t * exception_code)
 {
     uint8_t func_code;
     uint16_t reg_addr_start, reg_cnt;
-    bool ret = false;
+    mb_reg_check_ret_t ret;
 
     if(!req_msg)
     {
         if(exception_code) *exception_code = MODBUS_EXCEPTION_NOT_DEFINED;
-        return false;
+        return MB_REG_CHECK_ERROR;
     }
 
     func_code = req_msg[gs_mb_header_len];
@@ -137,24 +141,37 @@ static bool mb_server_check_func_reg_cnt(uint8_t * req_msg,
 
             if(addr) *addr = reg_addr_start;
             if(cnt) *cnt = reg_cnt;
-            if(reg_addr_start + reg_cnt < MAX_HV_MB_REG_NUM)
+            if(NORMAL_MB_REG_AND_CNT(reg_addr_start, reg_cnt))
             {
                 if(exception_code) *exception_code = 0;
-                ret = true;
+                ret = MB_NORMAL_REG;
+            }
+            else if(EXTEND_MB_REG_AND_CNT(reg_addr_start, reg_cnt))
+            {
+                if(exception_code) *exception_code = 0;
+                ret = MB_EXTEND_REG;
             }
             else
             {
                 if(exception_code) *exception_code = MODBUS_EXCEPTION_ILLEGAL_DATA_ADDRESS;
-                ret = false;
+                ret = MB_INVALID_REG;
             }
         }
         break;
 
         default:
             if(exception_code) *exception_code = MODBUS_EXCEPTION_ILLEGAL_FUNCTION;
-            ret = false;
+            ret = MB_REG_CHECK_ERROR;
             break;
     }
+
+    DIY_LOG(LOG_INFO, "%sfunc_code:%u.\n", gp_mb_server_log_header, func_code); 
+    if(ret != MB_REG_CHECK_ERROR)
+    {
+        DIY_LOG(LOG_INFO + LOG_ONLY_INFO_STR, "%sreg_reg_start:%d(%s), reg_cnt:%d.\n",
+                gp_mb_server_log_header, reg_addr_start, get_hv_mb_reg_str(reg_addr_start), reg_cnt); 
+    }
+
     return ret;
 }
 
@@ -172,14 +189,6 @@ static void update_dev_st_pool_from_main_loop_th(void* d)
     ST_PARAM_SET_UPD(g_device_st_pool, expo_am_ua, hv_st->expo_am_ua);
     ST_PARAM_SET_UPD(g_device_st_pool, expo_st, hv_st->expo_st);
 }
-
-typedef enum
-{
-    MB_RW_REG_RET_ERROR = -1,
-    MB_RW_REG_RET_NONE = 0,
-    MB_RW_REG_RET_USE_SHORT_WAIT_TIME,
-    MB_RW_REG_RET_USE_LONG_WAIT_TIME,
-}mb_rw_reg_ret_t;
 
 extern cmd_line_opt_collection_t g_cmd_line_opt_collection;
 void check_and_start_tof_th()
@@ -211,8 +220,7 @@ void check_and_cancel_tof_th()
     }
 }
 
-static mb_rw_reg_ret_t mb_server_write_reg_sniff(uint16_t reg_addr_start,
-                                     uint16_t * data_arr, uint16_t reg_cnt)
+mb_rw_reg_ret_t mb_server_write_reg_sniff(uint16_t reg_addr_start, uint16_t * data_arr, uint16_t reg_cnt)
 {
     bool becare = false;
     uint16_t idx = 0;
@@ -275,8 +283,7 @@ static mb_rw_reg_ret_t mb_server_write_reg_sniff(uint16_t reg_addr_start,
     return ret;
 }
 
-static mb_rw_reg_ret_t mb_server_read_reg_sniff(uint16_t reg_addr_start,
-                                     uint16_t * data_arr, uint16_t reg_cnt)
+mb_rw_reg_ret_t mb_server_read_reg_sniff(uint16_t reg_addr_start, uint16_t * data_arr, uint16_t reg_cnt)
 {
     bool becare = false;
     uint16_t idx = 0;
@@ -359,7 +366,7 @@ static mb_rw_reg_ret_t read_hv_st_from_internal(float timeout_sec)
     }
     else
     {
-        DIY_LOG(LOG_ERROR, "%sread hv state from internall error.\n", gs_mb_server_log_header);
+        DIY_LOG(LOG_ERROR, "%sread hv state from internall error.\n", gp_mb_server_log_header);
     }
 
     if(process_ret != MB_RW_REG_RET_ERROR)
@@ -377,7 +384,7 @@ static mb_rw_reg_ret_t read_hv_st_from_internal(float timeout_sec)
         else
         {
             DIY_LOG(LOG_ERROR, "%sread battery level from internall error.\n",
-                    gs_mb_server_log_header);
+                    gp_mb_server_log_header);
         }
     }
 
@@ -402,11 +409,102 @@ static mb_rw_reg_ret_t read_hv_st_from_internal(float timeout_sec)
     return process_ret;
 }
 
+static void mb_tcp_server_fill_mapping_tab_reg_from_msg(uint8_t *req_msg, int offset, uint16_t reg_addr_start, uint16_t cnt)
+{
+    uint16_t idx;
+    for(idx = 0; idx < cnt; ++idx)
+    {
+        gs_mb_mapping->tab_registers[reg_addr_start + idx]
+            = MODBUS_GET_INT16_FROM_INT8(req_msg, gs_mb_header_len + offset  + 2 * idx);
+    }
+}
+
+static mb_rw_reg_ret_t mb_server_process_extend_reg(uint8_t * req_msg, int req_msg_len, 
+        uint8_t func, uint16_t reg_addr_start, uint16_t reg_cnt)
+{
+    int ret_len;
+    mb_rw_reg_ret_t ret = MB_RW_REG_RET_NONE;
+
+    DIY_LOG(LOG_INFO, "%sProcess extend register.", gp_mb_server_log_header);
+    switch(func)
+    {
+        case MODBUS_FC_WRITE_SINGLE_REGISTER:
+        {
+            uint16_t write_data;
+            mb_tcp_server_fill_mapping_tab_reg_from_msg(req_msg, MB_REQ_MSG_SINGLE_VALUE_OFFSET_AFTER_HDR,
+                                                        reg_addr_start, 1);
+            write_data = gs_mb_mapping->tab_registers[reg_addr_start];
+
+            switch(reg_addr_start)
+            {
+                case EXT_MB_REG_DOSE_ADJ:
+                    ret = mb_tcp_srvr_ext_reg_dose_adj_handler(write_data);
+                    break;
+
+                default:
+                    DIY_LOG(LOG_WARN + LOG_ONLY_INFO_STR_COMP, "But nothing to do now...\n");
+                    break;
+            }
+
+            if(MB_RW_REG_RET_ERROR == ret)
+            {
+                DIY_LOG(LOG_ERROR, "%sprocess extend register %s write error.\n",
+                                    gp_mb_server_log_header, get_hv_mb_reg_str(reg_addr_start));
+                modbus_reply_exception(gs_mb_srvr_ctx, req_msg, MODBUS_EXCEPTION_NOT_DEFINED);
+            }
+            else
+            {
+                ret_len = modbus_reply(gs_mb_srvr_ctx, req_msg, req_msg_len, gs_mb_mapping);
+                if(ret_len <= 0)
+                {
+                     DIY_LOG(LOG_ERROR, "%sreply error with ret_len %d, %d:%s.\n",
+                         gp_mb_server_log_header, ret_len, errno, modbus_strerror(errno));
+                    ret = MB_RW_REG_RET_ERROR;
+                }
+            }
+        }
+        break;
+
+        case MODBUS_FC_WRITE_MULTIPLE_REGISTERS:
+        {
+            mb_tcp_server_fill_mapping_tab_reg_from_msg(req_msg, MB_REQ_MSG_MULTI_VALUE_OFFSET_AFTER_HDR,
+                                                        reg_addr_start, reg_cnt);
+            ret_len = modbus_reply(gs_mb_srvr_ctx, req_msg, req_msg_len, gs_mb_mapping);
+            if(ret_len <= 0)
+            {
+                 DIY_LOG(LOG_ERROR, "%sreply error with ret_len %d, %d:%s.\n",
+                     gp_mb_server_log_header, ret_len, errno, modbus_strerror(errno));
+                ret = MB_RW_REG_RET_ERROR;
+            }
+        }
+        break;
+
+        case MODBUS_FC_READ_HOLDING_REGISTERS:
+        {
+            ret_len = modbus_reply(gs_mb_srvr_ctx, req_msg, req_msg_len, gs_mb_mapping);
+            if(ret_len <= 0)
+            {
+                 DIY_LOG(LOG_ERROR, "%sreply error with ret_len %d, %d:%s.\n",
+                     gp_mb_server_log_header, ret_len, errno, modbus_strerror(errno));
+                 ret = MB_RW_REG_RET_ERROR;
+            }
+
+        }
+        break;
+
+        default:
+            DIY_LOG(LOG_WARN + LOG_ONLY_INFO_STR_COMP, "But nothing to do now...\n");
+            break;
+    }
+
+    return ret;
+}
+
 static mb_rw_reg_ret_t mb_server_process_req(uint8_t * req_msg, int req_msg_len,
                                              bool server_only)
 {
     mb_rw_reg_ret_t process_ret = MB_RW_REG_RET_NONE; 
-    bool check_ret;
+    mb_reg_check_ret_t check_ret;
     uint8_t func_code = 255;
     uint16_t reg_addr_start = 0, reg_cnt = 0;
     uint32_t exception_code;
@@ -415,29 +513,15 @@ static mb_rw_reg_ret_t mb_server_process_req(uint8_t * req_msg, int req_msg_len,
     if(NULL == req_msg)
     {
         DIY_LOG(LOG_ERROR, "%smodbus server: receive NULL msg.\n",
-                gs_mb_server_log_header );
+                gp_mb_server_log_header );
         return MB_RW_REG_RET_ERROR;
     }
 
     check_ret = mb_server_check_func_reg_cnt(req_msg, 
                                       &func_code, &reg_addr_start, &reg_cnt, &exception_code);
-    DIY_LOG(LOG_INFO, "%sfunc_code:%u.\n", gs_mb_server_log_header, func_code); 
-    switch(func_code)
+    if(MB_INVALID_REG == check_ret || MB_REG_CHECK_ERROR == check_ret)
     {
-        case MODBUS_FC_READ_HOLDING_REGISTERS:
-        case MODBUS_FC_WRITE_MULTIPLE_REGISTERS:
-        case MODBUS_FC_WRITE_SINGLE_REGISTER:
-            DIY_LOG(LOG_INFO + LOG_ONLY_INFO_STR, "%sreg_reg_start:%d, reg_cnt:%d.\n",
-                    gs_mb_server_log_header, reg_addr_start, reg_cnt); 
-            break;
-
-        default:
-            ;
-    }
-
-    if(!check_ret)
-    {
-        DIY_LOG(LOG_ERROR, "%sinvalid req, %u:%s\n", gs_mb_server_log_header, 
+        DIY_LOG(LOG_ERROR, "%sinvalid req, %u:%s\n", gp_mb_server_log_header, 
                             exception_code,
                             mb_exception_string(exception_code));
         modbus_reply_exception(gs_mb_srvr_ctx, req_msg, exception_code);
@@ -449,6 +533,13 @@ static mb_rw_reg_ret_t mb_server_process_req(uint8_t * req_msg, int req_msg_len,
         return process_ret;
     }
 
+    if(MB_EXTEND_REG == check_ret)
+    {
+        /*extend register process.*/
+        return mb_server_process_extend_reg(req_msg, req_msg_len, func_code, reg_addr_start, reg_cnt);
+    }
+
+    /*normal register process.*/
     switch(func_code)
     {
         case MODBUS_FC_READ_HOLDING_REGISTERS:
@@ -461,8 +552,8 @@ static mb_rw_reg_ret_t mb_server_process_req(uint8_t * req_msg, int req_msg_len,
                if(ret_len <= 0)
                {
                     DIY_LOG(LOG_ERROR, "%sreply error with ret_len %d, %d:%s.\n",
-                        gs_mb_server_log_header, ret_len, errno, modbus_strerror(errno));
-                    return MB_RW_REG_RET_ERROR ;
+                        gp_mb_server_log_header, ret_len, errno, modbus_strerror(errno));
+                    return MB_RW_REG_RET_ERROR;
                }
                process_ret = mb_server_read_reg_sniff(reg_addr_start,
                                         &gs_mb_mapping->tab_registers[reg_addr_start],
@@ -472,10 +563,10 @@ static mb_rw_reg_ret_t mb_server_process_req(uint8_t * req_msg, int req_msg_len,
             else
             {
                 DIY_LOG(LOG_ERROR, "%sread registers from hv_controller error.\n",
-                                    gs_mb_server_log_header);
+                                    gp_mb_server_log_header);
                 modbus_reply_exception(gs_mb_srvr_ctx, req_msg, 
                                         MODBUS_EXCEPTION_NOT_DEFINED);
-                return MB_RW_REG_RET_ERROR ;
+                return MB_RW_REG_RET_ERROR;
             }
         }
         break;
@@ -483,15 +574,16 @@ static mb_rw_reg_ret_t mb_server_process_req(uint8_t * req_msg, int req_msg_len,
         case MODBUS_FC_WRITE_SINGLE_REGISTER:
         {
             uint16_t write_data;
-            write_data = MODBUS_GET_INT16_FROM_INT8(req_msg, gs_mb_header_len + 3);
-            gs_mb_mapping->tab_registers[reg_addr_start] = write_data;
+            mb_tcp_server_fill_mapping_tab_reg_from_msg(req_msg, MB_REQ_MSG_SINGLE_VALUE_OFFSET_AFTER_HDR,
+                                                        reg_addr_start, 1);
+            write_data = gs_mb_mapping->tab_registers[reg_addr_start];
             if(hv_controller_write_single_uint16(reg_addr_start, write_data))
             {
                 ret_len = modbus_reply(gs_mb_srvr_ctx, req_msg, req_msg_len, gs_mb_mapping);
                 if(ret_len <= 0)
                 {
                      DIY_LOG(LOG_ERROR, "%sreply error with ret_len %d, %d:%s.\n",
-                         gs_mb_server_log_header, ret_len, errno, modbus_strerror(errno));
+                         gp_mb_server_log_header, ret_len, errno, modbus_strerror(errno));
                      return MB_RW_REG_RET_ERROR;
                 }
                 process_ret = mb_server_write_reg_sniff(reg_addr_start,
@@ -500,7 +592,7 @@ static mb_rw_reg_ret_t mb_server_process_req(uint8_t * req_msg, int req_msg_len,
             else
             {
                 DIY_LOG(LOG_ERROR, "%swrite registers to hv_controller error.\n",
-                                    gs_mb_server_log_header);
+                                    gp_mb_server_log_header);
                 modbus_reply_exception(gs_mb_srvr_ctx, req_msg, 
                                         MODBUS_EXCEPTION_NOT_DEFINED);
                 return MB_RW_REG_RET_ERROR;
@@ -510,12 +602,8 @@ static mb_rw_reg_ret_t mb_server_process_req(uint8_t * req_msg, int req_msg_len,
 
         case MODBUS_FC_WRITE_MULTIPLE_REGISTERS:
         {
-            uint16_t idx;
-            for(idx = 0; idx < reg_cnt; ++idx)
-            {
-                gs_mb_mapping->tab_registers[idx]
-                    = MODBUS_GET_INT16_FROM_INT8(req_msg, gs_mb_header_len + 6 + 2 * idx);
-            }
+            mb_tcp_server_fill_mapping_tab_reg_from_msg(req_msg, MB_REQ_MSG_MULTI_VALUE_OFFSET_AFTER_HDR,
+                                                        reg_addr_start, reg_cnt);
             if(hv_controller_write_uint16s(reg_addr_start,
                         &gs_mb_mapping->tab_registers[reg_addr_start],
                         reg_cnt))
@@ -524,7 +612,7 @@ static mb_rw_reg_ret_t mb_server_process_req(uint8_t * req_msg, int req_msg_len,
                if(ret_len <= 0)
                {
                     DIY_LOG(LOG_ERROR, "%sreply error with ret_len %d, %d:%s.\n",
-                        gs_mb_server_log_header, ret_len, errno, modbus_strerror(errno));
+                        gp_mb_server_log_header, ret_len, errno, modbus_strerror(errno));
                     return MB_RW_REG_RET_ERROR;
                }
                process_ret = mb_server_write_reg_sniff(reg_addr_start,
@@ -533,7 +621,7 @@ static mb_rw_reg_ret_t mb_server_process_req(uint8_t * req_msg, int req_msg_len,
             else
             {
                 DIY_LOG(LOG_ERROR, "%swrite multi-registers to hv_controller error.\n",
-                                    gs_mb_server_log_header);
+                                    gp_mb_server_log_header);
                 modbus_reply_exception(gs_mb_srvr_ctx, req_msg, 
                                         MODBUS_EXCEPTION_NOT_DEFINED);
                 return MB_RW_REG_RET_ERROR;
@@ -543,13 +631,23 @@ static mb_rw_reg_ret_t mb_server_process_req(uint8_t * req_msg, int req_msg_len,
 
         default:
             DIY_LOG(LOG_WARN, "%sthe function %d is not supported.\n", 
-                    gs_mb_server_log_header, func_code);
+                    gp_mb_server_log_header, func_code);
             modbus_reply_exception(gs_mb_srvr_ctx, req_msg, 
                     MODBUS_EXCEPTION_ILLEGAL_FUNCTION);
             return MB_RW_REG_RET_ERROR;
     }
 
     return process_ret;
+}
+
+modbus_t * mb_server_get_ctx()
+{
+    return gs_mb_srvr_ctx;
+}
+
+modbus_mapping_t * mb_server_get_mapping()
+{
+    return gs_mb_mapping;
 }
 
 mb_server_exit_code_t  mb_server_loop(mb_tcp_server_params_t * srvr_params, bool server_only)
@@ -570,7 +668,7 @@ mb_server_exit_code_t  mb_server_loop(mb_tcp_server_params_t * srvr_params, bool
 
     if(!srvr_params)
     {
-        DIY_LOG(LOG_ERROR, "%sserver parameters pointer is NULL.\n", gs_mb_server_log_header);
+        DIY_LOG(LOG_ERROR, "%sserver parameters pointer is NULL.\n", gp_mb_server_log_header);
         return MB_SERVER_EXIT_INIT_FAIL;
     }
 
@@ -581,15 +679,15 @@ mb_server_exit_code_t  mb_server_loop(mb_tcp_server_params_t * srvr_params, bool
     if(NULL == gs_mb_srvr_ctx)
     {
         DIY_LOG(LOG_ERROR, "%smodbus_new_tcp error: %d: %s.\n",
-                gs_mb_server_log_header, errno, modbus_strerror(errno));
+                gp_mb_server_log_header, errno, modbus_strerror(errno));
         return MB_SERVER_EXIT_INIT_FAIL;
     }
 
     if(0 != modbus_set_debug(gs_mb_srvr_ctx, srvr_params->debug_flag))
     {
         DIY_LOG(LOG_WARN, "%sset debug fail:%d: %s, ",
-                gs_mb_server_log_header, errno, modbus_strerror(errno));
-        DIY_LOG(LOG_WARN, "%sbut we continue going ahead.\n\n", gs_mb_server_log_header);
+                gp_mb_server_log_header, errno, modbus_strerror(errno));
+        DIY_LOG(LOG_WARN, "%sbut we continue going ahead.\n\n", gp_mb_server_log_header);
     }
 
     /*
@@ -597,8 +695,8 @@ mb_server_exit_code_t  mb_server_loop(mb_tcp_server_params_t * srvr_params, bool
             MODBUS_ERROR_RECOVERY_LINK | MODBUS_ERROR_RECOVERY_PROTOCOL))
     {
         DIY_LOG(LOG_WARN, "%sset error recovery mode fail:%d: %s, ",
-                gs_mb_server_log_header, errno, modbus_strerror(errno));
-        DIY_LOG(LOG_WARN, "%sbut we continue going ahead.\n\n", gs_mb_server_log_header);
+                gp_mb_server_log_header, errno, modbus_strerror(errno));
+        DIY_LOG(LOG_WARN, "%sbut we continue going ahead.\n\n", gp_mb_server_log_header);
     }
     */
 
@@ -607,7 +705,7 @@ mb_server_exit_code_t  mb_server_loop(mb_tcp_server_params_t * srvr_params, bool
         modbus_free(gs_mb_srvr_ctx);
         gs_mb_srvr_ctx = NULL;
         DIY_LOG(LOG_ERROR, "%smodbus set response time out (%d s, %d ms) fail:%d: %s\n",
-                gs_mb_server_log_header, 0, resp_timeout_ms, errno, modbus_strerror(errno));
+                gp_mb_server_log_header, 0, resp_timeout_ms, errno, modbus_strerror(errno));
         return false;
     }
 
@@ -615,20 +713,20 @@ mb_server_exit_code_t  mb_server_loop(mb_tcp_server_params_t * srvr_params, bool
     if(gs_mb_header_len < 0)
     {
         DIY_LOG(LOG_ERROR, "%smodbus_get_header_length error: %d: %s.\n",
-                gs_mb_server_log_header, errno, modbus_strerror(errno));
+                gp_mb_server_log_header, errno, modbus_strerror(errno));
         modbus_free(gs_mb_srvr_ctx);
         gs_mb_srvr_ctx = NULL;
         return MB_SERVER_EXIT_INIT_FAIL;
     }
     DIY_LOG(LOG_INFO, "%sheader lengthi is: %d.\n",
-            gs_mb_server_log_header, gs_mb_header_len);
+            gp_mb_server_log_header, gs_mb_header_len);
 
     gs_mb_mapping =
-        modbus_mapping_new(0, 0, MAX_HV_MB_REG_NUM, 0);
+        modbus_mapping_new(0, 0, HV_MB_REG_END_FLAG, 0);
     if(gs_mb_mapping == NULL)
     {
         DIY_LOG(LOG_ERROR, "%sFailed to allocate the mapping:%d: %s\n",
-                gs_mb_server_log_header, errno, modbus_strerror(errno));
+                gp_mb_server_log_header, errno, modbus_strerror(errno));
         modbus_free(gs_mb_srvr_ctx);
         gs_mb_srvr_ctx = NULL;
         gs_mb_header_len = -1;
@@ -639,7 +737,7 @@ mb_server_exit_code_t  mb_server_loop(mb_tcp_server_params_t * srvr_params, bool
     if (gs_mb_server_socket == -1)
     {
         DIY_LOG(LOG_ERROR, "%sUnable to listen TCP connection: %d: %s.\n",
-                gs_mb_server_log_header, errno, modbus_strerror(errno));
+                gp_mb_server_log_header, errno, modbus_strerror(errno));
         modbus_free(gs_mb_srvr_ctx);
         gs_mb_srvr_ctx = NULL;
 
@@ -650,7 +748,7 @@ mb_server_exit_code_t  mb_server_loop(mb_tcp_server_params_t * srvr_params, bool
     }
     DIY_LOG(LOG_INFO + LOG_ONLY_INFO_STR, "\n\n");
     DIY_LOG(LOG_INFO, "%smodbus server listenning on %s:%d, socket fd: %d...\n",
-            gs_mb_server_log_header, srvr_params->srvr_ip, srvr_params->srvr_port,
+            gp_mb_server_log_header, srvr_params->srvr_ip, srvr_params->srvr_port,
             gs_mb_server_socket);
 
     gs_time_point_for_conn_check = time(NULL);
@@ -667,7 +765,7 @@ mb_server_exit_code_t  mb_server_loop(mb_tcp_server_params_t * srvr_params, bool
         rdset = refset;
         if (select(fdmax + 1, &rdset, NULL, NULL, &timeout) == -1)
         {
-            DIY_LOG(LOG_ERROR, "%sServer select() failure.\n", gs_mb_server_log_header);
+            DIY_LOG(LOG_ERROR, "%sServer select() failure.\n", gp_mb_server_log_header);
             /*leaving for caller to release resource.*/
             return MB_SERVER_EXIT_COMM_FATAL_ERROR;
         }
@@ -695,7 +793,7 @@ mb_server_exit_code_t  mb_server_loop(mb_tcp_server_params_t * srvr_params, bool
                 if (newfd == -1)
                 {
                     DIY_LOG(LOG_ERROR, "%smodbus_tcp_accept error.\n",
-                            gs_mb_server_log_header);
+                            gp_mb_server_log_header);
                 }
                 else
                 {
@@ -711,14 +809,14 @@ mb_server_exit_code_t  mb_server_loop(mb_tcp_server_params_t * srvr_params, bool
                         DIY_LOG(LOG_WARN,
                                 "%sNew connection coming on socket %d,"
                                 " but can't obtain its addr:%d\n",
-                                gs_mb_server_log_header,
+                                gp_mb_server_log_header,
                                 newfd,
                                 errno);
                     }
                     else
                     {
                         DIY_LOG(LOG_INFO, "%sNew connection on socket %d, %s:%u.\n",
-                               gs_mb_server_log_header, 
+                               gp_mb_server_log_header, 
                                newfd,
                                inet_ntoa(clientaddr.sin_addr),
                                clientaddr.sin_port);
@@ -741,13 +839,13 @@ mb_server_exit_code_t  mb_server_loop(mb_tcp_server_params_t * srvr_params, bool
                     {
                         DIY_LOG(LOG_WARN,
                                 "%sdata received, but can't obtain its addr, errno:%d\n",
-                                gs_mb_server_log_header,
+                                gp_mb_server_log_header,
                                 errno);
                     }
                     else
                     {
                         DIY_LOG(LOG_INFO, "%sdata received on socket %d, %s:%u.\n",
-                               gs_mb_server_log_header, 
+                               gp_mb_server_log_header, 
                                master_socket,
                                inet_ntoa(clientaddr.sin_addr),
                                clientaddr.sin_port);
@@ -775,7 +873,7 @@ mb_server_exit_code_t  mb_server_loop(mb_tcp_server_params_t * srvr_params, bool
                 {
                     /* This example server in ended on connection closing or any errors. */
                     DIY_LOG(LOG_ERROR, "%sConnection closed on socket %d, ",
-                           gs_mb_server_log_header, master_socket);
+                           gp_mb_server_log_header, master_socket);
                     if(get_peer_name_ret < 0)
                     {
                         DIY_LOG(LOG_WARN + LOG_ONLY_INFO_STR,

@@ -1,18 +1,24 @@
 #include "logger.h"
 #include "hv_registers.h"
 
+#undef C
+#define C(a) #a
 static const char* gs_hv_mb_reg_str[] = MB_REG_ENUM;
+
 const char* get_hv_mb_reg_str(hv_mb_reg_e_t reg_addr)
 {
-    if((reg_addr >= MAX_HV_MB_REG_NUM) || (reg_addr < 0))
+    if(VALID_MB_REG_ADDR(reg_addr))
+    {
+        return gs_hv_mb_reg_str[reg_addr];
+    }
+    else
     {
         DIY_LOG(LOG_ERROR, "register address %d is invalid.\n", reg_addr);
         return NULL;
     }
-    return gs_hv_mb_reg_str[reg_addr];
 }
 
-static const char gs_hv_mb_reg_rw_attr[] =
+static const char gs_hv_mb_reg_rw_attr[HV_MB_REG_END_FLAG] =
 {
     HV_MB_REG_RW_ATTR_R, /*C(HSV = 0),                    软硬件版本*/
     HV_MB_REG_RW_ATTR_RW, /*C(OTA = 1),                   OTA升级*/
@@ -36,13 +42,20 @@ static const char gs_hv_mb_reg_rw_attr[] =
     HV_MB_REG_RW_ATTR_W, /*C(Fixval = 19),                 19 校准值**/
     HV_MB_REG_RW_ATTR_R, /*C(Workstatus = 20),             20充能状态*/
     HV_MB_REG_RW_ATTR_W, /*C(exposureCount = 21),          曝光次数*/
+    0, /*C(MAX_HV_MB_REG_NUM) */
+    HV_MB_REG_RW_ATTR_W, /*C(EXT_DOSE_ADJ),                       +/- key event*/
+    /*C(HV_MB_REG_END_FLAG), */
 };
+
 const char get_hv_mb_reg_rw_attr(hv_mb_reg_e_t reg_addr)
 {
-    if((reg_addr >= MAX_HV_MB_REG_NUM) || (reg_addr < 0))
+    if(VALID_MB_REG_ADDR(reg_addr))
+    {
+        return gs_hv_mb_reg_rw_attr[reg_addr];
+    }
+    else
     {
         DIY_LOG(LOG_ERROR, "register address %d is invalid.\n", reg_addr);
         return 0;
     }
-    return gs_hv_mb_reg_rw_attr[reg_addr];
 }

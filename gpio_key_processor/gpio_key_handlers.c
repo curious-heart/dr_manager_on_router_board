@@ -94,7 +94,7 @@ void exp_start_key_handler(converted_gbh_uevt_s_t* evt)
     uint16_t write_data = exp_start;
     const char* reg_str;
 
-    DIY_LOG(LOG_INFO, "exp_reand_led key handler!\n");
+    DIY_LOG(LOG_DEBUG, "exp_start key handler!\n");
     IGNORE_NON_PRESSED_EVT(evt);
 
     if(evt)
@@ -128,16 +128,48 @@ void exp_start_key_handler(converted_gbh_uevt_s_t* evt)
     }
 }
 
-void dose_add_key_handler(converted_gbh_uevt_s_t* evt)
+void dose_adjust_key_handler(converted_gbh_uevt_s_t* evt)
 {
-    DIY_LOG(LOG_INFO, "dose_add key handler!\n");
-    IGNORE_NON_PRESSED_EVT(evt);
-}
+    const char* reg_str;
+    hv_mb_reg_e_t reg_addr = EXT_MB_REG_DOSE_ADJ;
+    uint16_t write_data;
 
-void dose_sub_key_handler(converted_gbh_uevt_s_t* evt)
-{
-    DIY_LOG(LOG_INFO, "dose_sub key handler!\n");
     IGNORE_NON_PRESSED_EVT(evt);
+
+    if(!evt)
+    {
+        DIY_LOG(LOG_ERROR, "dose adjust handler, evt ptr is NULL.\n");
+        return;
+    }
+
+    DIY_LOG(LOG_INFO, "%s key handler!\n", g_key_gpio_name_list[evt->key_gpio]);
+
+    if(key_dose_add == evt->key_gpio)
+    {
+        write_data = MB_REG_V_DOSE_ADJ_ADD;
+    }
+    else
+    {
+        write_data = MB_REG_V_DOSE_ADJ_SUB;
+    }
+
+    reg_str = get_hv_mb_reg_str(reg_addr);
+    if(gs_mb_tcp_client_ctx)
+    {
+        if(modbus_write_register(gs_mb_tcp_client_ctx, reg_addr, write_data) <= 0)
+        {
+            DIY_LOG(LOG_ERROR, "modbus write register %s error:%d, %s\n",
+                   reg_str, errno, modbus_strerror(errno));
+        }
+        else
+        {
+            DIY_LOG(LOG_INFO, "%s: adjust dose ok.\n", g_key_gpio_name_list[evt->key_gpio]); 
+        }
+    }
+    else
+    {
+        DIY_LOG(LOG_ERROR, "modbus ctx is NULL.\n");
+    }
 }
 
 void reset_key_handler(converted_gbh_uevt_s_t* evt)

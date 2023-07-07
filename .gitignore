@@ -53,3 +53,6 @@ dkms.conf
 
 #vim tmp file
 *.swp
+
+#other tmp file
+.cache

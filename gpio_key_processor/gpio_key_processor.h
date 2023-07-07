@@ -45,14 +45,16 @@ typedef struct
     uint32_t exp_start_key_hold_time; //in secnods
 }key_gpio_cfg_params_s_t;
 
+extern const char* g_key_gpio_name_list[kg_end_flag];
+extern const char* g_key_gpio_act_name_list[kg_action_end_flag];
+
 bool begin_key_event_handle();
 void end_key_event_handle();
 
 typedef void (*key_gpio_handler_t)(converted_gbh_uevt_s_t * evt);
 void exp_range_led_key_handler(converted_gbh_uevt_s_t * evt);
 void exp_start_key_handler(converted_gbh_uevt_s_t* evt);
-void dose_add_key_handler(converted_gbh_uevt_s_t* evt);
-void dose_sub_key_handler(converted_gbh_uevt_s_t* evt);
+void dose_adjust_key_handler(converted_gbh_uevt_s_t* evt);
 void reset_key_handler(converted_gbh_uevt_s_t* evt);
 void charger_gpio_handler(converted_gbh_uevt_s_t* evt);
 

@@ -20,8 +20,8 @@
 #define GPIO_AND_ACT_NAME(g) #g,
 #undef KEY_GPIO_END_FLAG 
 #define KEY_GPIO_END_FLAG(k) 
-static const char* gs_key_gpio_name_list[] = KEY_GPIO_LIST ;
-static const char* gs_key_gpio_act_name_list[] = KEY_GPIO_ACT_LIST ;
+const char* g_key_gpio_name_list[kg_end_flag] = KEY_GPIO_LIST ;
+const char* g_key_gpio_act_name_list[kg_action_end_flag] = KEY_GPIO_ACT_LIST ;
 
 /* The definition here SHOULD be consistent with the strings in button_hotplug_fill_event 
  * and button_hotplug_create_event functions of gpio-button-hotplug.c.
@@ -99,12 +99,12 @@ static void parse_gbh_uevent(const char *msg, int max_msg_len, const char** help
 
     if(*msg)
     {
-        DIY_LOG(LOG_INFO, "Received gbh msg:\n");
+        DIY_LOG(LOG_DEBUG, "Received gbh msg:\n");
     }
     msg_parsed_len = 0;
     while(*msg && msg_parsed_len < max_msg_len)
     {
-        DIY_LOG(LOG_INFO + LOG_ONLY_INFO_STR, "%s\n", msg);
+        DIY_LOG(LOG_DEBUG + LOG_ONLY_INFO_STR, "%s\n", msg);
         for(idx = enum_HOME; idx < gbh_uevent_ele_end_flag; ++idx)
         {
             ele_name_len = strlen(gs_gbh_uevent_ele_names_arr[idx]);
@@ -173,7 +173,7 @@ static void convert_gbh_string_uevent(parsed_gbh_uevt_s_t * string_uevvt, conver
     converted_uevt->key_gpio = kg_end_flag;
     for(idx = key_exp_range_led; idx < kg_end_flag; ++idx)
     {
-        if(!strcmp(string_uevvt->BUTTON, gs_key_gpio_name_list[idx]))
+        if(!strcmp(string_uevvt->BUTTON, g_key_gpio_name_list[idx]))
         {
             converted_uevt->key_gpio = idx;
             break;
@@ -182,7 +182,7 @@ static void convert_gbh_string_uevent(parsed_gbh_uevt_s_t * string_uevvt, conver
     converted_uevt->action = kg_action_end_flag;
     for(idx = key_released; idx < kg_action_end_flag; ++idx)
     {
-        if(!strcmp(string_uevvt->ACTION, gs_key_gpio_act_name_list[idx]))
+        if(!strcmp(string_uevvt->ACTION, g_key_gpio_act_name_list[idx]))
         {
             converted_uevt->action = idx;
             break;
@@ -205,9 +205,9 @@ static key_gpio_handler_t gs_key_gpio_handler_arr[kg_end_flag] =
     /*The order MUST be consistent with the element order defined in macro KEY_GPIO_LIST. */
    [key_exp_range_led] = exp_range_led_key_handler,
    [key_exp_start] = exp_start_key_handler,
-   [key_dose_add] = dose_add_key_handler,
-   [key_dose_sub] = dose_sub_key_handler,
-   [key_reset] = exp_start_key_handler, //reset_key_handler,
+   [key_dose_add] = dose_adjust_key_handler,
+   [key_dose_sub] = dose_adjust_key_handler,
+   [key_reset] = dose_adjust_key_handler, //exp_start_key_handler, //reset_key_handler,
    [gpio_charger] = charger_gpio_handler,
 };
 static void process_gbh_uevent(converted_gbh_uevt_s_t * evt)
@@ -229,13 +229,13 @@ static void process_gbh_uevent(converted_gbh_uevt_s_t * evt)
     }
 
     DIY_LOG(LOG_INFO, "Converted gbh uevent info:\n");
-    DIY_LOG(LOG_INFO + LOG_ONLY_INFO_STR, "key/gpio: %s\n", gs_key_gpio_name_list[evt->key_gpio]);
-    DIY_LOG(LOG_INFO + LOG_ONLY_INFO_STR, "action: %s\n", gs_key_gpio_act_name_list[evt->action]);
+    DIY_LOG(LOG_INFO + LOG_ONLY_INFO_STR, "key/gpio: %s\n", g_key_gpio_name_list[evt->key_gpio]);
+    DIY_LOG(LOG_INFO + LOG_ONLY_INFO_STR, "action: %s\n", g_key_gpio_act_name_list[evt->action]);
     DIY_LOG(LOG_INFO + LOG_ONLY_INFO_STR, "seen: %u\n", evt->seen);
     DIY_LOG(LOG_INFO + LOG_ONLY_INFO_STR, "seqnum: %u\n", evt->seqnum);
     if(!gs_key_gpio_handler_arr[evt->key_gpio])
     {
-        DIY_LOG(LOG_WARN, "The key/gpio %s has no handler.\n", gs_key_gpio_name_list[evt->key_gpio]);
+        DIY_LOG(LOG_WARN, "The key/gpio %s has no handler.\n", g_key_gpio_name_list[evt->key_gpio]);
         return;
     }
     gs_key_gpio_handler_arr[evt->key_gpio](evt);
