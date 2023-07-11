@@ -56,8 +56,7 @@ typedef enum ST_PARAMS_COLLECTION dr_device_st_enum_t;
 typedef struct
 {
     int pos_x, pos_y, pos_w, pos_h;
-    int img_w, img_h;
-    const unsigned char* img;
+    const lcd_display_resource_t* res;
 }lcd_area_info_t;
 
 /* The order of elements in this array must be consitent with the element order of the 
@@ -65,48 +64,36 @@ typedef struct
  * */
 static const lcd_area_info_t gs_lcd_areas[] =
 {
-    {LCD_BAT_POS_X, LCD_BAT_POS_Y, LCD_BAT_POS_W, LCD_BAT_POS_H, 
-        LCD_BAT_IMG_W, LCD_BAT_IMG_H, NULL},
-    {LCD_BAT_POS_X, LCD_BAT_POS_Y, LCD_BAT_POS_W, LCD_BAT_POS_H,
-        LCD_BAT_IMG_W, LCD_BAT_IMG_H, NULL},
-    {LCD_WAN_BEAR_POS_X, LCD_WAN_BEAR_POS_Y, LCD_WAN_BEAR_POS_W, LCD_WAN_BEAR_POS_H,
-        LCD_WAN_BEAR_IMG_W, LCD_WAN_BEAR_IMG_H, NULL},
-    {LCD_CELL_SRV_ST_POS_X, LCD_CELL_SRV_ST_POS_Y, LCD_CELL_SRV_ST_POS_W, LCD_CELL_SRV_ST_POS_H,
-        LCD_CELL_SRV_ST_IMG_W, LCD_CELL_SRV_ST_IMG_H, NULL},
-    {LCD_WIFI_WAN_ST_POS_X, LCD_WIFI_WAN_ST_POS_Y, LCD_WIFI_WAN_ST_POS_W, LCD_WIFI_WAN_ST_POS_H,
-        LCD_WIFI_WAN_ST_IMG_W, LCD_WIFI_WAN_ST_IMG_H, NULL},
-    {LCD_SIM_CARD_ST_POS_X, LCD_SIM_CARD_ST_POS_Y, LCD_SIM_CARD_ST_POS_W, LCD_SIM_CARD_ST_POS_H,
-        LCD_SIM_CARD_ST_IMG_W, LCD_SIM_CARD_ST_IMG_H, NULL},
-    {LCD_DSP_CONN_POS_X, LCD_DSP_CONN_POS_Y, LCD_DSP_CONN_POS_W, LCD_DSP_CONN_POS_H,
-        LCD_DSP_CONN_IMG_W, LCD_DSP_CONN_IMG_H, NULL},
-    {LCD_CUBE_VOLT_POS_X, LCD_CUBE_VOLT_POS_Y, LCD_CUBE_VOLT_POS_W, LCD_CUBE_VOLT_POS_H,
-        LCD_CUBE_VOLT_IMG_W, LCD_CUBE_VOLT_IMG_H, NULL},
-    {LCD_CUBE_AMTS_POS_X, LCD_CUBE_AMTS_POS_Y, LCD_CUBE_AMTS_POS_W, LCD_CUBE_AMTS_POS_H,
-        LCD_CUBE_AMTS_IMG_W, LCD_CUBE_AMTS_IMG_H, NULL},
-    {LCD_CUBE_AMTS_POS_X, LCD_CUBE_AMTS_POS_Y, LCD_CUBE_AMTS_POS_W, LCD_CUBE_AMTS_POS_H,
-        LCD_CUBE_AMTS_IMG_W, LCD_CUBE_AMTS_IMG_H, NULL},
-    {LCD_EXPO_ST_POS_X, LCD_EXPO_ST_POS_Y, LCD_EXPO_ST_POS_W, LCD_EXPO_ST_POS_H,
-        LCD_EXPO_ST_IMG_W, LCD_EXPO_ST_IMG_H, NULL},
-    {LCD_DISTANCE_POS_X, LCD_DISTANCE_POS_Y, LCD_DISTANCE_POS_W, LCD_DISTANCE_POS_H,
-        LCD_DISTANCE_IMG_W, LCD_DISTANCE_IMG_H, NULL},
+    {LCD_BAT_POS_X, LCD_BAT_POS_Y, LCD_BAT_POS_W, LCD_BAT_POS_H, NULL},
+    {LCD_BAT_POS_X, LCD_BAT_POS_Y, LCD_BAT_POS_W, LCD_BAT_POS_H, NULL},
+    {LCD_WAN_BEAR_POS_X, LCD_WAN_BEAR_POS_Y, LCD_WAN_BEAR_POS_W, LCD_WAN_BEAR_POS_H, NULL},
+    {LCD_CELL_SRV_ST_POS_X, LCD_CELL_SRV_ST_POS_Y, LCD_CELL_SRV_ST_POS_W, LCD_CELL_SRV_ST_POS_H, NULL},
+    {LCD_WIFI_WAN_ST_POS_X, LCD_WIFI_WAN_ST_POS_Y, LCD_WIFI_WAN_ST_POS_W, LCD_WIFI_WAN_ST_POS_H, NULL},
+    {LCD_SIM_CARD_ST_POS_X, LCD_SIM_CARD_ST_POS_Y, LCD_SIM_CARD_ST_POS_W, LCD_SIM_CARD_ST_POS_H, NULL},
+    {LCD_DSP_CONN_POS_X, LCD_DSP_CONN_POS_Y, LCD_DSP_CONN_POS_W, LCD_DSP_CONN_POS_H, NULL},
+    {LCD_CUBE_VOLT_POS_X, LCD_CUBE_VOLT_POS_Y, LCD_CUBE_VOLT_POS_W, LCD_CUBE_VOLT_POS_H, NULL},
+    {LCD_CUBE_AMTS_POS_X, LCD_CUBE_AMTS_POS_Y, LCD_CUBE_AMTS_POS_W, LCD_CUBE_AMTS_POS_H, NULL},
+    {LCD_CUBE_AMTS_POS_X, LCD_CUBE_AMTS_POS_Y, LCD_CUBE_AMTS_POS_W, LCD_CUBE_AMTS_POS_H, NULL},
+    {LCD_EXPO_ST_POS_X, LCD_EXPO_ST_POS_Y, LCD_EXPO_ST_POS_W, LCD_EXPO_ST_POS_H, NULL},
+    {LCD_DISTANCE_POS_X, LCD_DISTANCE_POS_Y, LCD_DISTANCE_POS_W, LCD_DISTANCE_POS_H, NULL},
 
-    {0, 0, 0, 0, 0, 0, NULL}, //enum_st_end_flag
+    {0, 0, 0, 0, NULL}, //enum_st_end_flag
                               //
     /*The following are static image info.*/
     {LCD_STATIC_DEV_ST_POS_X, LCD_STATIC_DEV_ST_POS_Y, LCD_STATIC_DEV_ST_POS_W, LCD_STATIC_DEV_ST_POS_H,
-        LCD_STATIC_DEV_ST_IMG_W, LCD_STATIC_DEV_ST_IMG_H, gs_static_dev_st_res},
+         &gs_static_dev_st_res},
     {LCD_STATIC_VOLT_POS_X, LCD_STATIC_VOLT_POS_Y, LCD_STATIC_VOLT_POS_W, LCD_STATIC_VOLT_POS_H,
-        LCD_STATIC_VOLT_IMG_W, LCD_STATIC_VOLT_IMG_H, gs_static_volt_res},
+         &gs_static_volt_res},
     {LCD_STATIC_AMT_S_POS_X, LCD_STATIC_AMT_S_POS_Y, LCD_STATIC_AMT_S_POS_W, LCD_STATIC_AMT_S_POS_H,
-        LCD_STATIC_AMT_S_IMG_W, LCD_STATIC_AMT_S_IMG_H, gs_static_amt_s_res},
+         &gs_static_amt_s_res},
     {LCD_STATIC_AMT_POS_X, LCD_STATIC_AMT_POS_Y, LCD_STATIC_AMT_POS_W, LCD_STATIC_AMT_POS_H,
-        LCD_STATIC_AMT_IMG_W, LCD_STATIC_AMT_IMG_H, gs_static_amt_res},
+         &gs_static_amt_res},
     {LCD_STATIC_DURA_POS_X, LCD_STATIC_DURA_POS_Y, LCD_STATIC_DURA_POS_W, LCD_STATIC_DURA_POS_H,
-        LCD_STATIC_DURA_IMG_W, LCD_STATIC_DURA_IMG_H, gs_static_dura_res},
+         &gs_static_dura_res},
     {LCD_STATIC_DIST_POS_X, LCD_STATIC_DIST_POS_Y, LCD_STATIC_DIST_POS_W, LCD_STATIC_DIST_POS_H,
-        LCD_STATIC_DIST_IMG_W, LCD_STATIC_DIST_IMG_H, gs_static_dist_res},
+         &gs_static_dist_res},
     {LCD_STATIC_LOGO_POS_X, LCD_STATIC_LOGO_POS_Y, LCD_STATIC_LOGO_POS_W, LCD_STATIC_LOGO_POS_H,
-        LCD_STATIC_LOGO_IMG_W, LCD_STATIC_LOGO_IMG_H, gs_static_logo_res},
+         &gs_static_logo_res},
 };
 
 static void refresh_battery_display(dr_device_st_enum_t st_id)
@@ -138,6 +125,13 @@ static void refresh_expo_st_display(dr_device_st_enum_t st_id)
 
 static void refresh_tof_distance_display(dr_device_st_enum_t st_id)
 {
+    float dist_in_cm = (float)gs_device_st_pool_of_lcd.tof_distance / 10;
+    int max_num_of_number_chars = LCD_DISTANCE_MAX_INT_CHAR_NUM + 1 /*.*/ + LCD_DISTANCE_MAX_FRAC_CHAR_NUM;
+    char number_str[max_num_of_number_chars + 1];
+    char unit_str[LCD_DISTANCE_UNIT_CHAR_NUM + 1];
+    int ptn;
+
+    ptn = snprintf(number_str, sizeof(number_str), "%f", dist_in_cm); 
 }
 
 typedef void (*write_info_to_lcd_func_t)(dr_device_st_enum_t st_id);
@@ -200,9 +194,9 @@ static void init_lcd_display()
     int i;
     for(i = 0; i < ARRAY_ITEM_CNT(gs_lcd_areas); ++i)
     {
-        if(gs_lcd_areas[i].img)
+        if(gs_lcd_areas[i].res)
         {
-            write_img_to_px_rect(gs_lcd_areas[i].img, gs_lcd_areas[i].img_w, gs_lcd_areas[i].img_h,
+            write_img_to_px_rect(gs_lcd_areas[i].res->img, gs_lcd_areas[i].res->img_w, gs_lcd_areas[i].res->img_h,
                                  gs_lcd_areas[i].pos_x, gs_lcd_areas[i].pos_y,
                                  gs_lcd_areas[i].pos_w, gs_lcd_areas[i].pos_h);
         }
