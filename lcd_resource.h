@@ -282,9 +282,9 @@ static unsigned char gs_alpha_low_chars_font[][16 /* LCD_ALPHA_LOW_FONT_W * ceil
     },
 };
 
-#define ALPHA_HIGH_FONT_W 8
-#define ALPHA_HIGH_FONT_H  16
-static unsigned char gs_alpha_high_chars_font[][16 /* ALPHA_HIGH_FONT_W * ceil(ALPHA_HIGH_FONT_H / 8) */] =
+#define LCD_ALPHA_HIGH_FONT_W 8
+#define LCD_ALPHA_HIGH_FONT_H  16
+static unsigned char gs_alpha_high_chars_font[][16 /* LCD_ALPHA_HIGH_FONT_W * ceil(LCD_ALPHA_HIGH_FONT_H / 8) */] =
 {
     {/* A */
         0x00, 0x00, 0xC0, 0x38, 0xE0, 0x00, 0x00, 0x00, 
@@ -408,6 +408,14 @@ static unsigned char gs_punc_dot_font[ /* PUNC_DOT_FONT_W * ceil(PUNC_DOT_FONT_H
     0x00, 0x30, 0x30, 0x00, 0x00, 0x00, 0x00, 0x00, 
 };
 
+#define LCD_DISPLAY_DEFAULT_CHAR_W 8
+#define LCD_DISPLAY_DEFAULT_CHAR_H 16
+static unsigned char gs_lcd_display_def_char[ /* LCD_DISPLAY_DEFAULT_CHAR_W * ceil(LCD_DISPLAY_DEFAULT_CHAR_H / 8) */] = 
+{/* hollow square */
+    0xFF, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0xFF, 
+    0xFF, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0xFF, 
+};
+
 /*--------------------The following are "dynamaic" info resurce.*/
 #define LCD_BAT_POS_X 0
 #define LCD_BAT_POS_Y 0
@@ -455,17 +463,19 @@ static unsigned char gs_sim_card_st_res[/* LCD_SIM_CARD_ST_IMG_W * ceil(LCD_SIM_
 #define LCD_DSP_CONN_POS_H 0
 #define LCD_DSP_CONN_IMG_W 0
 #define LCD_DSP_CONN_IMG_H 0
-static unsigned char gs_dsp_conn_res[/* LCD_DSP_CONN_IMG_W * ceil(LCD_DSP_CONN_IMG_W / 8) */] = {};
 
 #define LCD_CUBE_VOLT_POS_X (LCD_STATIC_VOLT_POS_X + LCD_STATIC_VOLT_POS_W)
 #define LCD_CUBE_VOLT_POS_Y LCD_STATIC_VOLT_POS_Y 
 #define LCD_CUBE_VOLT_POS_W 40 /*maximum width*/
 #define LCD_CUBE_VOLT_POS_H 16
+#define LCD_CUBE_VOLT_MAX_INT_CHAR_NUM 3 /*e.g. "100*/
 
 #define LCD_CUBE_AMTS_POS_X (LCD_STATIC_AMT_S_POS_X + LCD_STATIC_AMT_S_POS_W)
 #define LCD_CUBE_AMTS_POS_Y LCD_STATIC_AMT_S_POS_Y 
-#define LCD_CUBE_AMTS_POS_W 56 /*maximum width*/
+#define LCD_CUBE_AMTS_POS_W 64 /*maximum width*/
 #define LCD_CUBE_AMTS_POS_H 16
+#define LCD_CUBE_AMTS_MAX_INT_CHAR_NUM 2 /*e.g. "6*/
+#define LCD_CUBE_AMTS_MAX_FRAC_CHAR_NUM 2 /*e.g. "6.25*/
 
 #define LCD_EXPO_ST_IDLE_IMG_W 32
 #define LCD_EXPO_ST_IDLE_IMG_H 16
@@ -514,6 +524,19 @@ static const lcd_display_resource_t gs_expo_st_hv_disconn_res =
 #define LCD_DISTANCE_POS_H 16
 #define LCD_DISTANCE_MAX_INT_CHAR_NUM 3 /*e.g. "100*/
 #define LCD_DISTANCE_MAX_FRAC_CHAR_NUM 1 /*e.g. "100.1"*/
-#define LCD_DISTANCE_UNIT_CHAR_NUM 2 /*"100.1cm"*/
+
+static const char* gs_LCD_DISPLAY_UNIT_STR_CM = "cm";
+static const char* gs_LCD_DISPLAY_UNIT_STR_KV = "kV";
+static const char* gs_LCD_DISPLAY_UNIT_STR_AMTS = "mAs";
+
+#define PRINT_NUMBER_WITH_UNIT_TO_SCRN(number, max_len, format_str, unit_str, start_x, start_y) \
+{\
+    char number_str[max_len + 1];\
+    int block_w;\
+\
+    snprintf(number_str, sizeof(number_str), format_str, number); \
+    block_w = print_one_line_to_scrn(number_str, sizeof(number_str), start_x, start_y);\
+    print_one_line_to_scrn(unit_str, strlen(unit_str), start_x + block_w, start_y);\
+}
 
 #endif

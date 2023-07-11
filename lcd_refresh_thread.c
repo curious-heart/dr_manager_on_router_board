@@ -70,7 +70,7 @@ static const lcd_area_info_t gs_lcd_areas[] =
     {LCD_CELL_SRV_ST_POS_X, LCD_CELL_SRV_ST_POS_Y, LCD_CELL_SRV_ST_POS_W, LCD_CELL_SRV_ST_POS_H, NULL},
     {LCD_WIFI_WAN_ST_POS_X, LCD_WIFI_WAN_ST_POS_Y, LCD_WIFI_WAN_ST_POS_W, LCD_WIFI_WAN_ST_POS_H, NULL},
     {LCD_SIM_CARD_ST_POS_X, LCD_SIM_CARD_ST_POS_Y, LCD_SIM_CARD_ST_POS_W, LCD_SIM_CARD_ST_POS_H, NULL},
-    {LCD_DSP_CONN_POS_X, LCD_DSP_CONN_POS_Y, LCD_DSP_CONN_POS_W, LCD_DSP_CONN_POS_H, NULL},
+    {LCD_EXPO_ST_POS_X, LCD_EXPO_ST_POS_Y, LCD_EXPO_ST_POS_W, LCD_EXPO_ST_POS_H, NULL},
     {LCD_CUBE_VOLT_POS_X, LCD_CUBE_VOLT_POS_Y, LCD_CUBE_VOLT_POS_W, LCD_CUBE_VOLT_POS_H, NULL},
     {LCD_CUBE_AMTS_POS_X, LCD_CUBE_AMTS_POS_Y, LCD_CUBE_AMTS_POS_W, LCD_CUBE_AMTS_POS_H, NULL},
     {LCD_CUBE_AMTS_POS_X, LCD_CUBE_AMTS_POS_Y, LCD_CUBE_AMTS_POS_W, LCD_CUBE_AMTS_POS_H, NULL},
@@ -96,6 +96,63 @@ static const lcd_area_info_t gs_lcd_areas[] =
          &gs_static_logo_res},
 };
 
+static int print_one_line_to_scrn(const char* str, int size_limit, int pos_x, int pos_y)
+{
+    int idx = 0;
+    char ch = str[idx];
+    const unsigned char* img = NULL;
+    int img_w, img_h;
+    int sum_w = 0;
+
+    while(idx < size_limit && ch)
+    {
+        if('0' <= ch && ch <= '9')
+        {
+            img_w = LCD_DIGIT_FONT_W;
+            img_h = LCD_DIGIT_FONT_H;
+            img = gs_digits_font[ch - '0'];
+        }
+        else if('a' <= ch && ch <= 'z')
+        {
+            img_w = LCD_ALPHA_LOW_FONT_W;
+            img_h = LCD_ALPHA_LOW_FONT_H;
+            img = gs_alpha_low_chars_font[ch - 'a'];
+        }
+        else if('A' <= ch && ch <= 'Z')
+        {
+            img_w = LCD_ALPHA_HIGH_FONT_W;
+            img_h = LCD_ALPHA_HIGH_FONT_H;
+            img = gs_alpha_high_chars_font[ch - 'A'];
+        }
+        else if('.' == ch)
+        {
+            img_w = PUNC_DOT_FONT_W;
+            img_h = PUNC_DOT_FONT_H;
+            img = gs_punc_dot_font;
+        }
+        else if(':' == ch)
+        {
+            img_w = PUNC_COLON_FONT_W;
+            img_h = PUNC_COLON_FONT_H;
+            img = gs_punc_colon_font;
+        }
+        else
+        {
+            img_w = LCD_DISPLAY_DEFAULT_CHAR_W;
+            img_h = LCD_DISPLAY_DEFAULT_CHAR_H;
+            img = gs_lcd_display_def_char;
+        }
+
+        write_img_to_px_pos(img, img_w, img_h, pos_x, pos_y);
+
+        sum_w += img_w;
+
+        ++idx;
+        ch = str[idx];
+    }
+    return sum_w;
+}
+
 static void refresh_battery_display(dr_device_st_enum_t st_id)
 {}
 
@@ -111,27 +168,56 @@ static void refresh_wifi_wan_display(dr_device_st_enum_t st_id)
 static void refresh_sim_card_st_display(dr_device_st_enum_t st_id)
 {}
 
-static void refresh_dsp_conn_st_display(dr_device_st_enum_t st_id)
-{}
-
 static void refresh_cube_volt_display(dr_device_st_enum_t st_id)
-{}
+{
+    PRINT_NUMBER_WITH_UNIT_TO_SCRN(gs_device_st_pool_of_lcd.expo_volt_kv, LCD_CUBE_VOLT_MAX_INT_CHAR_NUM, "%d",\
+                                   gs_LCD_DISPLAY_UNIT_STR_KV, \
+                                   gs_lcd_areas[st_id].pos_x, gs_lcd_areas[st_id].pos_y);
+}
 
 static void refresh_cube_amts_display(dr_device_st_enum_t st_id)
-{}
+{
+    float amts_n = ((float)(gs_device_st_pool_of_lcd.expo_am_ua) / 1000) 
+                 * ((float)(gs_device_st_pool_of_lcd.expo_dura_ms) / 1000);
+    int max_num_of_number_chars = LCD_CUBE_AMTS_MAX_INT_CHAR_NUM + 1 /*.*/ + LCD_CUBE_AMTS_MAX_FRAC_CHAR_NUM;
+    PRINT_NUMBER_WITH_UNIT_TO_SCRN(amts_n, max_num_of_number_chars, "%f",\
+                                   gs_LCD_DISPLAY_UNIT_STR_AMTS, \
+                                   gs_lcd_areas[st_id].pos_x, gs_lcd_areas[st_id].pos_y);
+}
 
 static void refresh_expo_st_display(dr_device_st_enum_t st_id)
-{}
+{
+    const lcd_display_resource_t * res = NULL;
+    int img_w, img_h;
+
+    if(HV_DSP_DISCONNECTED  == gs_device_st_pool_of_lcd.hv_dsp_conn_st)
+    {
+        res = &gs_expo_st_hv_disconn_res;
+    }
+    else
+    {
+        switch(gs_device_st_pool_of_lcd.expo_st)
+        {
+            case EXPOSURE_ST_IDLE: 
+                res = &gs_expo_st_idle_res;
+                break;
+
+            default:
+                res = &gs_expo_st_exposing_res;
+                break;
+        }
+    }
+    write_img_to_px_pos(res->img, res->img_w, res->img_h, gs_lcd_areas[st_id].pos_x, gs_lcd_areas[st_id].pos_y);
+}
 
 static void refresh_tof_distance_display(dr_device_st_enum_t st_id)
 {
-    float dist_in_cm = (float)gs_device_st_pool_of_lcd.tof_distance / 10;
+    float dist_in_cm = (float)(gs_device_st_pool_of_lcd.tof_distance) / 10;
     int max_num_of_number_chars = LCD_DISTANCE_MAX_INT_CHAR_NUM + 1 /*.*/ + LCD_DISTANCE_MAX_FRAC_CHAR_NUM;
-    char number_str[max_num_of_number_chars + 1];
-    char unit_str[LCD_DISTANCE_UNIT_CHAR_NUM + 1];
-    int ptn;
 
-    ptn = snprintf(number_str, sizeof(number_str), "%f", dist_in_cm); 
+    PRINT_NUMBER_WITH_UNIT_TO_SCRN(dist_in_cm, max_num_of_number_chars, "%f", \
+                                   gs_LCD_DISPLAY_UNIT_STR_CM, \
+                                   gs_lcd_areas[st_id].pos_x, gs_lcd_areas[st_id].pos_y);
 }
 
 typedef void (*write_info_to_lcd_func_t)(dr_device_st_enum_t st_id);
@@ -149,7 +235,7 @@ static const write_info_to_lcd_funcs_t gs_write_info_to_lcd_func_list =
     refresh_cellular_srv_st_display,
     refresh_wifi_wan_display,
     refresh_sim_card_st_display,
-    refresh_dsp_conn_st_display,
+    refresh_expo_st_display,
     refresh_cube_volt_display,
     refresh_cube_amts_display,
     refresh_cube_amts_display,
