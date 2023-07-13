@@ -64,7 +64,7 @@ void exp_range_led_key_handler(converted_gbh_uevt_s_t* evt)
     hv_mb_reg_e_t reg_addr = RangeIndicationStart;
     const char* reg_str;
 
-    DIY_LOG(LOG_INFO, "exp_reand_led key handler!\n");
+    DIY_LOG(LOG_INFO, "exp_range_led key handler!\n");
     IGNORE_NON_PRESSED_EVT(evt);
 
     reg_str = get_hv_mb_reg_str(reg_addr);
