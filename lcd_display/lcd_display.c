@@ -178,7 +178,7 @@ static ssize_t lcd_write_io(void* buf, ssize_t cnt)
         write_ret = write(lcd_fd, buf, cnt);
         if(write_ret < 0)
         {
-            DIY_LOG(LOG_ERROR, "write errno: %d. written: %d\n", errno, write_ret);
+            //DIY_LOG(LOG_ERROR, "write errno: %d. written: %d\n", errno, write_ret);
         }
         if(0 == write_ret)
         {

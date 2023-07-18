@@ -23,6 +23,7 @@ static void mb_reg_only_write(hv_mb_reg_e_t reg_addr)
         return;
     }
 
+    DIY_LOG(LOG_INFO, "...............%s.\n", reg_str);
     if(gs_mb_tcp_client_ctx)
     {
         printf("please input the data to be written:");

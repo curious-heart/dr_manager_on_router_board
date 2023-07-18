@@ -128,6 +128,8 @@ typedef struct
     uint8_t dev_addr;
 }tof_thread_parm_t;
 extern const char* gs_tof_th_desc;
+int init_tof_th_check_mutex();
+bool get_tof_th_running_flag();
 void* tof_thread_func(void* arg);
 
 #endif

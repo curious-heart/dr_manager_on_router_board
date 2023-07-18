@@ -227,6 +227,7 @@ static void init_thread_syncs()
 {
     init_dev_st_pool_mutex();
     init_lcd_upd_mutex();
+    init_tof_th_check_mutex();
 }
 
 extern cmd_line_opt_collection_t g_cmd_line_opt_collection;

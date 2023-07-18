@@ -39,7 +39,6 @@
 const char* const gp_mb_server_log_header = "modbus server: ";
 
 static pthread_t gs_tof_th_id;
-static bool gs_tof_th_started = false;
 
 /**/
 #define NB_CONNECTION 2
@@ -193,7 +192,7 @@ static void update_dev_st_pool_from_main_loop_th(void* d)
 extern cmd_line_opt_collection_t g_cmd_line_opt_collection;
 void check_and_start_tof_th()
 {
-    if(gs_tof_th_started)
+    if(get_tof_th_running_flag())
     {
         DIY_LOG(LOG_WARN, "%s thread has already been started!\n", gs_tof_th_desc);
     }
@@ -202,21 +201,20 @@ void check_and_start_tof_th()
         if(start_assit_thread(gs_tof_th_desc, &gs_tof_th_id, true,
                 tof_thread_func, &g_cmd_line_opt_collection.tof_th_parm))
         {
-            gs_tof_th_started = true;
+            DIY_LOG(LOG_INFO, "Start %s thread ok.\n", gs_tof_th_desc);
         }
     }
 }
 
 void check_and_cancel_tof_th()
 {
-    if(!gs_tof_th_started)
+    if(!get_tof_th_running_flag())
     {
         DIY_LOG(LOG_WARN, "%s thread has not been started.\n", gs_tof_th_desc);
     }
     else
     {
-        cancel_assit_thread(gs_tof_th_started, &gs_tof_th_id);
-        gs_tof_th_started = false;
+        cancel_assit_thread(true, &gs_tof_th_id);
     }
 }
 
