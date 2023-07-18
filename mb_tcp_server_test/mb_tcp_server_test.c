@@ -9,6 +9,7 @@
 #include "logger.h"
 #include "hv_registers.h"
 
+#define MAX_CHAR_NUM_READ 16
 static const char* gs_local_loop_ip = "127.0.0.1";
 static const uint16_t gs_def_mb_srvr_port = 502;
 static modbus_t * gs_mb_tcp_client_ctx = NULL;
@@ -17,17 +18,19 @@ static void mb_reg_only_write(hv_mb_reg_e_t reg_addr)
 {
     uint16_t write_data;
     const char* reg_str;
+    char r_buf[MAX_CHAR_NUM_READ + 1];
+
     reg_str = get_hv_mb_reg_str(reg_addr);
     if(!reg_str)
     {
         return;
     }
-
-    DIY_LOG(LOG_INFO, "...............%s.\n", reg_str);
+    printf("...............%s.\n", reg_str);
     if(gs_mb_tcp_client_ctx)
     {
-        printf("please input the data to be written:");
-        scanf("%hu", &write_data);
+        printf("please input the data to be written:\n");
+        fgets(r_buf, sizeof(r_buf), stdin);
+        sscanf(r_buf, "%hu", &write_data);
         if(modbus_write_register(gs_mb_tcp_client_ctx, reg_addr, write_data) <= 0)
         {
             printf("modbus write register %s error:%d, %s\n",
@@ -101,6 +104,7 @@ static void mb_tcp_server_test()
     bool end = false;
     int test_no;
     hv_mb_reg_e_t reg_addr;
+    char r_buf[MAX_CHAR_NUM_READ + 1]; 
     char rw_op;
 
     while(!end)
@@ -130,7 +134,8 @@ static void mb_tcp_server_test()
         printf("exposureCount = 21,        //曝光次数\n");
         printf("-1: exit.\n");
 
-        scanf("%d", &test_no);
+        fgets(r_buf, sizeof(r_buf), stdin);
+        sscanf(r_buf, "%d", &test_no);
         if(test_no < 0)
         {
             end = true;

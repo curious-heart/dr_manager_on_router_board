@@ -73,16 +73,19 @@ bool get_datetime_str(char* buf, int len)
  * */
 char choose_read_or_write()
 {
+#define MAX_CHAR_NUM_READ 3
     char op = 0;
     bool end = false;
+    char r_buf[MAX_CHAR_NUM_READ + 1];
+
     while(!end)
     {
         printf("please choose an operation by input a character:\n");
         printf("'r': read\n");
         printf("'w': write\n");
         printf("'c': cancel\n");
-        scanf("%*c");
-        op = getchar();
+        fgets(r_buf, sizeof(r_buf), stdin);
+        sscanf(r_buf, "%c", &op);
         switch(op)
         {
             case 'r':
@@ -91,6 +94,7 @@ char choose_read_or_write()
                 end = true;
                 break;
             default:
+                printf("read op: 0x%02X: %c, not valid.\n", op, op);
                 ;
         }
     }
