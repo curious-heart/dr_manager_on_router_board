@@ -1,6 +1,9 @@
 #include "logger.h"
 #include "mb_tcp_server_ext_reg_handlers.h"
 #include "hv_controller.h"
+#include "dr_manager.h"
+
+/*Functions in this file are all belong to main thread. DO NOT call them from outside of main thread.*/
 
 #define MB_CTX_AND_MAPPING_CHECK \
     if(!mb_ctx)\
@@ -87,4 +90,27 @@ mb_rw_reg_ret_t mb_tcp_srvr_ext_reg_dose_adj_handler(uint16_t adj_val)
     }
 
     return process_ret; 
+}
+
+void set_bat_chg_state(battery_chg_st_t st);
+void refresh_lcd_from_main_th();
+mb_rw_reg_ret_t mb_tcp_srvr_ext_reg_charger_handler(uint16_t in_out)
+{
+    mb_rw_reg_ret_t process_ret = MB_RW_REG_RET_NONE;
+    modbus_t * mb_ctx = mb_server_get_ctx();
+    modbus_mapping_t * reg_mappings = mb_server_get_mapping();
+
+    MB_CTX_AND_MAPPING_CHECK;
+
+    if(in_out == MB_REG_V_CHARGER_IN)
+    {
+        set_bat_chg_state(CHARGER_CONNECTED);
+    }
+    else
+    {
+        set_bat_chg_state(NO_CHARGER_CONNECTED);
+    }
+    refresh_lcd_from_main_th();
+
+    return process_ret;
 }

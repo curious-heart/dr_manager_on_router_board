@@ -66,6 +66,7 @@ static const lcd_area_info_t gs_lcd_areas[] =
 {
     {LCD_BAT_POS_X, LCD_BAT_POS_Y, LCD_BAT_POS_W, LCD_BAT_POS_H, NULL},
     {LCD_BAT_POS_X, LCD_BAT_POS_Y, LCD_BAT_POS_W, LCD_BAT_POS_H, NULL},
+    {LCD_BAT_POS_X, LCD_BAT_POS_Y, LCD_BAT_POS_W, LCD_BAT_POS_H, NULL},
     {LCD_WAN_BEAR_POS_X, LCD_WAN_BEAR_POS_Y, LCD_WAN_BEAR_POS_W, LCD_WAN_BEAR_POS_H, NULL},
     {LCD_CELL_SRV_ST_POS_X, LCD_CELL_SRV_ST_POS_Y, LCD_CELL_SRV_ST_POS_W, LCD_CELL_SRV_ST_POS_H, NULL},
     {LCD_WIFI_WAN_ST_POS_X, LCD_WIFI_WAN_ST_POS_Y, LCD_WIFI_WAN_ST_POS_W, LCD_WIFI_WAN_ST_POS_H, NULL},
@@ -229,6 +230,7 @@ typedef struct ST_PARAMS_COLLECTION write_info_to_lcd_funcs_t;
 static const write_info_to_lcd_funcs_t gs_write_info_to_lcd_func_list =
 {
     /*The function order must be consitent with the element order of the ST_PARAMS_COLLECTION definition in dr_manager.h*/
+    refresh_battery_display,
     refresh_battery_display,
     refresh_battery_display,
     refresh_wan_bear_type_display,

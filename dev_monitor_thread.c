@@ -12,7 +12,7 @@ dr_device_st_pool_t g_device_st_pool;
 static pthread_mutex_t gs_dev_st_pool_mutex;
 
 /*This global static var should only be accessed from monitor thread.*/
-dr_device_st_local_buf_t gs_main_dev_st;
+static dr_device_st_local_buf_t gs_main_dev_st;
 
 /*
  * DO NOT call this function directly because it is not thread safe.
@@ -25,7 +25,6 @@ static void update_dev_st_pool_from_monitor_th(void* d)
 
     dr_device_st_local_buf_t *main_dev_st = (dr_device_st_local_buf_t*)d;
 
-    ST_PARAM_SET_UPD(g_device_st_pool, bat_chg_st, main_dev_st->bat_chg_st);
     ST_PARAM_SET_UPD(g_device_st_pool, wan_bear, main_dev_st->wan_bear);
     ST_PARAM_SET_UPD(g_device_st_pool, cellular_st, main_dev_st->cellular_st);
     ST_PARAM_SET_UPD(g_device_st_pool, wifi_wan_st, main_dev_st->wifi_wan_st);
@@ -50,7 +49,6 @@ void* dev_monitor_thread_func(void* arg)
             g_dev_monitor_th_desc, parm->sch_period);
     while(true)
     {
-        gs_main_dev_st.bat_chg_st = 0;
         gs_main_dev_st.wan_bear += 1;
         gs_main_dev_st.cellular_st += 1;
         gs_main_dev_st.wifi_wan_st += 1;

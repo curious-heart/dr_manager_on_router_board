@@ -158,8 +158,7 @@ void dose_adjust_key_handler(converted_gbh_uevt_s_t* evt)
     {
         if(modbus_write_register(gs_mb_tcp_client_ctx, reg_addr, write_data) <= 0)
         {
-            DIY_LOG(LOG_ERROR, "modbus write register %s error:%d, %s\n",
-                   reg_str, errno, modbus_strerror(errno));
+            DIY_LOG(LOG_ERROR, "modbus write register %s error:%d, %s\n", reg_str, errno, modbus_strerror(errno));
         }
         else
         {
@@ -180,6 +179,41 @@ void reset_key_handler(converted_gbh_uevt_s_t* evt)
 
 void charger_gpio_handler(converted_gbh_uevt_s_t* evt)
 {
+    const char* reg_str;
+    hv_mb_reg_e_t reg_addr = EXT_MB_REG_CHARGER;
+    uint16_t write_data;
+
     DIY_LOG(LOG_INFO, "charg gpio handler!\n");
+    if(!evt)
+    {
+        DIY_LOG(LOG_ERROR, "evt ptr is NULL.\n");
+        return;
+    }
+
+    if(key_pressed == evt->action)
+    {
+        write_data = MB_REG_V_CHARGER_IN;
+    }
+    else
+    {
+        write_data = MB_REG_V_CHARGER_OUT;
+    }
+
+    reg_str = get_hv_mb_reg_str(reg_addr);
+    if(gs_mb_tcp_client_ctx)
+    {
+        if(modbus_write_register(gs_mb_tcp_client_ctx, reg_addr, write_data) <= 0)
+        {
+            DIY_LOG(LOG_ERROR, "modbus write register %s error:%d, %s\n", reg_str, errno, modbus_strerror(errno));
+        }
+        else
+        {
+            DIY_LOG(LOG_INFO, "%s: charger state changed: %hu. \n", g_key_gpio_name_list[evt->key_gpio], write_data); 
+        }
+    }
+    else
+    {
+        DIY_LOG(LOG_ERROR, "modbus ctx is NULL.\n");
+    }
 }
 

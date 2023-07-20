@@ -32,6 +32,7 @@
 \
     /*Below are extend register, that is, they are processed internally by server and not passed to hv controller.*/ \
     C(EXT_MB_REG_DOSE_ADJ),                       /*+/- key event*/\
+    C(EXT_MB_REG_CHARGER),                       /*charger plug in/pull out*/\
 \
     C(HV_MB_REG_END_FLAG), /*register end flag.*/\
 }
@@ -63,5 +64,8 @@ typedef enum
 
 #define MB_REG_V_DOSE_ADJ_ADD 0 
 #define MB_REG_V_DOSE_ADJ_SUB 1
+
+#define MB_REG_V_CHARGER_IN 1
+#define MB_REG_V_CHARGER_OUT 0
 
 #endif

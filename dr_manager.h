@@ -8,8 +8,7 @@
 typedef enum
 {
     NO_CHARGER_CONNECTED = 0,
-    CHARGING_NOT_FULL,
-    CHARGING_FULL,
+    CHARGER_CONNECTED,
 }battery_chg_st_t;
 
 typedef enum
@@ -69,6 +68,7 @@ typedef enum
 {\
     ST_PARAM_DEF(battery_chg_st_t, bat_chg_st)\
     ST_PARAM_DEF(uint16_t, bat_lvl)\
+    ST_PARAM_DEF(bool, bat_chg_full)\
     ST_PARAM_DEF(wwan_bear_type_t, wan_bear)\
     ST_PARAM_DEF(cellular_srv_st_t, cellular_st)\
     ST_PARAM_DEF(wifi_wan_st_t, wifi_wan_st)\
