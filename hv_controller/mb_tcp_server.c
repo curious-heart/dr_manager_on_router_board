@@ -34,6 +34,7 @@
 #include "mb_tcp_server_internal.h"
 #include "mb_tcp_server_ext_reg_handlers.h"
 #include "option_configuration_process.h"
+#include "main_app_used_gpios.h"
 
 /*Do not use it in area out of modbus tcp server code.*/
 const char* const gp_mb_server_log_header = "modbus server: ";
@@ -178,8 +179,15 @@ static mb_reg_check_ret_t mb_server_check_func_reg_cnt(uint8_t * req_msg,
  * DO NOT call this function directly because it is not thread safe.
  * Use it as a function point parameter of function access_device_st_pool.
  */
-static void update_dev_st_pool_from_main_loop_th(void* d)
+static bool update_dev_st_pool_from_main_loop_th(void* d)
 {
+    bool updated = false;
+
+    if(!d)
+    {
+        return updated;
+    }
+
     dr_device_st_local_buf_t * hv_st = (dr_device_st_local_buf_t*)d;
 
     ST_PARAM_SET_UPD(g_device_st_pool, bat_lvl, hv_st->bat_lvl);
@@ -190,6 +198,8 @@ static void update_dev_st_pool_from_main_loop_th(void* d)
     ST_PARAM_SET_UPD(g_device_st_pool, expo_dura_ms, hv_st->expo_dura_ms);
     ST_PARAM_SET_UPD(g_device_st_pool, expo_am_ua, hv_st->expo_am_ua);
     ST_PARAM_SET_UPD(g_device_st_pool, expo_st, hv_st->expo_st);
+
+    return updated;
 }
 
 extern cmd_line_opt_collection_t g_cmd_line_opt_collection;
@@ -224,22 +234,41 @@ void check_and_cancel_tof_th()
 /*DO NOT call this function from outside of main thread. So DO NOT export it in .h file, but declare it as necessary.*/
 void refresh_lcd_from_main_th()
 {
-    access_device_st_pool(pthread_self(),g_main_thread_desc, update_dev_st_pool_from_main_loop_th, &gs_hv_st);
-    update_lcd_display(pthread_self(), g_main_thread_desc);
+    bool upd = access_device_st_pool(pthread_self(),g_main_thread_desc, update_dev_st_pool_from_main_loop_th, &gs_hv_st);
+    if(upd)
+    {
+        update_lcd_display(pthread_self(), g_main_thread_desc);
+    }
 }
 
-static void check_bat_chg_full_pin()
+/*Return true if the charge full st is updated.*/
+static bool check_bat_chg_full_pin()
 {
-    //gs_hv_st.bat_chg_full = true;
+    int chg_full_st;
+
+    chg_full_st = app_read_gpio_value(GPIO_CHARGER_FULL_IND); 
+    if((bool)chg_full_st != gs_hv_st.bat_chg_full)
+    {
+        gs_hv_st.bat_chg_full = (bool)chg_full_st;
+        return true;
+    }
+    else
+    {
+        return false;
+    }
 }
 
 /*This functin should only be called from main loop thread. So DO NOT export it in .h file, but declare it as necessary.*/
 void set_bat_chg_state(battery_chg_st_t st)
 {
     gs_hv_st.bat_chg_st = st;
-    check_bat_chg_full_pin();
 }
 
+/*This functin should only be called from main loop thread. So DO NOT export it in .h file, but declare it as necessary.*/
+battery_chg_st_t get_local_rec_bat_chg_state()
+{
+    return gs_hv_st.bat_chg_st;
+}
 
 mb_rw_reg_ret_t mb_server_write_reg_sniff(uint16_t reg_addr_start, uint16_t * data_arr, uint16_t reg_cnt)
 {
@@ -342,7 +371,10 @@ mb_rw_reg_ret_t mb_server_read_reg_sniff(uint16_t reg_addr_start, uint16_t * dat
                     gs_hv_st.bat_lvl = data_arr[idx];
                     becare = true;
                 }
-                check_bat_chg_full_pin();
+                if(check_bat_chg_full_pin())
+                {
+                    becare = true;
+                }
                 break;
 
             default:
@@ -413,7 +445,10 @@ static mb_rw_reg_ret_t read_hv_st_from_internal(float timeout_sec)
             DIY_LOG(LOG_ERROR, "%sread battery level from internall error.\n",
                     gp_mb_server_log_header);
         }
-        check_bat_chg_full_pin();
+        if(check_bat_chg_full_pin())
+        {
+            becare = true;
+        }
     }
 
     if(process_ret == MB_RW_REG_RET_ERROR)

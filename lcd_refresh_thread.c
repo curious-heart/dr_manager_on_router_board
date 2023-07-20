@@ -144,9 +144,8 @@ static int print_one_line_to_scrn(const char* str, int size_limit, int pos_x, in
             img = gs_lcd_display_def_char;
         }
 
-        write_img_to_px_pos(img, img_w, img_h, pos_x, pos_y);
-
         sum_w += img_w;
+        write_img_to_px_pos(img, img_w, img_h, pos_x + sum_w, pos_y);
 
         ++idx;
         ch = str[idx];

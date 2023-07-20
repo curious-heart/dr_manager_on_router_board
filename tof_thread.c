@@ -51,12 +51,15 @@ static void tof_th_cleanup_h(void* arg)
  * DO NOT call this function directly because it is not thread safe.
  * Use it as a function point parameter of function access_device_st_pool.
  */
-static void upd_g_st_pool_from_tof_th(void* arg)
+static bool upd_g_st_pool_from_tof_th(void* arg)
 {
+    bool updated = false;
+
     if(arg)
     {
         ST_PARAM_SET_UPD(g_device_st_pool, tof_distance, (*(uint16_t*)arg));
     }
+    return updated;
 }
 
 int init_tof_th_check_mutex()
@@ -106,8 +109,10 @@ void* tof_thread_func(void* arg)
     while(true)
     {
         distance = tof_single_measure(); 
-        access_device_st_pool(pthread_self(), gs_tof_th_desc, upd_g_st_pool_from_tof_th, &distance);
-        update_lcd_display(pthread_self(), gs_tof_th_desc);
+        if(access_device_st_pool(pthread_self(), gs_tof_th_desc, upd_g_st_pool_from_tof_th, &distance))
+        {
+            update_lcd_display(pthread_self(), gs_tof_th_desc);
+        }
 
         DIY_LOG(LOG_INFO, "%s distance:%u\n", gs_tof_th_desc, distance);
 

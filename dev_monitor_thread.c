@@ -19,9 +19,11 @@ static dr_device_st_local_buf_t gs_main_dev_st;
  * Use it as a function point parameter of function access_device_st_pool.
  */
 
-static void update_dev_st_pool_from_monitor_th(void* d)
+static bool update_dev_st_pool_from_monitor_th(void* d)
 {
-    if(!d) return;
+    bool updated = false;
+
+    if(!d) return updated;
 
     dr_device_st_local_buf_t *main_dev_st = (dr_device_st_local_buf_t*)d;
 
@@ -29,6 +31,8 @@ static void update_dev_st_pool_from_monitor_th(void* d)
     ST_PARAM_SET_UPD(g_device_st_pool, cellular_st, main_dev_st->cellular_st);
     ST_PARAM_SET_UPD(g_device_st_pool, wifi_wan_st, main_dev_st->wifi_wan_st);
     ST_PARAM_SET_UPD(g_device_st_pool, sim_card_st, main_dev_st->sim_card_st);
+
+    return updated;
 }
 
 void* dev_monitor_thread_func(void* arg)
@@ -54,9 +58,11 @@ void* dev_monitor_thread_func(void* arg)
         gs_main_dev_st.wifi_wan_st += 1;
         gs_main_dev_st.sim_card_st += 1;
 
-        access_device_st_pool(pthread_self(), g_dev_monitor_th_desc, update_dev_st_pool_from_monitor_th,
-                                              &gs_main_dev_st);
-        update_lcd_display(pthread_self(), g_dev_monitor_th_desc);
+        if(access_device_st_pool(pthread_self(), g_dev_monitor_th_desc, update_dev_st_pool_from_monitor_th,
+                                              &gs_main_dev_st))
+        {
+            update_lcd_display(pthread_self(), g_dev_monitor_th_desc);
+        }
 
         usleep(parm->sch_period * 1000000);
     }
@@ -77,11 +83,12 @@ int destroy_dev_st_pool_mutex()
     return pthread_mutex_destroy(&gs_dev_st_pool_mutex);
 }
 
-void access_device_st_pool(pthread_t pth_id, const char* desc, access_device_status_pool_func_t func, void* arg)
+bool access_device_st_pool(pthread_t pth_id, const char* desc, access_device_status_pool_func_t func, void* arg)
 {
     /* every thread that may update device status should have its own private function to write 
      * the global pool, and use this function to call that private funciton.
      * */
+    bool upd = false;
     DIY_LOG(LOG_INFO, "thread %u ", (uint32_t)pth_id);
     if(desc)
     {
@@ -97,15 +104,19 @@ void access_device_st_pool(pthread_t pth_id, const char* desc, access_device_sta
         {
             pthread_mutex_consistent(&gs_dev_st_pool_mutex);
         }
-        func(arg);
+        upd = func(arg);
         pthread_mutex_unlock(&gs_dev_st_pool_mutex);
     }
 
-    DIY_LOG(LOG_INFO, "thread %u ", (uint32_t)pth_id);
-    if(desc)
+    if(upd)
     {
-        DIY_LOG(LOG_INFO + LOG_ONLY_INFO_STR_COMP, "%s ", desc);
+        DIY_LOG(LOG_INFO, "thread %u ", (uint32_t)pth_id);
+        if(desc)
+        {
+            DIY_LOG(LOG_INFO + LOG_ONLY_INFO_STR_COMP, "%s ", desc);
+        }
+        DIY_LOG(LOG_INFO + LOG_ONLY_INFO_STR_COMP, "finished updating device status pool.\n");
     }
-    DIY_LOG(LOG_INFO + LOG_ONLY_INFO_STR_COMP, "finished updating device status pool.\n");
+    return upd;
 }
 

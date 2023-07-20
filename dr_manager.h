@@ -88,7 +88,16 @@ typedef struct ST_PARAMS_COLLECTION dr_device_st_pool_t;
 #define ST_PARAM_DEF(var_t, var_n) var_t var_n;
 typedef struct ST_PARAMS_COLLECTION dr_device_st_local_buf_t;
 
-#define ST_PARAM_SET_UPD(var, ele, value) var.ele = value; var.ele##_upd = true
+/*functions using this macro MUST define a var as the following:
+ *      bool updated = false;
+ * */
+#define ST_PARAM_SET_UPD(var, ele, value) \
+    if(var.ele != value)\
+    {\
+        var.ele = value; var.ele##_upd = true;\
+        updated = true;\
+    }
+
 #define ST_PARAM_CLEAR_UPD(var, ele) var.ele##_upd = false
 /*------------------------------------------------------------*/
 
@@ -98,8 +107,9 @@ extern const char* g_main_thread_desc;
 
 int init_dev_st_pool_mutex();
 int destroy_dev_st_pool_mutex();
-typedef void (*access_device_status_pool_func_t)(void*);
-void access_device_st_pool(pthread_t pth_id, const char* desc, access_device_status_pool_func_t func, void* arg);
+/*Return true if any item is updated in st pool, otherwise return false.*/
+typedef bool (*access_device_status_pool_func_t)(void*);
+bool access_device_st_pool(pthread_t pth_id, const char* desc, access_device_status_pool_func_t func, void* arg);
 
 int init_lcd_upd_mutex();
 int destroy_lcd_upd_mutex();

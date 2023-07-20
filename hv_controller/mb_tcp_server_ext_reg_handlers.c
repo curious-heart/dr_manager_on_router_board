@@ -93,24 +93,31 @@ mb_rw_reg_ret_t mb_tcp_srvr_ext_reg_dose_adj_handler(uint16_t adj_val)
 }
 
 void set_bat_chg_state(battery_chg_st_t st);
+battery_chg_st_t get_local_rec_bat_chg_state();
 void refresh_lcd_from_main_th();
 mb_rw_reg_ret_t mb_tcp_srvr_ext_reg_charger_handler(uint16_t in_out)
 {
     mb_rw_reg_ret_t process_ret = MB_RW_REG_RET_NONE;
     modbus_t * mb_ctx = mb_server_get_ctx();
     modbus_mapping_t * reg_mappings = mb_server_get_mapping();
+    battery_chg_st_t chg_st;
 
     MB_CTX_AND_MAPPING_CHECK;
 
     if(in_out == MB_REG_V_CHARGER_IN)
     {
-        set_bat_chg_state(CHARGER_CONNECTED);
+        chg_st = CHARGER_CONNECTED;
     }
     else
     {
-        set_bat_chg_state(NO_CHARGER_CONNECTED);
+        chg_st = NO_CHARGER_CONNECTED;
     }
-    refresh_lcd_from_main_th();
+
+    if(chg_st != get_local_rec_bat_chg_state())
+    {
+        set_bat_chg_state(chg_st);
+        refresh_lcd_from_main_th();
+    }
 
     return process_ret;
 }
