@@ -227,15 +227,19 @@ void refresh_lcd_from_main_th()
     access_device_st_pool(pthread_self(),g_main_thread_desc, update_dev_st_pool_from_main_loop_th, &gs_hv_st);
     update_lcd_display(pthread_self(), g_main_thread_desc);
 }
+
+static void check_bat_chg_full_pin()
+{
+    //gs_hv_st.bat_chg_full = true;
+}
+
 /*This functin should only be called from main loop thread. So DO NOT export it in .h file, but declare it as necessary.*/
 void set_bat_chg_state(battery_chg_st_t st)
 {
     gs_hv_st.bat_chg_st = st;
+    check_bat_chg_full_pin();
 }
 
-static void check_bat_chg_full_pin()
-{
-}
 
 mb_rw_reg_ret_t mb_server_write_reg_sniff(uint16_t reg_addr_start, uint16_t * data_arr, uint16_t reg_cnt)
 {

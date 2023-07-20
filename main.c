@@ -12,6 +12,7 @@
 #include "pthread_helper.h"
 #include "tof_measure.h"
 #include "option_configuration_process.h"
+#include "main_app_used_gpios.h"
 
 extern const char* const g_def_lcd_dev_name;
 extern const unsigned char g_def_LCD_I2C_ADDR;
@@ -251,6 +252,8 @@ int main(int argc, char *argv[])
     }
 
     print_modbus_params(&g_cmd_line_opt_collection.rtu_params, &g_cmd_line_opt_collection.srvr_params);
+
+    export_gpios_to_app();
 
     atexit(clear_for_exit);
     /*Init necessary mutexes or other elements for synchronization.*/
