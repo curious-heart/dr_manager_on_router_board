@@ -7,6 +7,12 @@
 
 typedef enum
 {
+    HOTSPOT_DOWN = -1,
+    HOTSPOT_NORMAL_0 = 0,
+}hotspot_st_t;
+
+typedef enum
+{
     NO_CHARGER_CONNECTED = 0,
     CHARGER_CONNECTED,
 }battery_chg_st_t;
@@ -66,6 +72,7 @@ typedef enum
 #define ST_PARAM_DEF(var_t, var_n) var_t var_n; bool var_n##_upd;
 #define ST_PARAMS_COLLECTION \
 {\
+    ST_PARAM_DEF(hotspot_st_t, hot_spot_st)\
     ST_PARAM_DEF(battery_chg_st_t, bat_chg_st)\
     ST_PARAM_DEF(uint16_t, bat_lvl)\
     ST_PARAM_DEF(bool, bat_chg_full)\

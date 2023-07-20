@@ -8,6 +8,10 @@ import struct
 usage_str = "img_data_generator.py file_or_dir [--direction row|col] [--bits_endian big|little]"
 
 if __name__ == '__main__':
+    if(len(sys.argv) < 2):
+        print(usage_str)
+        sys.exit(0)
+
     file_list = []
     for f_or_d in sys.argv[1:]:
         if(os.path.isdir(f_or_d)):

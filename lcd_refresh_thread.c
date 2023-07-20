@@ -64,6 +64,7 @@ typedef struct
  * */
 static const lcd_area_info_t gs_lcd_areas[] =
 {
+    {LCD_HOTSPOT_POS_X, LCD_HOTSPOT_POS_Y, LCD_HOTSPOT_POS_W, LCD_HOTSPOT_POS_H, NULL},
     {LCD_BAT_POS_X, LCD_BAT_POS_Y, LCD_BAT_POS_W, LCD_BAT_POS_H, NULL},
     {LCD_BAT_POS_X, LCD_BAT_POS_Y, LCD_BAT_POS_W, LCD_BAT_POS_H, NULL},
     {LCD_BAT_POS_X, LCD_BAT_POS_Y, LCD_BAT_POS_W, LCD_BAT_POS_H, NULL},
@@ -153,8 +154,26 @@ static int print_one_line_to_scrn(const char* str, int size_limit, int pos_x, in
     return sum_w;
 }
 
+static void refresh_hotspot_display(dr_device_st_enum_t st_id)
+{
+    write_img_to_px_pos(gs_lcd_hotspot_res, LCD_HOTSPOT_IMG_W, LCD_HOTSPOT_IMG_H,
+                        gs_lcd_areas[st_id].pos_x, gs_lcd_areas[st_id].pos_y);
+}
+
 static void refresh_battery_display(dr_device_st_enum_t st_id)
-{}
+{
+    bool charger_on = false;
+
+    if(CHARGER_CONNECTED == gs_device_st_pool_of_lcd.bat_chg_st)
+    {
+        charger_on = true;
+    }
+
+    if(charger_on && !gs_device_st_pool_of_lcd.bat_chg_full)
+    {}
+    else
+    {}
+}
 
 static void refresh_wan_bear_type_display(dr_device_st_enum_t st_id)
 {}
@@ -228,6 +247,7 @@ typedef struct ST_PARAMS_COLLECTION write_info_to_lcd_funcs_t;
 static const write_info_to_lcd_funcs_t gs_write_info_to_lcd_func_list =
 {
     /*The function order must be consitent with the element order of the ST_PARAMS_COLLECTION definition in dr_manager.h*/
+    refresh_hotspot_display,
     refresh_battery_display,
     refresh_battery_display,
     refresh_battery_display,
@@ -263,7 +283,7 @@ static bool access_g_st_pool_from_lcd_refresh_th(void* buf)
 #define ST_PARAM_CLEAR_UPD_ALL ST_PARAMS_COLLECTION;
     ST_PARAM_CLEAR_UPD_ALL;
 
-    return true;
+    return false;
 }
 
 #undef COLLECTION_END_FLAG
