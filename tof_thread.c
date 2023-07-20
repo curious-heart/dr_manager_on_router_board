@@ -25,7 +25,7 @@ bool get_tof_th_running_flag()
     return flag;
 }
 
-static bool set_tof_th_running_flag(bool flag)
+static void set_tof_th_running_flag(bool flag)
 {
     int ret;
     ret = pthread_mutex_lock(&gs_tof_th_check_mutex);

@@ -188,7 +188,6 @@ static void refresh_cube_amts_display(dr_device_st_enum_t st_id)
 static void refresh_expo_st_display(dr_device_st_enum_t st_id)
 {
     const lcd_display_resource_t * res = NULL;
-    int img_w, img_h;
 
     if(HV_DSP_DISCONNECTED  == gs_device_st_pool_of_lcd.hv_dsp_conn_st)
     {
@@ -250,7 +249,7 @@ static const write_info_to_lcd_funcs_t gs_write_info_to_lcd_func_list =
  * DO NOT call this function directly because it is not thread safe.
  * Use it as a function point parameter of function access_device_st_pool.
  */
-static void access_g_st_pool_from_lcd_refresh_th(void* buf)
+static bool access_g_st_pool_from_lcd_refresh_th(void* buf)
 {
     /*copy global device status pool into local buf, and clear the "updated" flag in global pool.*/
     if(buf)
@@ -263,6 +262,8 @@ static void access_g_st_pool_from_lcd_refresh_th(void* buf)
 #define ST_PARAM_DEF(var, ele) g_device_st_pool.ele##_upd = false;
 #define ST_PARAM_CLEAR_UPD_ALL ST_PARAMS_COLLECTION;
     ST_PARAM_CLEAR_UPD_ALL;
+
+    return true;
 }
 
 #undef COLLECTION_END_FLAG
