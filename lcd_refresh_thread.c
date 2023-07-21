@@ -65,7 +65,7 @@ typedef struct
 static const lcd_area_info_t gs_lcd_areas[] =
 {
     {LCD_HOTSPOT_POS_X, LCD_HOTSPOT_POS_Y, LCD_HOTSPOT_POS_W, LCD_HOTSPOT_POS_H, NULL},
-    {LCD_BAT_POS_X, LCD_BAT_POS_Y, LCD_BAT_POS_W, LCD_BAT_POS_H, NULL},
+    {LCD_CHARGER_POS_X, LCD_CHARGER_POS_Y, LCD_CHARGER_POS_W, LCD_CHARGER_POS_H, NULL},
     {LCD_BAT_POS_X, LCD_BAT_POS_Y, LCD_BAT_POS_W, LCD_BAT_POS_H, NULL},
     {LCD_BAT_POS_X, LCD_BAT_POS_Y, LCD_BAT_POS_W, LCD_BAT_POS_H, NULL},
     {LCD_WAN_BEAR_POS_X, LCD_WAN_BEAR_POS_Y, LCD_WAN_BEAR_POS_W, LCD_WAN_BEAR_POS_H, NULL},
@@ -156,36 +156,97 @@ static int print_one_line_to_scrn(const char* str, int size_limit, int pos_x, in
 
 static void refresh_hotspot_display(dr_device_st_enum_t st_id)
 {
-    write_img_to_px_pos(gs_lcd_hotspot_res, LCD_HOTSPOT_IMG_W, LCD_HOTSPOT_IMG_H,
-                        gs_lcd_areas[st_id].pos_x, gs_lcd_areas[st_id].pos_y);
+    write_img_to_px_rect(gs_lcd_hotspot_res, LCD_HOTSPOT_IMG_W, LCD_HOTSPOT_IMG_H,
+                  gs_lcd_areas[st_id].pos_x, gs_lcd_areas[st_id].pos_y, gs_lcd_areas[st_id].pos_w, gs_lcd_areas[st_id].pos_h);
+}
+
+static int bat_lvl_display_map(uint16_t bat_lvl)
+{
+    int idx = 0;
+    while(idx < BATTERY_LEVELS && bat_lvl > gs_lcd_bat_lvls[idx])
+    {
+        ++idx;
+    }
+    if(idx > 0) --idx;
+    return idx;
 }
 
 static void refresh_battery_display(dr_device_st_enum_t st_id)
 {
-    bool charger_on = false;
-
-    if(CHARGER_CONNECTED == gs_device_st_pool_of_lcd.bat_chg_st)
+    /* Since bat_chag_st, bat_lvl and bat_chg_full st update all cause this function to be called,
+     * we check the update st in function again to minmun the lcd refresh operations.
+     * */
+    if(gs_device_st_pool_of_lcd.bat_chg_st_upd)
     {
-        charger_on = true;
+        if(CHARGER_CONNECTED == gs_device_st_pool_of_lcd.bat_chg_st)
+        {
+            write_img_to_px_rect(gs_lcd_charger_res, LCD_CHARGER_IMG_W, LCD_CHARGER_IMG_H,
+                  gs_lcd_areas[st_id].pos_x, gs_lcd_areas[st_id].pos_y, gs_lcd_areas[st_id].pos_w, gs_lcd_areas[st_id].pos_h);
+        }
+        else
+        {
+            clear_lcd_area(gs_lcd_areas[st_id].pos_x, gs_lcd_areas[st_id].pos_y,
+                            gs_lcd_areas[st_id].pos_w, gs_lcd_areas[st_id].pos_h);
+        }
     }
 
-    if(charger_on && !gs_device_st_pool_of_lcd.bat_chg_full)
-    {}
-    else
-    {}
+    if(gs_device_st_pool_of_lcd.bat_lvl_upd || gs_device_st_pool_of_lcd.bat_chg_st_upd)
+    {
+        int map_lvl = bat_lvl_display_map(gs_device_st_pool_of_lcd.bat_lvl);
+        lcd_battery_img_type img; 
+        if((CHARGER_CONNECTED == gs_device_st_pool_of_lcd.bat_chg_st) && !gs_device_st_pool_of_lcd.bat_chg_full)
+        {
+            img = gs_lcd_bat_lightning_res;
+        }
+        else
+        {
+            img = gs_lcd_bat_res;
+        }
+        write_img_to_px_rect(img[map_lvl], LCD_BAT_IMG_W, LCD_BAT_IMG_H,
+            gs_lcd_areas[st_id].pos_x, gs_lcd_areas[st_id].pos_y, gs_lcd_areas[st_id].pos_w, gs_lcd_areas[st_id].pos_h);
+
+        gs_device_st_pool_of_lcd.bat_lvl_upd = gs_device_st_pool_of_lcd.bat_chg_st_upd = false;
+    }
 }
 
 static void refresh_wan_bear_type_display(dr_device_st_enum_t st_id)
 {}
 
 static void refresh_cellular_srv_st_display(dr_device_st_enum_t st_id)
-{}
+{
+    int map_lvl = (int)gs_device_st_pool_of_lcd.cellular_st;
+
+    if(map_lvl < 0) map_lvl = 0;
+    if(map_lvl >= MAX_CELL_WAN_LEVELS) map_lvl = MAX_CELL_WAN_LEVELS - 1; 
+
+    write_img_to_px_rect(gs_cell_srv_st_res[map_lvl], LCD_CELL_SRV_ST_IMG_W, LCD_CELL_SRV_ST_IMG_H, 
+                gs_lcd_areas[st_id].pos_x, gs_lcd_areas[st_id].pos_y, gs_lcd_areas[st_id].pos_w, gs_lcd_areas[st_id].pos_h);
+}
 
 static void refresh_wifi_wan_display(dr_device_st_enum_t st_id)
-{}
+{
+    int map_lvl = (int)gs_device_st_pool_of_lcd.wifi_wan_st;
+
+    if(map_lvl < 0) map_lvl = 0;
+    if(map_lvl >= MAX_WIFI_WAN_LEVELS) map_lvl = MAX_WIFI_WAN_LEVELS - 1; 
+
+    write_img_to_px_rect(gs_wifi_wan_st_res[map_lvl], LCD_WIFI_WAN_ST_IMG_W, LCD_WIFI_WAN_ST_IMG_H, 
+                gs_lcd_areas[st_id].pos_x, gs_lcd_areas[st_id].pos_y, gs_lcd_areas[st_id].pos_w, gs_lcd_areas[st_id].pos_h);
+}
 
 static void refresh_sim_card_st_display(dr_device_st_enum_t st_id)
-{}
+{
+    if(SIM_CARD_NORM == gs_device_st_pool_of_lcd.sim_card_st)
+    {
+        clear_lcd_area( gs_lcd_areas[st_id].pos_x, gs_lcd_areas[st_id].pos_y,
+                gs_lcd_areas[st_id].pos_w, gs_lcd_areas[st_id].pos_h);
+    }
+    else
+    {
+        write_img_to_px_rect(gs_sim_card_st_res, LCD_SIM_CARD_ST_IMG_W, LCD_SIM_CARD_ST_IMG_H,
+                gs_lcd_areas[st_id].pos_x, gs_lcd_areas[st_id].pos_y, gs_lcd_areas[st_id].pos_w, gs_lcd_areas[st_id].pos_h);
+    }
+}
 
 static void refresh_cube_volt_display(dr_device_st_enum_t st_id)
 {
@@ -225,7 +286,8 @@ static void refresh_expo_st_display(dr_device_st_enum_t st_id)
                 break;
         }
     }
-    write_img_to_px_pos(res->img, res->img_w, res->img_h, gs_lcd_areas[st_id].pos_x, gs_lcd_areas[st_id].pos_y);
+    write_img_to_px_rect(res->img, res->img_w, res->img_h, 
+            gs_lcd_areas[st_id].pos_x, gs_lcd_areas[st_id].pos_y, gs_lcd_areas[st_id].pos_w, gs_lcd_areas[st_id].pos_h);
 }
 
 static void refresh_tof_distance_display(dr_device_st_enum_t st_id)
@@ -264,6 +326,28 @@ static const write_info_to_lcd_funcs_t gs_write_info_to_lcd_func_list =
 };
 
 /*----------------------------------------*/
+static void merge_lcd_upd_flag()
+{
+    if(gs_device_st_pool_of_lcd.bat_chg_st_upd)
+    {
+        gs_device_st_pool_of_lcd.bat_lvl_upd = false;
+        gs_device_st_pool_of_lcd.bat_chg_full_upd = false;
+    }
+    else if(gs_device_st_pool_of_lcd.bat_lvl_upd)
+    {
+        gs_device_st_pool_of_lcd.bat_chg_full_upd = false;
+    }
+
+    if(gs_device_st_pool_of_lcd.hv_dsp_conn_st_upd)
+    {
+            gs_device_st_pool_of_lcd.expo_st_upd = false;
+    }
+
+    if(gs_device_st_pool_of_lcd.expo_dura_ms_upd)
+    {
+        gs_device_st_pool_of_lcd.expo_am_ua_upd = false;
+    }
+}
 
 /*
  * DO NOT call this function directly because it is not thread safe.
@@ -294,6 +378,7 @@ static bool access_g_st_pool_from_lcd_refresh_th(void* buf)
     if(gs_device_st_pool_of_lcd.var_n##_upd && gs_write_info_to_lcd_func_list.var_n##_to_lcd_func)\
     {\
         gs_write_info_to_lcd_func_list.var_n##_to_lcd_func(enum_##var_n);\
+        gs_device_st_pool_of_lcd.var_n##_upd  = false;\
     }\
 }
 #define REFRESH_LCD_DISPYAL ST_PARAMS_COLLECTION

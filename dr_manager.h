@@ -29,9 +29,9 @@ typedef enum
 
 typedef enum
 {
-    CELLULAR_NO_SERVICE = 0,
-    CELLULAR_LIMITED_SERVICE,
-    CELLULAR_FULL_SERVICE,
+    CELLULAR_NO_SERVICE = -2, //signal 0
+    CELLULAR_LIMITED_SERVICE = -1, //signal 0
+    CELLULAR_NORMAL_0 = 0, //signal 0
 }cellular_srv_st_t;
 
 typedef enum
@@ -43,8 +43,8 @@ typedef enum
 
 typedef enum
 {
-    WIFI_WAN_DISCONNECTED = 0,
-    WIFI_WAN_CONNECTED,
+    WIFI_WAN_DISCONNECTED = 0, //signal 0
+    WIFI_WAN_CONNECTED, //signal 1
 }wifi_wan_st_t;
 
 typedef enum

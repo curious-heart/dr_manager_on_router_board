@@ -779,3 +779,44 @@ void exit_all_scrn_mode()
 {
     transfer_command_lcd(I2C_LCD_CMD_EXIT_PARTIAL_MODE, NULL, 0); 
 }
+
+void fill_lcd_area(uint8_t data, int scrn_px_x, int scrn_px_y, int scrn_px_w, int scrn_px_h)
+{
+    int pg_cnt = (int)ceil(scrn_px_h / 8.0);
+    int buf_size;
+    uint8_t *buf;
+    uint8_t last_row_data = data;
+    int high_0_bits;
+
+    buf_size = pg_cnt * scrn_px_w;
+    if(0 == buf_size)
+    {
+        DIY_LOG(LOG_INFO, "The area to be filled is 0-size.\n");
+        return;
+    }
+
+    buf = malloc(buf_size);
+    if(NULL == buf)
+    {
+        DIY_LOG(LOG_ERROR, "malloc error!\n");
+        return;
+    }
+    memset(buf, data, buf_size);
+
+    high_0_bits = pg_cnt * 8 - scrn_px_h;
+    if((data != 0) && (high_0_bits != 0))
+    {
+        last_row_data <<= high_0_bits;
+        last_row_data >>= high_0_bits; //clear the high bits.
+        memset(&buf[scrn_px_w * (pg_cnt - 1)], last_row_data, scrn_px_w);
+    }
+
+    write_img_to_px_rect(buf, scrn_px_w, scrn_px_h, scrn_px_x, scrn_px_y, scrn_px_w, scrn_px_h);
+    free(buf);
+}
+
+void clear_lcd_area(int scrn_px_x, int scrn_px_y, int scrn_px_w, int scrn_px_h)
+{
+    fill_lcd_area(0, scrn_px_x, scrn_px_y, scrn_px_w, scrn_px_h);
+}
+
