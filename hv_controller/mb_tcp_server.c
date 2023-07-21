@@ -203,33 +203,6 @@ static bool update_dev_st_pool_from_main_loop_th(void* d)
 }
 
 extern cmd_line_opt_collection_t g_cmd_line_opt_collection;
-void check_and_start_tof_th()
-{
-    if(get_tof_th_running_flag())
-    {
-        DIY_LOG(LOG_WARN, "%s thread has already been started!\n", gs_tof_th_desc);
-    }
-    else
-    {
-        if(start_assit_thread(gs_tof_th_desc, &gs_tof_th_id, true,
-                tof_thread_func, &g_cmd_line_opt_collection.tof_th_parm))
-        {
-            DIY_LOG(LOG_INFO, "Start %s thread ok.\n", gs_tof_th_desc);
-        }
-    }
-}
-
-void check_and_cancel_tof_th()
-{
-    if(!get_tof_th_running_flag())
-    {
-        DIY_LOG(LOG_WARN, "%s thread has not been started.\n", gs_tof_th_desc);
-    }
-    else
-    {
-        cancel_assit_thread(true, &gs_tof_th_id);
-    }
-}
 
 /*DO NOT call this function from outside of main thread. So DO NOT export it in .h file, but declare it as necessary.*/
 void refresh_lcd_from_main_th()
@@ -310,11 +283,11 @@ mb_rw_reg_ret_t mb_server_write_reg_sniff(uint16_t reg_addr_start, uint16_t * da
             case RangeIndicationStart:
                 if(data_arr[idx]) //turn on range indicator
                 {
-                    check_and_start_tof_th();
+                    set_tof_th_measure_flag(true);
                 }
                 else //turn off range indicator
                 {
-                    check_and_cancel_tof_th();
+                    set_tof_th_measure_flag(false);
                 }
                 break;
 

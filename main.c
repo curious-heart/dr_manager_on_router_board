@@ -19,8 +19,8 @@ extern const unsigned char g_def_LCD_I2C_ADDR;
 
 const char* g_main_thread_desc = "Main-thread";
 
-static pthread_t gs_dev_monitor_th_id, gs_lcd_refresh_th_id;
-static bool gs_dev_monitor_th_started = false, gs_lcd_refresh_th_started =false;
+static pthread_t gs_dev_monitor_th_id, gs_lcd_refresh_th_id, gs_tof_th_id;
+static bool gs_dev_monitor_th_started = false, gs_lcd_refresh_th_started =false, gs_tof_th_started = false;
 
 static void mb_reg_only_write(hv_mb_reg_e_t reg_addr)
 {
@@ -186,13 +186,17 @@ static bool clear_threads()
     cancel_assit_thread(gs_lcd_refresh_th_started, &gs_lcd_refresh_th_id);
     gs_lcd_refresh_th_started = false;
 
-    check_and_cancel_tof_th();
+    cancel_assit_thread(gs_tof_th_started, &gs_tof_th_id);
+    gs_tof_th_started = false;
 
     s = destroy_dev_st_pool_mutex();
     PTHREAD_ERR_CHECK(s, "destory_dev_st_pool_mutex", "", " failes", false, false);
 
     s = destroy_lcd_upd_mutex();
     PTHREAD_ERR_CHECK(s, "destory_lcd_upd_mutex", "", " failes", false, false);
+
+    s = destroy_tof_th_measure_mutex();
+    PTHREAD_ERR_CHECK(s, "destory_tof_th_measure_mutex", "", " failes", false, false);
 
     main_th_exit_handler();
     return true;
@@ -228,7 +232,7 @@ static void init_thread_syncs()
 {
     init_dev_st_pool_mutex();
     init_lcd_upd_mutex();
-    init_tof_th_check_mutex();
+    init_tof_th_measure_mutex();
 }
 
 extern cmd_line_opt_collection_t g_cmd_line_opt_collection;
@@ -271,7 +275,14 @@ int main(int argc, char *argv[])
     {
         return -1;
     }
-     gs_lcd_refresh_th_started = true;
+    gs_lcd_refresh_th_started = true;
+
+    if(!start_assit_thread(g_tof_th_desc, &gs_tof_th_id, true,
+            tof_thread_func, &g_cmd_line_opt_collection.tof_th_parm))
+    {
+        return -1;
+    }
+    gs_tof_th_started = true;
     /*------------------------------*/
 
     switch(g_cmd_line_opt_collection.work_mode)

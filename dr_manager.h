@@ -99,9 +99,9 @@ typedef struct ST_PARAMS_COLLECTION dr_device_st_local_buf_t;
  *      bool updated = false;
  * */
 #define ST_PARAM_SET_UPD(var, ele, value) \
-    if(var.ele != value)\
+    if((var).ele != (value))\
     {\
-        var.ele = value; var.ele##_upd = true;\
+        (var).ele = (value); (var).ele##_upd = true;\
         updated = true;\
     }
 
@@ -110,7 +110,6 @@ typedef struct ST_PARAMS_COLLECTION dr_device_st_local_buf_t;
 
 extern dr_device_st_pool_t g_device_st_pool;
 extern const char* g_main_thread_desc;
-
 
 int init_dev_st_pool_mutex();
 int destroy_dev_st_pool_mutex();
@@ -138,15 +137,16 @@ typedef struct
 void* lcd_refresh_thread_func(void* arg);
 extern const char* g_lcd_refresh_th_desc;
 
+int init_tof_th_measure_mutex();
+int destroy_tof_th_measure_mutex();
 typedef struct
 {
     float measure_period;
     const char* dev_name;
     uint8_t dev_addr;
 }tof_thread_parm_t;
-extern const char* gs_tof_th_desc;
-int init_tof_th_check_mutex();
-bool get_tof_th_running_flag();
 void* tof_thread_func(void* arg);
+extern const char* g_tof_th_desc;
+void set_tof_th_measure_flag(bool flag);
 
 #endif

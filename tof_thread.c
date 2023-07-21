@@ -5,47 +5,46 @@
 #include "dr_manager.h"
 #include "tof_measure.h"
 
-const char* gs_tof_th_desc = "TOF-Measurement";
+const char* g_tof_th_desc = "TOF-Measurement";
 
 static bool gs_tof_opened = false;
-static bool gs_tof_th_running = false;
-static pthread_mutex_t gs_tof_th_check_mutex;
+static bool gs_tof_th_measure_now = false;
+static pthread_mutex_t gs_tof_th_measure_mutex;
 
-bool get_tof_th_running_flag()
+static bool check_tof_th_measure_flag()
 {
     int ret;
     bool flag;
-    ret = pthread_mutex_lock(&gs_tof_th_check_mutex);
+    ret = pthread_mutex_lock(&gs_tof_th_measure_mutex);
     if(EOWNERDEAD == ret)
     {
-        pthread_mutex_consistent(&gs_tof_th_check_mutex);
+        pthread_mutex_consistent(&gs_tof_th_measure_mutex);
     }
-    flag = gs_tof_th_running;
-    pthread_mutex_unlock(&gs_tof_th_check_mutex);
+    flag = gs_tof_th_measure_now;
+    pthread_mutex_unlock(&gs_tof_th_measure_mutex);
     return flag;
 }
 
-static void set_tof_th_running_flag(bool flag)
+void set_tof_th_measure_flag(bool flag)
 {
     int ret;
-    ret = pthread_mutex_lock(&gs_tof_th_check_mutex);
+    ret = pthread_mutex_lock(&gs_tof_th_measure_mutex);
     if(EOWNERDEAD == ret)
     {
-        pthread_mutex_consistent(&gs_tof_th_check_mutex);
+        pthread_mutex_consistent(&gs_tof_th_measure_mutex);
     }
-    gs_tof_th_running = flag;
-    pthread_mutex_unlock(&gs_tof_th_check_mutex);
+    gs_tof_th_measure_now = flag;
+    pthread_mutex_unlock(&gs_tof_th_measure_mutex);
 }
 
 static void tof_th_cleanup_h(void* arg)
 {
-    DIY_LOG(LOG_INFO, "%s thread exit cleanup!\n", gs_tof_th_desc);
+    DIY_LOG(LOG_INFO, "%s thread exit cleanup!\n", g_tof_th_desc);
     if(gs_tof_opened)
     {
         tof_close();
         gs_tof_opened = false;
     }
-    set_tof_th_running_flag(false);
 }
 /*
  * DO NOT call this function directly because it is not thread safe.
@@ -62,7 +61,7 @@ static bool upd_g_st_pool_from_tof_th(void* arg)
     return updated;
 }
 
-int init_tof_th_check_mutex()
+int init_tof_th_measure_mutex()
 {
     int ret;
     pthread_mutexattr_t attr;
@@ -70,8 +69,13 @@ int init_tof_th_check_mutex()
     pthread_mutexattr_init(&attr);
     pthread_mutexattr_setrobust(&attr, PTHREAD_MUTEX_ROBUST);
 
-    ret = pthread_mutex_init(&gs_tof_th_check_mutex, &attr);
+    ret = pthread_mutex_init(&gs_tof_th_measure_mutex, &attr);
     return ret;
+}
+
+int destroy_tof_th_measure_mutex()
+{
+    return pthread_mutex_destroy(&gs_tof_th_measure_mutex);
 }
 
 void* tof_thread_func(void* arg)
@@ -81,40 +85,43 @@ void* tof_thread_func(void* arg)
     int ret;
     unsigned short distance;
 
-    set_tof_th_running_flag(true);
-
     pthread_cleanup_push(tof_th_cleanup_h, NULL);
 
     if(!parm)
     {
         DIY_LOG(LOG_ERROR, "Arguments passed to tof_thread_func is NULL.\n"
-                "Thread %s exit.\n", gs_tof_th_desc);
-        set_tof_th_running_flag(false);
+                "Thread %s exit.\n", g_tof_th_desc);
         return NULL;
     }
 
     period = parm->measure_period;
     DIY_LOG(LOG_INFO, "%s thread starts, with measure period %f seconds!\n", 
-            gs_tof_th_desc, period);
+            g_tof_th_desc, period);
 
     ret = tof_open(parm->dev_name, parm->dev_addr);
     if(0 != ret)
     {
-        DIY_LOG(LOG_ERROR, "%s thread exit due to open tof error: %d.\n", gs_tof_th_desc, ret);
-        set_tof_th_running_flag(false);
+        DIY_LOG(LOG_ERROR, "%s thread exit due to open tof error: %d.\n", g_tof_th_desc, ret);
         return NULL;
     }
     gs_tof_opened = true;
 
     while(true)
     {
-        distance = tof_single_measure(); 
-        if(access_device_st_pool(pthread_self(), gs_tof_th_desc, upd_g_st_pool_from_tof_th, &distance))
+        if(check_tof_th_measure_flag())
         {
-            update_lcd_display(pthread_self(), gs_tof_th_desc);
+            distance = tof_single_measure(); 
+            DIY_LOG(LOG_INFO, "%s distance:%u\n", g_tof_th_desc, distance);
+        }
+        else
+        {
+            distance = -1; 
         }
 
-        DIY_LOG(LOG_INFO, "%s distance:%u\n", gs_tof_th_desc, distance);
+        if(access_device_st_pool(pthread_self(), g_tof_th_desc, upd_g_st_pool_from_tof_th, &distance))
+        {
+            update_lcd_display(pthread_self(), g_tof_th_desc);
+        }
 
         usleep(period * 1000000);
     }

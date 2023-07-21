@@ -8,7 +8,6 @@
 #include "logger.h"
 #include "tof_measure.h"
 
-
 static void print_pal_error(VL53L0X_Error Status)
 {
     char buf[VL53L0X_MAX_STRING_LENGTH];

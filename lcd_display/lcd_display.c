@@ -780,7 +780,7 @@ void exit_all_scrn_mode()
     transfer_command_lcd(I2C_LCD_CMD_EXIT_PARTIAL_MODE, NULL, 0); 
 }
 
-void fill_lcd_area(uint8_t data, int scrn_px_x, int scrn_px_y, int scrn_px_w, int scrn_px_h)
+void fill_screen_area(uint8_t data, int scrn_px_x, int scrn_px_y, int scrn_px_w, int scrn_px_h)
 {
     int pg_cnt = (int)ceil(scrn_px_h / 8.0);
     int buf_size;
@@ -815,8 +815,8 @@ void fill_lcd_area(uint8_t data, int scrn_px_x, int scrn_px_y, int scrn_px_w, in
     free(buf);
 }
 
-void clear_lcd_area(int scrn_px_x, int scrn_px_y, int scrn_px_w, int scrn_px_h)
+void clear_screen_area(int scrn_px_x, int scrn_px_y, int scrn_px_w, int scrn_px_h)
 {
-    fill_lcd_area(0, scrn_px_x, scrn_px_y, scrn_px_w, scrn_px_h);
+    fill_screen_area(0, scrn_px_x, scrn_px_y, scrn_px_w, scrn_px_h);
 }
 

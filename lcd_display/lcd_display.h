@@ -10,8 +10,8 @@ void clear_screen();
 void write_img_to_px_rect(const uint8_t* img_buf, int img_px_w, int img_px_h, 
                       int scrn_px_x, int scrn_px_y, int scrn_px_w, int scrn_px_h);
 void write_img_to_px_pos(const uint8_t* img_buf, int img_px_w, int img_px_h, int scrn_px_x, int scrn_px_y);
-void clear_lcd_area(int scrn_px_x, int scrn_px_y, int scrn_px_w, int scrn_px_h);
-void fill_lcd_area(uint8_t data, int scrn_px_x, int scrn_px_y, int scrn_px_w, int scrn_px_h);
+void clear_screen_area(int scrn_px_x, int scrn_px_y, int scrn_px_w, int scrn_px_h);
+void fill_screen_area(uint8_t data, int scrn_px_x, int scrn_px_y, int scrn_px_w, int scrn_px_h);
 
 bool write_img_file_to_px_pos(const char* img_file_name, int rect_x, int rect_y);
 bool write_img_file_to_px_rect(const char* img_file_name,

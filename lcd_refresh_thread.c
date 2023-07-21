@@ -185,7 +185,7 @@ static void refresh_battery_display(dr_device_st_enum_t st_id)
         }
         else
         {
-            clear_lcd_area(gs_lcd_areas[st_id].pos_x, gs_lcd_areas[st_id].pos_y,
+            clear_screen_area(gs_lcd_areas[st_id].pos_x, gs_lcd_areas[st_id].pos_y,
                             gs_lcd_areas[st_id].pos_w, gs_lcd_areas[st_id].pos_h);
         }
     }
@@ -238,7 +238,7 @@ static void refresh_sim_card_st_display(dr_device_st_enum_t st_id)
 {
     if(SIM_CARD_NORM == gs_device_st_pool_of_lcd.sim_card_st)
     {
-        clear_lcd_area( gs_lcd_areas[st_id].pos_x, gs_lcd_areas[st_id].pos_y,
+        clear_screen_area( gs_lcd_areas[st_id].pos_x, gs_lcd_areas[st_id].pos_y,
                 gs_lcd_areas[st_id].pos_w, gs_lcd_areas[st_id].pos_h);
     }
     else
@@ -292,12 +292,20 @@ static void refresh_expo_st_display(dr_device_st_enum_t st_id)
 
 static void refresh_tof_distance_display(dr_device_st_enum_t st_id)
 {
-    float dist_in_cm = (float)(gs_device_st_pool_of_lcd.tof_distance) / 10;
-    int max_num_of_number_chars = LCD_DISTANCE_MAX_INT_CHAR_NUM + 1 /*.*/ + LCD_DISTANCE_MAX_FRAC_CHAR_NUM;
+    if((int)(gs_device_st_pool_of_lcd.tof_distance) < 0)
+    {
+        clear_screen_area(gs_lcd_areas[st_id].pos_x, gs_lcd_areas[st_id].pos_y,
+                       gs_lcd_areas[st_id].pos_w, gs_lcd_areas[st_id].pos_h);
+    }
+    else
+    {
+        float dist_in_cm = (float)(gs_device_st_pool_of_lcd.tof_distance) / 10;
+        int max_num_of_number_chars = LCD_DISTANCE_MAX_INT_CHAR_NUM + 1 /*.*/ + LCD_DISTANCE_MAX_FRAC_CHAR_NUM;
 
-    PRINT_NUMBER_WITH_UNIT_TO_SCRN(dist_in_cm, max_num_of_number_chars, "%f", \
-                                   gs_LCD_DISPLAY_UNIT_STR_CM, \
-                                   gs_lcd_areas[st_id].pos_x, gs_lcd_areas[st_id].pos_y);
+        PRINT_NUMBER_WITH_UNIT_TO_SCRN(dist_in_cm, max_num_of_number_chars, "%f", \
+                                       gs_LCD_DISPLAY_UNIT_STR_CM, \
+                                       gs_lcd_areas[st_id].pos_x, gs_lcd_areas[st_id].pos_y);
+    }
 }
 
 typedef void (*write_info_to_lcd_func_t)(dr_device_st_enum_t st_id);
@@ -326,28 +334,6 @@ static const write_info_to_lcd_funcs_t gs_write_info_to_lcd_func_list =
 };
 
 /*----------------------------------------*/
-static void merge_lcd_upd_flag()
-{
-    if(gs_device_st_pool_of_lcd.bat_chg_st_upd)
-    {
-        gs_device_st_pool_of_lcd.bat_lvl_upd = false;
-        gs_device_st_pool_of_lcd.bat_chg_full_upd = false;
-    }
-    else if(gs_device_st_pool_of_lcd.bat_lvl_upd)
-    {
-        gs_device_st_pool_of_lcd.bat_chg_full_upd = false;
-    }
-
-    if(gs_device_st_pool_of_lcd.hv_dsp_conn_st_upd)
-    {
-            gs_device_st_pool_of_lcd.expo_st_upd = false;
-    }
-
-    if(gs_device_st_pool_of_lcd.expo_dura_ms_upd)
-    {
-        gs_device_st_pool_of_lcd.expo_am_ua_upd = false;
-    }
-}
 
 /*
  * DO NOT call this function directly because it is not thread safe.
