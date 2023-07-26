@@ -32,12 +32,30 @@ static bool update_dev_st_pool_from_monitor_th(void* d)
 
     ST_PARAM_SET_UPD(g_device_st_pool, wan_bear, main_dev_st->wan_bear);
     ST_PARAM_SET_UPD(g_device_st_pool, cellular_st, main_dev_st->cellular_st);
+    ST_PARAM_SET_UPD(g_device_st_pool, cellular_mode, main_dev_st->cellular_mode);
     ST_PARAM_SET_UPD(g_device_st_pool, wifi_wan_st, main_dev_st->wifi_wan_st);
     ST_PARAM_SET_UPD(g_device_st_pool, sim_card_st, main_dev_st->sim_card_st);
     ST_PARAM_SET_UPD(g_device_st_pool, hot_spot_st, main_dev_st->hot_spot_st);
 
     return updated;
 }
+
+static void prepare_getting_dev_st()
+{
+    system("init_at_st.sh");
+}
+
+static void get_cellular_st(bool debug_flag)
+{}
+
+static void get_sim_card_st(bool debug_flag)
+{}
+
+static void get_wifi_wan_st(bool debug_flag)
+{}
+
+static void get_hot_spot_st(bool debug_flag)
+{}
 
 void* dev_monitor_thread_func(void* arg)
 {
@@ -46,6 +64,7 @@ void* dev_monitor_thread_func(void* arg)
      *
      */
     dev_monitor_th_parm_t * parm = (dev_monitor_th_parm_t*) arg;
+    bool sh_debug_flag;
 
     if(NULL == parm)
     {
@@ -53,18 +72,18 @@ void* dev_monitor_thread_func(void* arg)
         return NULL;
     }
 
-    gs_main_dev_st.hot_spot_st = HOTSPOT_NORMAL_0;
+    sh_debug_flag = parm->sh_script_debug;
+
+    prepare_getting_dev_st();
 
     DIY_LOG(LOG_INFO, "%s therad starts, with sch period %f seconds!\n", 
             g_dev_monitor_th_desc, parm->sch_period);
     while(true)
     {
-        /**
-        gs_main_dev_st.wan_bear += 1;
-        gs_main_dev_st.cellular_st += 1;
-        gs_main_dev_st.wifi_wan_st += 1;
-        gs_main_dev_st.sim_card_st += 1;
-        */
+        get_cellular_st(sh_debug_flag);
+        get_sim_card_st(sh_debug_flag);
+        get_wifi_wan_st(sh_debug_flag);
+        get_hot_spot_st(sh_debug_flag);
 
         if(access_device_st_pool(pthread_self(), g_dev_monitor_th_desc, update_dev_st_pool_from_monitor_th,
                                               &gs_main_dev_st))

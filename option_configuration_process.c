@@ -20,15 +20,16 @@ static const int32_t gs_def_mb_rtu_serialStopBits = 1;
 static const uint32_t gs_def_mb_rtu_timeout_ms = 999; //1000;
 static const int32_t gs_def_mb_rtu_numberOfRetries = 3;
 static const int32_t gs_def_mb_rtu_serverAddress = 1;
-static const int gs_def_mb_rtu_debug_flag = false;
+static const bool gs_def_mb_rtu_debug_flag = false;
 /*modbus tcp server parameters*/
 static const char* const gs_def_mb_tcp_srvr_ip = "0.0.0.0";
 static char gs_mb_tcp_srvr_ip[MAX_OPT_STR_SIZE];
 static const uint16_t gs_def_mb_tcp_srvr_port = 502;
 static const float gs_def_mb_tcp_srvr_long_wait_time = 10, gs_def_mb_tcp_srvr_short_wait_time = 0.5;
-static const int gs_def_mb_tcp_srvr_debug_flag= false;
+static const bool gs_def_mb_tcp_srvr_debug_flag= false;
 /*monitor (check device state) period.*/
 static const float gs_def_dev_monitor_period = 3;
+static const bool gs_def_dev_monitor_debug_flag = false;
 /*LCD*/
 static const char* const gs_def_lcd_dev_name = "/dev/i2c-0";
 static char gs_lcd_dev_name[MAX_OPT_STR_SIZE];
@@ -71,6 +72,7 @@ cmd_line_opt_collection_t g_cmd_line_opt_collection =
     .dev_monitor_th_parm = 
     {
         .sch_period = gs_def_dev_monitor_period,
+        .sh_script_debug = gs_def_dev_monitor_debug_flag,
     },
 
     .lcd_refresh_th_parm = 
@@ -109,6 +111,7 @@ static const char* const gs_opt_mb_tcp_srvr_w_short_time_str = "mb_tcp_srvr_shor
 static const char* const gs_opt_mb_tcp_srvr_debug_str = "mb_tcp_debug";
 #define gs_opt_tcp_debug_c 't'
 static const char* const gs_opt_dev_monitor_period_str = "dev_monitor_peroid";
+static const char* const gs_opt_dev_monitor_debug_flag_str = "dev_monitor_debug";
 static const char* const gs_opt_lcd_dev_name_str = "lcd_dev_name";
 static const char* const gs_opt_lcd_dev_addr_str = "lcd_dev_addr";
 static const char* const gs_opt_tof_measure_period_str = "tof_measure_period";
@@ -163,7 +166,7 @@ static const char* const gs_opt_version_str = "version";
 \
     APP_CMD_OPT_ITEM(gs_opt_mb_rtu_debug_str, no_argument, 0, gs_opt_rtu_debug_c) \
     APP_CMD_OPT_VALUE("mb_rtu_debug", \
-            &gs_def_mb_rtu_debug_flag, &g_cmd_line_opt_collection.rtu_params.debug_flag, int) \
+            &gs_def_mb_rtu_debug_flag, &g_cmd_line_opt_collection.rtu_params.debug_flag, bool) \
 \
     APP_CMD_OPT_ITEM(gs_opt_mb_tcp_srvr_ip_addr_str, required_argument, 0, gs_opt_mb_tcp_srvr_ip_addr_c)\
     APP_CMD_OPT_VALUE("mb_srvr_ip", \
@@ -183,11 +186,15 @@ static const char* const gs_opt_version_str = "version";
 \
     APP_CMD_OPT_ITEM(gs_opt_mb_tcp_srvr_debug_str, no_argument, 0, gs_opt_tcp_debug_c) \
     APP_CMD_OPT_VALUE("mb_tcp_debug",\
-            &gs_def_mb_tcp_srvr_debug_flag, &g_cmd_line_opt_collection.srvr_params.debug_flag, int) \
+            &gs_def_mb_tcp_srvr_debug_flag, &g_cmd_line_opt_collection.srvr_params.debug_flag, bool) \
 \
     APP_CMD_OPT_ITEM(gs_opt_dev_monitor_period_str, required_argument, 0, 0)\
     APP_CMD_OPT_VALUE("dev_st_monitor_period(s)",\
             &gs_def_dev_monitor_period, &g_cmd_line_opt_collection.dev_monitor_th_parm.sch_period, float) \
+\
+    APP_CMD_OPT_ITEM(gs_opt_dev_monitor_debug_flag_str, no_argument, 0, 0)\
+    APP_CMD_OPT_VALUE("dev_st_monitor_debug",\
+            &gs_def_dev_monitor_debug_flag, &g_cmd_line_opt_collection.dev_monitor_th_parm.sh_script_debug, bool) \
 \
     APP_CMD_OPT_ITEM(gs_opt_lcd_dev_name_str, required_argument, 0, 0)\
     APP_CMD_OPT_VALUE("lcd_device_name",\
@@ -309,6 +316,11 @@ option_process_ret_t process_cmd_options(int argc, char *argv[])
                             SHOULD_BE_IN_INCLUDED(p_lvl, LOG_DEBUG, LOG_ERROR),
                             SHOULD_BE_IN_INCLUDED_INT_LOG(LOG_DEBUG, LOG_ERROR),
                             type_uint8_t);
+                }
+                if(!strcmp(gs_long_opt_arr[longindex].name, gs_opt_dev_monitor_debug_flag_str))
+                {
+                    g_cmd_line_opt_collection.dev_monitor_th_parm.sh_script_debug = true;
+                    break;
                 }
                 OPT_CHECK_AND_DRAW(gs_long_opt_arr[longindex].name, gs_opt_dev_monitor_period_str,
                         CONVERT_FUNC_ATOF(g_cmd_line_opt_collection.dev_monitor_th_parm.sch_period, optarg),

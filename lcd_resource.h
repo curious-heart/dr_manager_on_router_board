@@ -419,10 +419,16 @@ static const unsigned char gs_lcd_display_def_char[ /* LCD_DISPLAY_DEFAULT_CHAR_
 /*--------------------The following are "dynamaic" info resurce.*/
 #define LCD_SIM_CARD_ST_IMG_W 16
 #define LCD_SIM_CARD_ST_IMG_H 18
-static const unsigned char gs_sim_card_st_res[/* LCD_SIM_CARD_ST_IMG_W * ceil(LCD_SIM_CARD_ST_IMG_W / 8) */] = 
+static const unsigned char gs_sim_card_normal_res[/* LCD_SIM_CARD_ST_IMG_W * ceil(LCD_SIM_CARD_ST_IMG_W / 8) */] = 
 {
     0xC0, 0x30, 0x08, 0x06, 0xE1, 0x21, 0x21, 0xE1, 0x21, 0xE1, 0x21, 0x21, 0xE1, 0x01, 0x01, 0xFF, 
     0xFF, 0x00, 0x00, 0x00, 0x3F, 0x24, 0x24, 0x3D, 0x25, 0x25, 0x3D, 0x25, 0x3F, 0x00, 0x00, 0xFF, 
+    0x03, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x03, 
+};
+static const unsigned char gs_sim_card_err_res[/* LCD_SIM_CARD_ST_IMG_W * ceil(LCD_SIM_CARD_ST_IMG_W / 8) */] =
+{
+    0xC0, 0x30, 0x08, 0x06, 0x01, 0x01, 0x01, 0x01, 0xF1, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0xFF, 
+    0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x6F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 
     0x03, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x03, 
 };
 #define LCD_SIM_CARD_ST_POS_X 116
@@ -509,6 +515,44 @@ static const unsigned char gs_cell_srv_st_res[MAX_CELL_WAN_LEVELS][LCD_CELL_SRV_
 #define LCD_CELL_SRV_ST_POS_W LCD_CELL_SRV_ST_IMG_W
 #define LCD_CELL_SRV_ST_POS_H LCD_CELL_SRV_ST_IMG_H
 
+#define LCD_CELL_MODE_NUM 4 //noserv, 3G, 4G, 5G
+#define LCD_CELL_MODE_IMG_W 9
+#define LCD_CELL_MODE_IMG_H 6
+#define LCD_CELL_MODE_IMG_SIZE 9 /*LCD_CELL_MODE_IMG_W * ceil(LCD_CELL_MODE_IMG_H / 8) */
+static const unsigned char gs_lcd_mode_res[LCD_CELL_MODE_NUM][LCD_CELL_MODE_IMG_SIZE] =
+{
+
+    {/* CELLULAR_MODE_NOSRV = 0*/
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+    },
+    {/* CELLULAR_MODE_3G */
+        0x29, 0x29, 0x3F, 0x00, 0x3E, 0x23, 0x29, 0x3B, 0x00, 
+    },
+
+    {/* CELLULAR_MODE_4G */
+        0x1C, 0x12, 0x3F, 0x10, 0x00, 0x3E, 0x23, 0x29, 0x3B, 
+    },
+
+    {/* CELLULAR_MODE_5G */
+        0x37, 0x25, 0x25, 0x3D, 0x00, 0x3E, 0x23, 0x29, 0x3B, 
+    },
+};
+#define LCD_CELL_MODE_POS_X (LCD_CELL_SRV_ST_POS_X + 20)
+#define LCD_CELL_MODE_POS_Y (LCD_CELL_SRV_ST_POS_Y + 1)
+#define LCD_CELL_MODE_POS_W LCD_CELL_MODE_IMG_W
+#define LCD_CELL_MODE_POS_H LCD_CELL_MODE_IMG_H
+
+#define LCD_WAN_CONN_IMG_W 7
+#define LCD_WAN_CONN_IMG_H 5
+static const unsigned char gs_lcd_wan_conn_res[ /*LCD_WAN_CONN_IMG_W * ceil(LCD_WAN_CONN_IMG_H / 8) */ ] =
+{
+    0x04, 0x08, 0x1F, 0x00, 0x1F, 0x02, 0x04, 
+};
+#define LCD_WAN_CONN_REL_POS_X 1
+#define LCD_WAN_CONN_REL_POS_Y (-1 * LCD_WAN_CONN_IMG_H)
+#define LCD_WAN_CONN_POS_W LCD_WAN_CONN_IMG_W 
+#define LCD_WAN_CONN_POS_H LCD_WAN_CONN_IMG_H
+
 #define LCD_HOTSPOT_IMG_W 24
 #define LCD_HOTSPOT_IMG_H 22
 static const unsigned char gs_lcd_hotspot_res[/* LCD_HOTSPOT_IMG_W * ceil(LCD_HOTSPOT_IMG_H / 8) */] = 
@@ -521,6 +565,51 @@ static const unsigned char gs_lcd_hotspot_res[/* LCD_HOTSPOT_IMG_W * ceil(LCD_HO
 #define LCD_HOTSPOT_POS_Y 0
 #define LCD_HOTSPOT_POS_W LCD_HOTSPOT_IMG_W
 #define LCD_HOTSPOT_POS_H LCD_HOTSPOT_IMG_H
+
+#define LCD_SMALL_DIGIT_NUM 11 //0(empty, 1~9, 9+)
+#define LCD_SMALL_DIGIT_IMG_W 6
+#define LCD_SMALL_DIGIT_IMG_H 6
+#define LCD_SMALL_DIGIT_IMG_SIZE 6 /*LCD_SMALL_DIGIT_IMG_W * ceil(LCD_SMALL_DIGIT_IMG_H / 8)*/
+static const unsigned char gs_lcd_small_digit_res[LCD_SMALL_DIGIT_NUM][LCD_SMALL_DIGIT_IMG_SIZE] =
+{
+    {//0
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+    },
+    {//1
+        0x00, 0x00, 0x04, 0x3E, 0x00, 0x00, 
+    },
+    {//2
+        0x00, 0x33, 0x29, 0x25, 0x33, 0x00, 
+    },
+    {//3
+        0x00, 0x00, 0x29, 0x29, 0x3F, 0x00, 
+    },
+    {//4
+        0x00, 0x1C, 0x12, 0x3F, 0x10, 0x00, 
+    },
+    {//5
+        0x00, 0x00, 0x37, 0x25, 0x3D, 0x00, 
+    },
+    {//6
+        0x00, 0x3E, 0x2A, 0x2A, 0x3A, 0x00, 
+    },
+    {//7
+        0x00, 0x01, 0x01, 0x3F, 0x00, 0x00, 
+    },
+    {//8
+        0x00, 0x3F, 0x29, 0x29, 0x3F, 0x00, 
+    },
+    {//9
+        0x2E, 0x2A, 0x3E, 0x10, 0x38, 0x10, 
+    },
+    {//9+
+        0x00, 0x2E, 0x2A, 0x3E, 0x00, 0x00, 
+    },
+};
+#define LCD_HOT_SPOT_NUM_POS_X (9 + LCD_HOTSPOT_POS_X)
+#define LCD_HOT_SPOT_NUM_POS_Y (16 + LCD_HOTSPOT_POS_Y)
+#define LCD_HOT_SPOT_NUM_POS_W LCD_SMALL_DIGIT_IMG_W
+#define LCD_HOT_SPOT_NUM_POS_H LCD_SMALL_DIGIT_IMG_H
 
 #define BATTERY_LEVELS 5 //0~4
 static const int gs_lcd_bat_lvls[BATTERY_LEVELS] =
@@ -602,14 +691,6 @@ static const unsigned char gs_lcd_charger_res[/* LCD_CHARGER_IMG_W * ceil(LCD_CH
 #define LCD_CHARGER_POS_Y (LCD_BAT_POS_Y + LCD_BAT_POS_H + LCD_DISPLAY_V_GAP)
 #define LCD_CHARGER_POS_W LCD_CHARGER_IMG_W
 #define LCD_CHARGER_POS_H LCD_CHARGER_IMG_H
-
-#define LCD_WAN_BEAR_IMG_W 0
-#define LCD_WAN_BEAR_IMG_H 0
-static const unsigned char gs_wan_bear_res[/* LCD_WAN_BEAR_IMG_W * ceil(LCD_WAN_BEAR_IMG_W / 8) */] = {};
-#define LCD_WAN_BEAR_POS_X 0
-#define LCD_WAN_BEAR_POS_Y 0
-#define LCD_WAN_BEAR_POS_W 0
-#define LCD_WAN_BEAR_POS_H 0
 
 #define LCD_CUBE_VOLT_POS_X (LCD_STATIC_VOLT_POS_X + LCD_STATIC_VOLT_POS_W)
 #define LCD_CUBE_VOLT_POS_Y LCD_STATIC_VOLT_POS_Y 

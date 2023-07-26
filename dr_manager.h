@@ -8,7 +8,7 @@
 typedef enum
 {
     HOTSPOT_DOWN = -1,
-    HOTSPOT_NORMAL_0 = 0,
+    HOTSPOT_NORMAL_0 = 0, //index for img res.1,2,... means clientes associated.
 }hotspot_st_t;
 
 typedef enum
@@ -21,7 +21,7 @@ typedef enum
 {
     /*one bit means one type.*/
     WWAN_BEAR_NONE = 0,
-    WWAN_BEAR_CELLULAR_4G_5G = 0x1,
+    WWAN_BEAR_CELLULAR = 0x1,
     WWAN_BEAR_WIFI = 0x2,
 
     WWAN_BEAR_MAX = 0xFF,
@@ -31,8 +31,16 @@ typedef enum
 {
     CELLULAR_NO_SERVICE = -2, //signal 0
     CELLULAR_LIMITED_SERVICE = -1, //signal 0
-    CELLULAR_NORMAL_0 = 0, //signal 0
+    CELLULAR_NORMAL_0 = 0, //index for img res . signal 0. 1,2,3.. means signal bars.
 }cellular_srv_st_t;
+
+typedef enum
+{
+    CELLULAR_MODE_NOSRV = 0, //index for img res
+    CELLULAR_MODE_3G,
+    CELLULAR_MODE_4G,
+    CELLULAR_MODE_5G,
+}cellular_mode_t;
 
 typedef enum
 {
@@ -43,7 +51,7 @@ typedef enum
 
 typedef enum
 {
-    WIFI_WAN_DISCONNECTED = 0, //signal 0
+    WIFI_WAN_DISCONNECTED = 0, //index for img res. signal 0
     WIFI_WAN_CONNECTED, //signal 1
 }wifi_wan_st_t;
 
@@ -78,6 +86,7 @@ typedef enum
     ST_PARAM_DEF(bool, bat_chg_full)\
     ST_PARAM_DEF(wwan_bear_type_t, wan_bear)\
     ST_PARAM_DEF(cellular_srv_st_t, cellular_st)\
+    ST_PARAM_DEF(cellular_mode_t, cellular_mode)\
     ST_PARAM_DEF(wifi_wan_st_t, wifi_wan_st)\
     ST_PARAM_DEF(sim_card_st_t, sim_card_st)\
     ST_PARAM_DEF(hv_dsp_conntion_state_t, hv_dsp_conn_st)\
@@ -125,6 +134,7 @@ void update_lcd_display(pthread_t pth_id, const char* desc);
 typedef struct
 {
     float sch_period;
+    bool sh_script_debug;
 }dev_monitor_th_parm_t;
 void* dev_monitor_thread_func(void* arg);
 extern const char* g_dev_monitor_th_desc;

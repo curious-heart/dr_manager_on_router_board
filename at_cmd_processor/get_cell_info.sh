@@ -13,7 +13,7 @@ ORI_CELL_MODE_NR5GSA="NR5G-SA"
 ORI_CELL_MODE_NR5GNSA="NR5G-NSA"
 ORI_CELL_MODE_WCDMA="WCDMA"
 
-if [ "x$test_flag" = "x" ]; then #$test flag is empty, that is, NOT test mode.
+if [ "x$test_flag" = "x" ] || [ ! -e $at_res_file ]; then #$test flag is empty, that is, NOT test mode.
     #send AT cmd
     echo -e "$cmd_str\r\n" > $at_port_dev
 

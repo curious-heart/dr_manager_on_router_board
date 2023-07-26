@@ -68,8 +68,9 @@ static const lcd_area_info_t gs_lcd_areas[] =
     {LCD_CHARGER_POS_X, LCD_CHARGER_POS_Y, LCD_CHARGER_POS_W, LCD_CHARGER_POS_H, NULL},
     {LCD_BAT_POS_X, LCD_BAT_POS_Y, LCD_BAT_POS_W, LCD_BAT_POS_H, NULL},
     {LCD_BAT_POS_X, LCD_BAT_POS_Y, LCD_BAT_POS_W, LCD_BAT_POS_H, NULL},
-    {LCD_WAN_BEAR_POS_X, LCD_WAN_BEAR_POS_Y, LCD_WAN_BEAR_POS_W, LCD_WAN_BEAR_POS_H, NULL},
+    {LCD_WAN_CONN_REL_POS_X, LCD_WAN_CONN_REL_POS_X, LCD_WAN_CONN_POS_W, LCD_WAN_CONN_POS_W, NULL},
     {LCD_CELL_SRV_ST_POS_X, LCD_CELL_SRV_ST_POS_Y, LCD_CELL_SRV_ST_POS_W, LCD_CELL_SRV_ST_POS_H, NULL},
+    {LCD_CELL_MODE_POS_X, LCD_CELL_MODE_POS_Y, LCD_CELL_MODE_POS_W, LCD_CELL_MODE_POS_H, NULL},
     {LCD_WIFI_WAN_ST_POS_X, LCD_WIFI_WAN_ST_POS_Y, LCD_WIFI_WAN_ST_POS_W, LCD_WIFI_WAN_ST_POS_H, NULL},
     {LCD_SIM_CARD_ST_POS_X, LCD_SIM_CARD_ST_POS_Y, LCD_SIM_CARD_ST_POS_W, LCD_SIM_CARD_ST_POS_H, NULL},
     {LCD_EXPO_ST_POS_X, LCD_EXPO_ST_POS_Y, LCD_EXPO_ST_POS_W, LCD_EXPO_ST_POS_H, NULL},
@@ -156,8 +157,25 @@ static int print_one_line_to_scrn(const char* str, int size_limit, int pos_x, in
 
 static void refresh_hotspot_display(dr_device_st_enum_t st_id)
 {
-    write_img_to_px_rect(gs_lcd_hotspot_res, LCD_HOTSPOT_IMG_W, LCD_HOTSPOT_IMG_H,
-                  gs_lcd_areas[st_id].pos_x, gs_lcd_areas[st_id].pos_y, gs_lcd_areas[st_id].pos_w, gs_lcd_areas[st_id].pos_h);
+    if(HOTSPOT_DOWN == gs_device_st_pool_of_lcd.hot_spot_st)
+    {
+        clear_screen_area(gs_lcd_areas[st_id].pos_x, gs_lcd_areas[st_id].pos_y, 
+                gs_lcd_areas[st_id].pos_w, gs_lcd_areas[st_id].pos_h);
+    }
+    else
+    {
+        int client_num = (int)(gs_device_st_pool_of_lcd.hot_spot_st - HOTSPOT_NORMAL_0);
+
+        write_img_to_px_rect(gs_lcd_hotspot_res, LCD_HOTSPOT_IMG_W, LCD_HOTSPOT_IMG_H,
+              gs_lcd_areas[st_id].pos_x, gs_lcd_areas[st_id].pos_y, gs_lcd_areas[st_id].pos_w, gs_lcd_areas[st_id].pos_h);
+
+        if(client_num < 0) client_num = 0;
+        if(client_num >= LCD_SMALL_DIGIT_NUM) client_num = LCD_SMALL_DIGIT_NUM - 1;
+
+        write_img_to_px_rect(gs_lcd_small_digit_res[client_num], LCD_SMALL_DIGIT_IMG_W, LCD_SMALL_DIGIT_IMG_H,
+            LCD_HOT_SPOT_NUM_POS_X, LCD_HOT_SPOT_NUM_POS_Y, LCD_HOT_SPOT_NUM_POS_W, LCD_HOT_SPOT_NUM_POS_H); 
+    }
+
 }
 
 static int bat_lvl_display_map(uint16_t bat_lvl)
@@ -210,17 +228,62 @@ static void refresh_battery_display(dr_device_st_enum_t st_id)
 }
 
 static void refresh_wan_bear_type_display(dr_device_st_enum_t st_id)
-{}
+{
+    if(gs_device_st_pool_of_lcd.wan_bear & WWAN_BEAR_CELLULAR)
+    {
+        write_img_to_px_rect(gs_lcd_wan_conn_res, LCD_WAN_CONN_IMG_W, LCD_WAN_CONN_IMG_H,
+            LCD_CELL_SRV_ST_POS_X + gs_lcd_areas[st_id].pos_x,
+            LCD_CELL_SRV_ST_POS_Y + gs_lcd_areas[st_id].pos_y,
+            gs_lcd_areas[st_id].pos_w, gs_lcd_areas[st_id].pos_h);
+    }
+    else
+    {
+        clear_screen_area(LCD_CELL_SRV_ST_POS_X + gs_lcd_areas[st_id].pos_x,
+                          LCD_CELL_SRV_ST_POS_Y + gs_lcd_areas[st_id].pos_y,
+                          gs_lcd_areas[st_id].pos_w, gs_lcd_areas[st_id].pos_h);
+    }
+
+    if(gs_device_st_pool_of_lcd.wan_bear & WWAN_BEAR_WIFI)
+    {
+        write_img_to_px_rect(gs_lcd_wan_conn_res, LCD_WAN_CONN_IMG_W, LCD_WAN_CONN_IMG_H,
+            LCD_WIFI_WAN_ST_POS_X + gs_lcd_areas[st_id].pos_x,
+            LCD_WIFI_WAN_ST_POS_Y + gs_lcd_areas[st_id].pos_y,
+            gs_lcd_areas[st_id].pos_w, gs_lcd_areas[st_id].pos_h);
+    }
+    else
+    {
+        clear_screen_area(LCD_WIFI_WAN_ST_POS_X + gs_lcd_areas[st_id].pos_x,
+                          LCD_WIFI_WAN_ST_POS_Y +  gs_lcd_areas[st_id].pos_y,
+                          gs_lcd_areas[st_id].pos_w, gs_lcd_areas[st_id].pos_h);
+    }
+}
 
 static void refresh_cellular_srv_st_display(dr_device_st_enum_t st_id)
 {
-    int map_lvl = (int)gs_device_st_pool_of_lcd.cellular_st;
+    /* Since cellular_st and cellular_mode update both cause this function to be called,
+     * we check the update st in function again to minmun the lcd refresh operations.
+     * */
 
-    if(map_lvl < 0) map_lvl = 0;
-    if(map_lvl >= MAX_CELL_WAN_LEVELS) map_lvl = MAX_CELL_WAN_LEVELS - 1; 
+    if(gs_device_st_pool_of_lcd.cellular_st_upd)
+    {
+        int map_lvl = (int)gs_device_st_pool_of_lcd.cellular_st;
 
-    write_img_to_px_rect(gs_cell_srv_st_res[map_lvl], LCD_CELL_SRV_ST_IMG_W, LCD_CELL_SRV_ST_IMG_H, 
+        if(map_lvl < 0) map_lvl = 0;
+        if(map_lvl >= MAX_CELL_WAN_LEVELS) map_lvl = MAX_CELL_WAN_LEVELS - 1; 
+
+        write_img_to_px_rect(gs_cell_srv_st_res[map_lvl], LCD_CELL_SRV_ST_IMG_W, LCD_CELL_SRV_ST_IMG_H, 
                 gs_lcd_areas[st_id].pos_x, gs_lcd_areas[st_id].pos_y, gs_lcd_areas[st_id].pos_w, gs_lcd_areas[st_id].pos_h);
+    }
+
+    if(gs_device_st_pool_of_lcd.cellular_mode_upd)
+    {
+        int mode_idx = (int)gs_device_st_pool_of_lcd.cellular_mode;
+
+        if(mode_idx < 0 || mode_idx >= LCD_CELL_MODE_NUM) mode_idx = 0;
+        write_img_to_px_rect(gs_lcd_mode_res[mode_idx], LCD_CELL_MODE_IMG_W, LCD_CELL_MODE_IMG_H,
+                gs_lcd_areas[st_id].pos_x, gs_lcd_areas[st_id].pos_y, gs_lcd_areas[st_id].pos_w, gs_lcd_areas[st_id].pos_h);
+        gs_device_st_pool_of_lcd.cellular_mode_upd = false;
+    }
 }
 
 static void refresh_wifi_wan_display(dr_device_st_enum_t st_id)
@@ -243,7 +306,7 @@ static void refresh_sim_card_st_display(dr_device_st_enum_t st_id)
     }
     else
     {
-        write_img_to_px_rect(gs_sim_card_st_res, LCD_SIM_CARD_ST_IMG_W, LCD_SIM_CARD_ST_IMG_H,
+        write_img_to_px_rect(gs_sim_card_err_res, LCD_SIM_CARD_ST_IMG_W, LCD_SIM_CARD_ST_IMG_H,
                 gs_lcd_areas[st_id].pos_x, gs_lcd_areas[st_id].pos_y, gs_lcd_areas[st_id].pos_w, gs_lcd_areas[st_id].pos_h);
     }
 }
@@ -322,6 +385,7 @@ static const write_info_to_lcd_funcs_t gs_write_info_to_lcd_func_list =
     refresh_battery_display,
     refresh_battery_display,
     refresh_wan_bear_type_display,
+    refresh_cellular_srv_st_display,
     refresh_cellular_srv_st_display,
     refresh_wifi_wan_display,
     refresh_sim_card_st_display,
