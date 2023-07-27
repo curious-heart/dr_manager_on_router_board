@@ -48,4 +48,20 @@ cmd_args=" --com_dev $mb_rtu_serialPortName"\
 
 APP_NAME=dr_manager
 echo $APP_NAME $cmd_args $*
-$APP_NAME $cmd_args $*
+$APP_NAME $cmd_args $* &
+
+
+############################################################
+KEY_APP_NAME=gpio_key_monitor
+if [ $key_mb_tcp_srvr_debug_flag = "1" ]; then
+    key_mb_tcp_debug=--mb_tcp_debug
+else
+    key_mb_tcp_debug=
+fi
+key_cmd_args=" --exp_start_key_hold $exp_start_key_hold_time"\
+" --mb_tcp_srvr_ip_addr $mb_tcp_srvr_ip"\
+" --mb_tcp_srvr_port $mb_tcp_srvr_port"\
+" $key_mb_tcp_debug"\
+" --app_log_level $key_app_log_level"
+
+$KEY_APP_NAME $key_cmd_args $* &

@@ -29,6 +29,11 @@ tof_i2c_addr=0x52
 app_work_mode_flag=0
 #app log level
 app_log_level=1
-mb_rtu_debug_flag=1
-mb_tcp_debug_flag=1
+mb_rtu_debug_flag=0
+mb_tcp_debug_flag=0
 
+
+#the fowllowing are key app configuration.
+exp_start_key_hold_time=3
+key_app_log_level=1
+key_mb_tcp_srvr_debug_flag=0

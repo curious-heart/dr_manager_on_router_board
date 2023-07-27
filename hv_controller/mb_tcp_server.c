@@ -39,8 +39,6 @@
 /*Do not use it in area out of modbus tcp server code.*/
 const char* const gp_mb_server_log_header = "modbus server: ";
 
-static pthread_t gs_tof_th_id;
-
 /**/
 #define NB_CONNECTION 2
 

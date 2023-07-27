@@ -260,13 +260,13 @@ static void refresh_wan_bear_type_display(dr_device_st_enum_t st_id)
 
 static void refresh_cellular_srv_st_display(dr_device_st_enum_t st_id)
 {
-    /* Since cellular_st and cellular_mode update both cause this function to be called,
+    /* Since cellular_signal_bars and cellular_mode update both cause this function to be called,
      * we check the update st in function again to minmun the lcd refresh operations.
      * */
 
-    if(gs_device_st_pool_of_lcd.cellular_st_upd)
+    if(gs_device_st_pool_of_lcd.cellular_signal_bars_upd)
     {
-        int map_lvl = (int)gs_device_st_pool_of_lcd.cellular_st;
+        int map_lvl = (int)gs_device_st_pool_of_lcd.cellular_signal_bars;
 
         if(map_lvl < 0) map_lvl = 0;
         if(map_lvl >= MAX_CELL_WAN_LEVELS) map_lvl = MAX_CELL_WAN_LEVELS - 1; 

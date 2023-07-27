@@ -68,34 +68,34 @@ extern const char* type_id_str_arr[];
 /* Be careful when using the following macro CONVERT_FUNC.
  * Improper use may leads to subtle error.
  */
-#define CONVERT_FUNC_ATOBOOL(var, value) var = (bool)strtol(value, NULL, 0)
-#define CONVERT_FUNC_STRSHAR(var, value) var = value
+#define CONVERT_FUNC_ATOBOOL(var, value) (var) = (bool)strtol((value), NULL, 0)
+#define CONVERT_FUNC_STRSHAR(var, value) (var) = (value)
 #ifndef _Generic
-#define CONVERT_FUNC_STRCPY(var, value) snprintf(var, MAX_OPT_STR_SIZE, "%s", value)
-#define CONVERT_FUNC_ATOC(var, value) var = (char)(value)[0]
-#define CONVERT_FUNC_ATOS(var, value) var = (short)strtol(value, NULL, 0)
-#define CONVERT_FUNC_ATOI(var, value) var = (int)strtol(value, NULL, 0)
-#define CONVERT_FUNC_ATOINT8(var, value) var = (int8_t)strtol(value, NULL, 0)
-#define CONVERT_FUNC_ATOINT16(var, value) var = (int16_t)strtol(value, NULL, 0)
-#define CONVERT_FUNC_ATOINT32(var, value) var = (int32_t)strtol(value, NULL, 0)
-#define CONVERT_FUNC_ATOUINT8(var, value) var = (uint8_t)strtol(value, NULL, 0)
-#define CONVERT_FUNC_ATOUINT16(var, value) var = (uint16_t)strtol(value, NULL, 0)
-#define CONVERT_FUNC_ATOUINT32(var, value) var = (uint32_t)strtol(value, NULL, 0)
-#define CONVERT_FUNC_ATOF(var, value) var = (float)atof(value)
-#define CONVERT_FUNC_ATODB(var, value) var = (double)atof(value)
+#define CONVERT_FUNC_STRCPY(var, value) snprintf((var), MAX_OPT_STR_SIZE, "%s", (value))
+#define CONVERT_FUNC_ATOC(var, value) (var) = (char)((value))[0]
+#define CONVERT_FUNC_ATOS(var, value) (var) = (short)strtol((value), NULL, 0)
+#define CONVERT_FUNC_ATOI(var, value) (var) = (int)strtol((value), NULL, 0)
+#define CONVERT_FUNC_ATOINT8(var, value) (var) = (int8_t)strtol((value), NULL, 0)
+#define CONVERT_FUNC_ATOINT16(var, value) (var) = (int16_t)strtol((value), NULL, 0)
+#define CONVERT_FUNC_ATOINT32(var, value) (var) = (int32_t)strtol((value), NULL, 0)
+#define CONVERT_FUNC_ATOUINT8(var, value) (var) = (uint8_t)strtol((value), NULL, 0)
+#define CONVERT_FUNC_ATOUINT16(var, value) (var) = (uint16_t)strtol((value), NULL, 0)
+#define CONVERT_FUNC_ATOUINT32(var, value) (var) = (uint32_t)strtol((value), NULL, 0)
+#define CONVERT_FUNC_ATOF(var, value) (var) = (float)atof((value))
+#define CONVERT_FUNC_ATODB(var, value) (var) = (double)atof((value))
 
 #else
 #define CONVERT_FUNC(var, value) _Generic((var),\
-        char*: snprintf(var, MAX_OPT_STR_SIZE, "%s", value), \
-        char: var = (char)(value)[0],\
-        short: var = (short)strtol(value, NULL, 0),\
-        int: var = (int)strtol(value, NULL, 0),\
-        uint8_t: var = (uint8_t)strtol(value, NULL, 0),\
-        uint16_t: var = (uint16_t)strtol(value, NULL, 0),\
-        uint32_t: var = (uint32_t)strtol(value, NULL, 0),\
-        float: var = (float)atof(value),\
-        double: var = (double)atof(value),\
-        default: var = (int)strtol(value, NULL, 0)
+        char*: snprintf((var), MAX_OPT_STR_SIZE, "%s", (value)), \
+        char: (var) = (char)((value))[0],\
+        short: (var) = (short)strtol((value), NULL, 0),\
+        int: (var) = (int)strtol((value), NULL, 0),\
+        uint8_t: (var) = (uint8_t)strtol((value), NULL, 0),\
+        uint16_t: (var) = (uint16_t)strtol((value), NULL, 0),\
+        uint32_t: (var) = (uint32_t)strtol((value), NULL, 0),\
+        float: (var) = (float)atof((value)),\
+        double: (var) = (double)atof((value)),\
+        default: (var) = (int)strtol((value), NULL, 0)
 #define CONVERT_FUNC_STRCPY(var, value) CONVERT_FUNC(var, value)
 #define CONVERT_FUNC_ATOC(var, value) CONVERT_FUNC(var, value)
 #define CONVERT_FUNC_ATOS(var, value) CONVERT_FUNC(var, value)

@@ -1,0 +1,8 @@
+AT+CSQ
+
+
+
+AT+QENG 查询主小区和邻区信息
+
+AT+QENG="servingcell"
++QENG: "servingcell","NOCONN","LTE","FDD",460,01,BB11331,12,1650,3,5,5,2566,-126,-19,-91,-10,0,23,-6

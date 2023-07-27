@@ -8,6 +8,7 @@ cmd_name="+QENG"
 cmd_parm="\"servingcell\""
 cmd_str="AT$cmd_name=$cmd_parm"
 
+NOSRV_MODE_STR="NOSRV"
 ORI_CELL_MODE_LTE="LTE"
 ORI_CELL_MODE_NR5GSA="NR5G-SA"
 ORI_CELL_MODE_NR5GNSA="NR5G-NSA"
@@ -25,7 +26,6 @@ if [ "x$test_flag" = "x" ] || [ ! -e $at_res_file ]; then #$test flag is empty, 
     done < $at_port_dev
 fi
 
-NOSRV_MODE_STR="NOSRV"
 #parse the $at_res_file.
 #ouput is as the following: mode,state,signal_bars
 #5G/4G/3G/NOSRV,SEARCH/LIMSRV/NOCONN/CONNECT, 5/4/3/2/1/0
@@ -34,12 +34,12 @@ cell_state="SEARCH"
 signal_bars=0
 
 ori_cell_mode=$cell_mode
-rsrp=-156
-rsrq=-43
-rscp=-113
-ecno=-25
-sinr=-100
-rssi=-100
+rsrp=-200 #-156
+rsrq=-200 #-43
+rscp=-200 #-113
+ecno=-200 #-25
+sinr=-200 #-100
+rssi=-200 #-100
 
 cell_mode_map()
 {

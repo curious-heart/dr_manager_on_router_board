@@ -29,13 +29,6 @@ typedef enum
 
 typedef enum
 {
-    CELLULAR_NO_SERVICE = -2, //signal 0
-    CELLULAR_LIMITED_SERVICE = -1, //signal 0
-    CELLULAR_NORMAL_0 = 0, //index for img res . signal 0. 1,2,3.. means signal bars.
-}cellular_srv_st_t;
-
-typedef enum
-{
     CELLULAR_MODE_NOSRV = 0, //index for img res
     CELLULAR_MODE_3G,
     CELLULAR_MODE_4G,
@@ -85,7 +78,7 @@ typedef enum
     ST_PARAM_DEF(uint16_t, bat_lvl)\
     ST_PARAM_DEF(bool, bat_chg_full)\
     ST_PARAM_DEF(wwan_bear_type_t, wan_bear)\
-    ST_PARAM_DEF(cellular_srv_st_t, cellular_st)\
+    ST_PARAM_DEF(int, cellular_signal_bars)\
     ST_PARAM_DEF(cellular_mode_t, cellular_mode)\
     ST_PARAM_DEF(wifi_wan_st_t, wifi_wan_st)\
     ST_PARAM_DEF(sim_card_st_t, sim_card_st)\
