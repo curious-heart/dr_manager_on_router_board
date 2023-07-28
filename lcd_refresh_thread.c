@@ -332,6 +332,9 @@ static void refresh_expo_st_display(dr_device_st_enum_t st_id)
 {
     const lcd_display_resource_t * res = NULL;
 
+    clear_screen_area(gs_lcd_areas[st_id].pos_x, gs_lcd_areas[st_id].pos_y,
+                            gs_lcd_areas[st_id].pos_w, gs_lcd_areas[st_id].pos_h);
+
     if(HV_DSP_DISCONNECTED  == gs_device_st_pool_of_lcd.hv_dsp_conn_st)
     {
         res = &gs_expo_st_hv_disconn_res;

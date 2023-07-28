@@ -1,4 +1,7 @@
 #include <errno.h>
+#include <sys/time.h>
+#include <string.h>
+
 #include <modbus/modbus.h>
 
 #include "logger.h"
@@ -99,28 +102,17 @@ void exp_range_led_key_handler(converted_gbh_uevt_s_t* evt)
     }
 }
 
-void exp_start_key_handler(converted_gbh_uevt_s_t* evt)
+static const uint16_t gs_exp_ready = 1, gs_exp_start = 2;
+static bool gs_key_hold_processed = false;
+static void exp_start_key_hold_handler(int sig)
 {
-    static const uint16_t exp_ready = 1, exp_start = 2;
     hv_mb_reg_e_t reg_addr = ExposureStart;
-    uint16_t write_data = exp_start;
+    uint16_t write_data;
     const char* reg_str;
 
-    DIY_LOG(LOG_DEBUG, "exp_start key handler!\n");
-    IGNORE_NON_PRESSED_EVT(evt);
+    gs_key_hold_processed = true;
 
-    if(evt)
-    {
-        if(evt->seen >= g_key_gpio_cfg_params.exp_start_key_hold_time)
-        {
-            write_data = exp_start;
-        }
-        else
-        {
-            write_data = exp_ready;
-        } 
-    }
-
+    write_data = gs_exp_start;
     reg_str = get_hv_mb_reg_str(reg_addr);
     if(gs_mb_tcp_client_ctx)
     {
@@ -138,6 +130,72 @@ void exp_start_key_handler(converted_gbh_uevt_s_t* evt)
     {
         DIY_LOG(LOG_ERROR, "modbus ctx is NULL.\n");
     }
+}
+
+void exp_start_key_handler(converted_gbh_uevt_s_t* evt)
+{
+    hv_mb_reg_e_t reg_addr = ExposureStart;
+    uint16_t write_data;
+    const char* reg_str;
+    struct itimerval t_v;
+
+    DIY_LOG(LOG_DEBUG, "exp_start key handler!\n");
+
+    if(!evt)
+    {
+        DIY_LOG(LOG_ERROR, "exposure_start key evt ptr is NULL.\n");
+        return;
+    }
+
+    signal(SIGVTALRM, exp_start_key_hold_handler);
+
+    if(key_pressed == evt->action)
+    {
+        gs_key_hold_processed = false;
+        t_v.it_value.tv_sec = g_key_gpio_cfg_params.exp_start_key_hold_time;
+        t_v.it_value.tv_usec = 0;
+        t_v.it_interval.tv_sec = t_v.it_interval.tv_usec = 0;
+        setitimer(ITIMER_VIRTUAL, &t_v, NULL);
+    }
+    else if(key_released == evt->action)
+    {
+        memset(&t_v, 0, sizeof(t_v)); //disable the timer.
+        setitimer(ITIMER_VIRTUAL, &t_v, NULL);
+        if(!gs_key_hold_processed)
+        {
+            write_data = gs_exp_ready;
+            reg_str = get_hv_mb_reg_str(reg_addr);
+            if(gs_mb_tcp_client_ctx)
+            {
+                if(modbus_write_register(gs_mb_tcp_client_ctx, reg_addr, write_data) <= 0)
+                {
+                    DIY_LOG(LOG_ERROR, "modbus write register %s error:%d, %s\n",
+                           reg_str, errno, modbus_strerror(errno));
+                }
+                else
+                {
+                    DIY_LOG(LOG_INFO, "Set exposure ready.\n"); 
+                }
+            }
+            else
+            {
+                DIY_LOG(LOG_ERROR, "modbus ctx is NULL.\n");
+            }
+        } 
+        else
+        {
+            gs_key_hold_processed = false;
+        }
+    }
+    else
+    {
+        DIY_LOG(LOG_WARN, "Unexpected key action: %d", evt->action);
+        if(evt->action < kg_action_end_flag)
+        {
+            DIY_LOG(LOG_WARN + LOG_ONLY_INFO_STR_COMP, ", %s\n", g_key_gpio_act_name_list[evt->action]);
+        }
+    }
+
 }
 
 void dose_adjust_key_handler(converted_gbh_uevt_s_t* evt)
