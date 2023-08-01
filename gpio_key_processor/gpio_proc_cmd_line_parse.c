@@ -12,7 +12,7 @@
 static const char* const gs_def_mb_tcp_srvr_ip = "0.0.0.0";
 static char gs_mb_tcp_srvr_ip[MAX_OPT_STR_SIZE];
 static const uint16_t gs_def_mb_tcp_srvr_port = 502;
-static const int gs_def_mb_tcp_srvr_debug_flag= false;
+static const bool gs_def_mb_tcp_srvr_debug_flag= false;
 /*app log level*/
 static const uint8_t gs_def_app_log_level = LOG_INFO; //refer to logger.h.
 
@@ -32,6 +32,7 @@ key_gpio_cfg_params_s_t g_key_gpio_cfg_params =
 static const char* const gs_opt_mb_tcp_srvr_ip_addr_str = "mb_tcp_srvr_ip_addr";
 static const char* const gs_opt_mb_tcp_srvr_port_str = "mb_tcp_srvr_port";
 static const char* const gs_opt_mb_tcp_srvr_debug_str = "mb_tcp_debug";
+#define gs_opt_tcp_debug_c 't'
 static const char* const gs_opt_app_log_level_str = "app_log_level";
 static const char* const gs_opt_help_str = "help";
 #define gs_opt_help_c 'h'
@@ -53,9 +54,9 @@ static const char* const gs_opt_exp_start_key_hold_time_str = "exp_start_key_hol
     APP_CMD_OPT_VALUE("mb_srvr_port",\
            &gs_def_mb_tcp_srvr_port, &g_mb_tcp_client_params.srvr_port, uint16_t)\
 \
-    APP_CMD_OPT_ITEM(gs_opt_mb_tcp_srvr_debug_str, no_argument, 0, 0) \
+    APP_CMD_OPT_ITEM(gs_opt_mb_tcp_srvr_debug_str, no_argument, 0, gs_opt_tcp_debug_c) \
     APP_CMD_OPT_VALUE("mb_tcp_debug",\
-            &gs_def_mb_tcp_srvr_debug_flag, &g_mb_tcp_client_params.debug_flag, int) \
+            &gs_def_mb_tcp_srvr_debug_flag, &g_mb_tcp_client_params.debug_flag, bool) \
 \
     APP_CMD_OPT_ITEM(gs_opt_app_log_level_str, required_argument, 0, 0)\
     APP_CMD_OPT_VALUE("app_log_level", \
@@ -100,6 +101,10 @@ option_process_ret_t process_cmd_line(int argc, char* argv[])
                         ARRAY_ITEM_CNT(gs_long_opt_arr) - 1);
                 return OPTION_PROCESS_EXIT_NORMAL;
 
+            case gs_opt_tcp_debug_c: 
+                g_mb_tcp_client_params.debug_flag = true;
+                break;
+
             case 0:
                 if(!strcmp(gs_long_opt_arr[longindex].name, gs_opt_version_str))
                 {
@@ -124,10 +129,6 @@ option_process_ret_t process_cmd_line(int argc, char* argv[])
                         CONVERT_FUNC_ATOUINT16(g_mb_tcp_client_params.srvr_port, optarg),
                         SHOULD_BE_NE_0(g_mb_tcp_client_params.srvr_port), SHOULD_BE_NE_0_LOG,
                         type_uint16_t);
-                OPT_CHECK_AND_DRAW(gs_long_opt_arr[longindex].name, gs_opt_mb_tcp_srvr_debug_str,
-                        CONVERT_FUNC_ATOI(g_mb_tcp_client_params.debug_flag, optarg),
-                        true, NULL,
-                        type_int);
                 OPT_CHECK_AND_DRAW(gs_long_opt_arr[longindex].name, gs_opt_exp_start_key_hold_time_str,
                         CONVERT_FUNC_ATOUINT32(g_key_gpio_cfg_params.exp_start_key_hold_time, optarg),
                         SHOULD_BE_GE_0(g_key_gpio_cfg_params.exp_start_key_hold_time), SHOULD_BE_GE_0_LOG,

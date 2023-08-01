@@ -1,4 +1,5 @@
 #include <errno.h>
+#include <signal.h>
 #include <sys/time.h>
 #include <string.h>
 
@@ -147,7 +148,7 @@ void exp_start_key_handler(converted_gbh_uevt_s_t* evt)
         return;
     }
 
-    signal(SIGVTALRM, exp_start_key_hold_handler);
+    signal(SIGALRM, exp_start_key_hold_handler);
 
     if(key_pressed == evt->action)
     {
@@ -155,12 +156,15 @@ void exp_start_key_handler(converted_gbh_uevt_s_t* evt)
         t_v.it_value.tv_sec = g_key_gpio_cfg_params.exp_start_key_hold_time;
         t_v.it_value.tv_usec = 0;
         t_v.it_interval.tv_sec = t_v.it_interval.tv_usec = 0;
-        setitimer(ITIMER_VIRTUAL, &t_v, NULL);
+        setitimer(ITIMER_REAL, &t_v, NULL);
+        DIY_LOG(LOG_DEBUG, "key hold timer parm: %d, timer length: %lld\n",
+                g_key_gpio_cfg_params.exp_start_key_hold_time, t_v.it_value.tv_sec);
     }
     else if(key_released == evt->action)
     {
         memset(&t_v, 0, sizeof(t_v)); //disable the timer.
-        setitimer(ITIMER_VIRTUAL, &t_v, NULL);
+        //setitimer(ITIMER_VIRTUAL, &t_v, NULL);
+        setitimer(ITIMER_REAL, &t_v, NULL);
         if(!gs_key_hold_processed)
         {
             write_data = gs_exp_ready;
