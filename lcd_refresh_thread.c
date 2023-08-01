@@ -146,8 +146,8 @@ static int print_one_line_to_scrn(const char* str, int size_limit, int pos_x, in
             img = gs_lcd_display_def_char;
         }
 
-        sum_w += img_w;
         write_img_to_px_pos(img, img_w, img_h, pos_x + sum_w, pos_y);
+        sum_w += img_w;
 
         ++idx;
         ch = str[idx];
@@ -196,34 +196,41 @@ static void refresh_battery_display(dr_device_st_enum_t st_id)
      * */
     if(gs_device_st_pool_of_lcd.bat_chg_st_upd)
     {
+        st_id = enum_bat_chg_st;
         if(CHARGER_CONNECTED == gs_device_st_pool_of_lcd.bat_chg_st)
         {
+            DIY_LOG(LOG_INFO, "......battery charger connected.\n");
             write_img_to_px_rect(gs_lcd_charger_res, LCD_CHARGER_IMG_W, LCD_CHARGER_IMG_H,
                   gs_lcd_areas[st_id].pos_x, gs_lcd_areas[st_id].pos_y, gs_lcd_areas[st_id].pos_w, gs_lcd_areas[st_id].pos_h);
         }
         else
         {
+            DIY_LOG(LOG_INFO, "......battery charger disconnected.\n");
             clear_screen_area(gs_lcd_areas[st_id].pos_x, gs_lcd_areas[st_id].pos_y,
                             gs_lcd_areas[st_id].pos_w, gs_lcd_areas[st_id].pos_h);
         }
     }
 
-    if(gs_device_st_pool_of_lcd.bat_lvl_upd || gs_device_st_pool_of_lcd.bat_chg_st_upd)
+    if(gs_device_st_pool_of_lcd.bat_lvl_upd || gs_device_st_pool_of_lcd.bat_chg_full_upd)
     {
         int map_lvl = bat_lvl_display_map(gs_device_st_pool_of_lcd.bat_lvl);
         lcd_battery_img_type img; 
+
+        st_id = enum_bat_lvl;
         if((CHARGER_CONNECTED == gs_device_st_pool_of_lcd.bat_chg_st) && !gs_device_st_pool_of_lcd.bat_chg_full)
         {
+            DIY_LOG(LOG_INFO, "......battery lightnning.\n");
             img = gs_lcd_bat_lightning_res;
         }
         else
         {
+            DIY_LOG(LOG_INFO, "......battery normal.\n");
             img = gs_lcd_bat_res;
         }
         write_img_to_px_rect(img[map_lvl], LCD_BAT_IMG_W, LCD_BAT_IMG_H,
             gs_lcd_areas[st_id].pos_x, gs_lcd_areas[st_id].pos_y, gs_lcd_areas[st_id].pos_w, gs_lcd_areas[st_id].pos_h);
 
-        gs_device_st_pool_of_lcd.bat_lvl_upd = gs_device_st_pool_of_lcd.bat_chg_st_upd = false;
+        gs_device_st_pool_of_lcd.bat_lvl_upd = gs_device_st_pool_of_lcd.bat_chg_full_upd = false;
     }
 }
 
@@ -483,6 +490,13 @@ void* lcd_refresh_thread_func(void* arg)
                 &gs_device_st_pool_of_lcd);
 
         pthread_mutex_unlock(&gs_lcd_upd_mutex);
+
+        /*Begin: for test*/
+        /*
+gs_device_st_pool_of_lcd.tof_distance = 900;
+gs_device_st_pool_of_lcd.tof_distance_upd = true;
+*/
+        /*End: for test*/
 
         REFRESH_LCD_DISPYAL; 
     }

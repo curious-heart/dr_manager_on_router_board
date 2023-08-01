@@ -218,6 +218,11 @@ static bool check_bat_chg_full_pin()
     int chg_full_st;
 
     chg_full_st = app_read_gpio_value(GPIO_CHARGER_FULL_IND); 
+
+    //chg_full_st = false;/*for test*/
+
+    DIY_LOG(LOG_INFO, "........chg_full_st: %d, gs_hv_st.bat_chg_full:%d\n", chg_full_st, gs_hv_st.bat_chg_full);
+
     if((bool)chg_full_st != gs_hv_st.bat_chg_full)
     {
         gs_hv_st.bat_chg_full = (bool)chg_full_st;
@@ -337,6 +342,8 @@ mb_rw_reg_ret_t mb_server_read_reg_sniff(uint16_t reg_addr_start, uint16_t * dat
 
 
             case BatteryLevel:
+                DIY_LOG(LOG_INFO, "............gs_hv_st.bat_lvl: %d, data_arr[%d]:%d.\n", 
+                                    gs_hv_st.bat_lvl, idx, data_arr[idx]);
                 if(gs_hv_st.bat_lvl != data_arr[idx])
                 {
                     gs_hv_st.bat_lvl = data_arr[idx];
@@ -404,6 +411,13 @@ static mb_rw_reg_ret_t read_hv_st_from_internal(float timeout_sec)
         if(hv_controller_read_uint16s(BatteryLevel,
                 &gs_mb_mapping->tab_registers[BatteryLevel], 1))
         {
+            /*Begin: for test*/
+            /*
+            gs_mb_mapping->tab_registers[BatteryLevel] = 30;
+            gs_hv_st.bat_chg_st = CHARGER_CONNECTED;
+            */
+            /*End: for test*/
+
             if(gs_hv_st.bat_lvl != gs_mb_mapping->tab_registers[BatteryLevel])
             {
                 becare = true;
