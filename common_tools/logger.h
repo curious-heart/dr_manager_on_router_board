@@ -25,7 +25,7 @@ void end_log_thread();
 
 #define MAX_LOG_INFO_STR_LEN 256 
 
-#define DIY_LOG(level, ...) \
+#define DIY_LOG(level, fmt, ...) \
 {\
     bool only_info_str = false, compact = false;\
     int v_level = level;\
@@ -44,7 +44,7 @@ void end_log_thread();
     {\
         char log_info_buf[MAX_LOG_INFO_STR_LEN + 1];\
         char date_time_str[DATE_STRING_LEN + 1 + TIME_STRING_SEC_LEN + 1];\
-        int l_p = snprintf(log_info_buf, sizeof(log_info_buf),  __VA_ARGS__);\
+        int l_p = snprintf(log_info_buf, sizeof(log_info_buf),fmt,  ##__VA_ARGS__);\
         if(!get_datetime_str(date_time_str, sizeof(date_time_str)))\
         {\
             date_time_str[0] = 0;\
@@ -71,7 +71,6 @@ void end_log_thread();
                         date_time_str, g_log_level_str[v_level],\
                         __FILE__, __LINE__, __FUNCTION__);\
             }\
-            printf("snprintf error.\n");\
         }\
     }\
 }

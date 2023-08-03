@@ -74,18 +74,19 @@ void end_key_event_handle()
 
 void exp_range_led_key_handler(converted_gbh_uevt_s_t* evt)
 {
-    static uint16_t write_data = true;
+    uint16_t write_data = true;
     static const char* ls_on_off_str[] = {"OFF", "ON"};
 
     hv_mb_reg_e_t reg_addr = RangeIndicationStart;
     const char* reg_str;
 
     DIY_LOG(LOG_INFO, "exp_range_led key handler!\n");
-    IGNORE_NON_PRESSED_EVT(evt);
 
     reg_str = get_hv_mb_reg_str(reg_addr);
     if(gs_mb_tcp_client_ctx)
     {
+        write_data = (key_pressed == evt->action);
+
         if(modbus_write_register(gs_mb_tcp_client_ctx, reg_addr, write_data) <= 0)
         {
             DIY_LOG(LOG_ERROR, "modbus write register %s error:%d, %s\n",

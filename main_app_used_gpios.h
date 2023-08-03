@@ -18,14 +18,21 @@ typedef struct
 
 /*
  * 
- 按键/信号  |PIN名称|PIN编号|Name   |GPIO   |有效性
------------|-------|-------|-------|-------|------
-范围指示灯 |SW3    |50     |ND_D5  |GPIO38 |低有效
-曝光开关   |SW4    |49     |ND_D6  |GPIO39 |低有效
-档位+      |SW1    |4      |JTMS   |GPIO15 |低有效
-档位-      |SW2    |6      |JTDI   |GPIO14 |低有效
-充电器插入 |Charge |52     |ND_D7  |GPIO40 |高有效
-满电指示   |SC_PG  |46     |ND_CS_N|GPIO34 |高有效
+按键/信号       |PIN名称|PIN编号|Name     |GPIO   |有效性
+----------------|-------|-------|---------|-------|------
+范围指示灯按键  |SW4    |49     |ND_D6    |GPIO39 |低有效
+曝光开关按键    |SW3    |50     |ND_D5    |GPIO38 |低有效(***)
+档位+按键       |SW1    |4      |JTMS     |GPIO15 |低有效
+档位-按键       |SW2    |6      |JTDI     |GPIO14 |低有效
+充电器插入gpio  |Charge |52     |ND_D7    |GPIO40 |高有效
+满电指示gpio    |SC_PG  |46     |ND_CS_N  |GPIO34 |高有效
+------------------------------------------------------------
+曝光开关按键    |SW3    |2      |WDT_RST_N|GPIO18 |低有效
+
+说明：
+1) “范围指示灯”按键仅仅是一个“开启/关闭范围指示灯”的输入信号，dr_manager收到该信号后，
+仅向下位机发送RangeIndicatorStart命令；实际的指示灯控制是在下位机上完成的。
+2) if GPIO38 is configured as key, system enters failsafe mode when startup. So currently we use gpio 18 instead.
  */
 
 #define GPIO_CHARGER_FULL_IND 34
