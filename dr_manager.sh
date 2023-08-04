@@ -23,6 +23,12 @@ else
     app_work_mode=--tcp_server_only
 fi
 
+if [ $dev_monitor_debug_flag = "1" ]; then
+    dev_monitor_debug=--dev_monitor_debug
+else
+    dev_monitor_debug=
+fi
+
 cmd_args=" --com_dev $mb_rtu_serialPortName"\
 " --mb_rtu_serialBaudRate $mb_rtu_serialBaudRate"\
 " --mb_rtu_serialParity $mb_rtu_serialParity"\
@@ -38,6 +44,7 @@ cmd_args=" --com_dev $mb_rtu_serialPortName"\
 " --mb_tcp_srvr_short_time $mb_tcp_srvr_short_wait_time"\
 " $mb_tcp_debug"\
 " --dev_monitor_peroid $dev_monitor_period"\
+" $dev_monitor_debug"\
 " --lcd_dev_name $lcd_dev_name"\
 " --lcd_dev_addr $lcd_i2c_addr"\
 " --tof_measure_period $tof_measure_period"\
