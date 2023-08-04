@@ -17,7 +17,11 @@ static const bool gs_def_mb_tcp_srvr_debug_flag= false;
 static const uint8_t gs_def_app_log_level = LOG_INFO; //refer to logger.h.
 
 static const uint32_t gs_def_exp_start_key_hold_time = 3; //in seconds.
-                                                    //
+                                                          //
+/* This option is used for the purpose that if key does not works properly, we can disable exposure by change configure file
+ * to avoid unexpected exposure.*/                                                          
+static const bool gs_def_exp_start_key_disabled = false;
+
 mb_tcp_client_params_t g_mb_tcp_client_params =
 {
     .srvr_ip = gs_def_mb_tcp_srvr_ip,
@@ -27,6 +31,7 @@ mb_tcp_client_params_t g_mb_tcp_client_params =
 key_gpio_cfg_params_s_t g_key_gpio_cfg_params = 
 {
     .exp_start_key_hold_time = gs_def_exp_start_key_hold_time,
+    .exposure_disabled = gs_def_exp_start_key_disabled,
 };
 
 static const char* const gs_opt_mb_tcp_srvr_ip_addr_str = "mb_tcp_srvr_ip_addr";
@@ -39,6 +44,7 @@ static const char* const gs_opt_help_str = "help";
 static const char* const gs_opt_version_str = "version";
 
 static const char* const gs_opt_exp_start_key_hold_time_str = "exp_start_key_hold";
+static const char* const gs_opt_exp_start_key_disabled_str = "exp_start_disabled";
 
 #undef APP_CMD_OPT_ITEM
 #define APP_CMD_OPT_ITEM(long_o_s, has_arg, flag, val) {long_o_s, has_arg, flag, val},
@@ -71,6 +77,10 @@ static const char* const gs_opt_exp_start_key_hold_time_str = "exp_start_key_hol
     APP_CMD_OPT_ITEM(gs_opt_exp_start_key_hold_time_str , required_argument, 0, 0)\
     APP_CMD_OPT_VALUE("exposure_start_key_hold_time", \
            &gs_def_exp_start_key_hold_time, &g_key_gpio_cfg_params.exp_start_key_hold_time, uint32_t) \
+\
+    APP_CMD_OPT_ITEM(gs_opt_exp_start_key_disabled_str, no_argument, 0, 0)\
+    APP_CMD_OPT_VALUE("disable exposure key", \
+           &gs_def_exp_start_key_disabled, &g_key_gpio_cfg_params.exposure_disabled, bool) \
 \
     APP_CMD_OPT_ITEM(0, 0, 0, 0)\
 }
@@ -110,6 +120,12 @@ option_process_ret_t process_cmd_line(int argc, char* argv[])
                 {
                     printf("%s\n", g_APP_VER_STR);
                     return OPTION_PROCESS_EXIT_NORMAL;
+                }
+                if(!strcmp(gs_long_opt_arr[longindex].name, gs_opt_exp_start_key_disabled_str))
+                {
+                    g_key_gpio_cfg_params.exposure_disabled = true;
+                    DIY_LOG(LOG_INFO, "Exposure key disabled.\n");
+                    break;
                 }
                 {
                     uint8_t p_lvl;

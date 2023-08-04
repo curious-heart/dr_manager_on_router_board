@@ -37,3 +37,4 @@ mb_tcp_debug_flag=0
 exp_start_key_hold_time=3
 key_app_log_level=1
 key_mb_tcp_srvr_debug_flag=0
+key_exp_start_disabled=0

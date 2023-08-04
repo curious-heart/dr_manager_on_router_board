@@ -80,7 +80,14 @@ void exp_range_led_key_handler(converted_gbh_uevt_s_t* evt)
     hv_mb_reg_e_t reg_addr = RangeIndicationStart;
     const char* reg_str;
 
-    DIY_LOG(LOG_INFO, "exp_range_led key handler!\n");
+    DIY_LOG(LOG_INFO, "exp_range_led key handler!");
+
+    if(!evt)
+    {
+        DIY_LOG(LOG_ERROR, "\nexposure range led key evt ptr is NULL.\n");
+        return;
+    }
+    DIY_LOG(LOG_INFO + LOG_ONLY_INFO_STR_COMP, "action: %s\n", g_key_gpio_act_name_list[evt->action]);
 
     reg_str = get_hv_mb_reg_str(reg_addr);
     if(gs_mb_tcp_client_ctx)
@@ -105,7 +112,7 @@ void exp_range_led_key_handler(converted_gbh_uevt_s_t* evt)
 }
 
 static const uint16_t gs_exp_ready = 1, gs_exp_start = 2;
-static bool gs_key_hold_processed = false;
+static bool gs_key_hold_processed = true;
 static void exp_start_key_hold_handler(int sig)
 {
     hv_mb_reg_e_t reg_addr = ExposureStart;
@@ -113,6 +120,12 @@ static void exp_start_key_hold_handler(int sig)
     const char* reg_str;
 
     gs_key_hold_processed = true;
+
+    if(g_key_gpio_cfg_params.exposure_disabled)
+    {
+        DIY_LOG(LOG_INFO, "exp_start key hold timeout. But exposure by key is disabled.\n");
+        return;
+    }
 
     write_data = gs_exp_start;
     reg_str = get_hv_mb_reg_str(reg_addr);
@@ -141,13 +154,15 @@ void exp_start_key_handler(converted_gbh_uevt_s_t* evt)
     const char* reg_str;
     struct itimerval t_v;
 
-    DIY_LOG(LOG_DEBUG, "exp_start key handler!\n");
+    DIY_LOG(LOG_INFO, "exp_start key handler!");
 
     if(!evt)
     {
-        DIY_LOG(LOG_ERROR, "exposure_start key evt ptr is NULL.\n");
+        DIY_LOG(LOG_ERROR, "\nexposure_start key evt ptr is NULL.\n");
         return;
     }
+
+    DIY_LOG(LOG_INFO + LOG_ONLY_INFO_STR_COMP, "action: %s\n", g_key_gpio_act_name_list[evt->action]);
 
     signal(SIGALRM, exp_start_key_hold_handler);
 
@@ -211,13 +226,16 @@ void dose_adjust_key_handler(converted_gbh_uevt_s_t* evt)
 
     IGNORE_NON_PRESSED_EVT(evt);
 
+    DIY_LOG(LOG_INFO, "dose adjust key handler!");
+
     if(!evt)
     {
-        DIY_LOG(LOG_ERROR, "dose adjust handler, evt ptr is NULL.\n");
+        DIY_LOG(LOG_ERROR, "\ndose adjust handler, evt ptr is NULL.\n");
         return;
     }
 
-    DIY_LOG(LOG_INFO, "%s key handler!\n", g_key_gpio_name_list[evt->key_gpio]);
+    DIY_LOG(LOG_INFO + LOG_ONLY_INFO_STR_COMP, 
+            "%s, action: %s\n", g_key_gpio_name_list[evt->key_gpio], g_key_gpio_act_name_list[evt->action]);
 
     if(key_dose_add == evt->key_gpio)
     {
@@ -258,12 +276,14 @@ void charger_gpio_handler(converted_gbh_uevt_s_t* evt)
     hv_mb_reg_e_t reg_addr = EXT_MB_REG_CHARGER;
     uint16_t write_data;
 
-    DIY_LOG(LOG_INFO, "charg gpio handler!\n");
+    DIY_LOG(LOG_INFO, "charg gpio handler!");
+    
     if(!evt)
     {
-        DIY_LOG(LOG_ERROR, "evt ptr is NULL.\n");
+        DIY_LOG(LOG_ERROR, "\nevt ptr is NULL.\n");
         return;
     }
+    DIY_LOG(LOG_INFO + LOG_ONLY_INFO_STR_COMP, "action: %s\n", g_key_gpio_act_name_list[evt->action]);
 
     if(key_pressed == evt->action)
     {

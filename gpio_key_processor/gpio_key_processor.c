@@ -228,11 +228,11 @@ static void process_gbh_uevent(converted_gbh_uevt_s_t * evt)
         return;
     }
 
-    DIY_LOG(LOG_INFO, "Converted gbh uevent info:\n");
-    DIY_LOG(LOG_INFO + LOG_ONLY_INFO_STR, "key/gpio: %s\n", g_key_gpio_name_list[evt->key_gpio]);
-    DIY_LOG(LOG_INFO + LOG_ONLY_INFO_STR, "action: %s\n", g_key_gpio_act_name_list[evt->action]);
-    DIY_LOG(LOG_INFO + LOG_ONLY_INFO_STR, "seen: %u\n", evt->seen);
-    DIY_LOG(LOG_INFO + LOG_ONLY_INFO_STR, "seqnum: %u\n", evt->seqnum);
+    DIY_LOG(LOG_DEBUG, "Converted gbh uevent info:\n");
+    DIY_LOG(LOG_DEBUG + LOG_ONLY_INFO_STR, "key/gpio: %s\n", g_key_gpio_name_list[evt->key_gpio]);
+    DIY_LOG(LOG_DEBUG + LOG_ONLY_INFO_STR, "action: %s\n", g_key_gpio_act_name_list[evt->action]);
+    DIY_LOG(LOG_DEBUG + LOG_ONLY_INFO_STR, "seen: %u\n", evt->seen);
+    DIY_LOG(LOG_DEBUG + LOG_ONLY_INFO_STR, "seqnum: %u\n", evt->seqnum);
     if(!gs_key_gpio_handler_arr[evt->key_gpio])
     {
         DIY_LOG(LOG_WARN, "The key/gpio %s has no handler.\n", g_key_gpio_name_list[evt->key_gpio]);

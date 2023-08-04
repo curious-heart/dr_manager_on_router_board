@@ -43,6 +43,7 @@ typedef struct
 typedef struct
 {
     uint32_t exp_start_key_hold_time; //in secnods
+    bool exposure_disabled; 
 }key_gpio_cfg_params_s_t;
 
 extern const char* g_key_gpio_name_list[kg_end_flag];

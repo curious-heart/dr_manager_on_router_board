@@ -58,10 +58,18 @@ if [ $key_mb_tcp_srvr_debug_flag = "1" ]; then
 else
     key_mb_tcp_debug=
 fi
+
+if [ $key_exp_start_disabled = "1" ]; then
+    key_exp_start_disable_flag=--exp_start_disabled
+else
+    key_exp_start_disable_flag=
+fi
+
 key_cmd_args=" --exp_start_key_hold $exp_start_key_hold_time"\
 " --mb_tcp_srvr_ip_addr $mb_tcp_srvr_ip"\
 " --mb_tcp_srvr_port $mb_tcp_srvr_port"\
 " $key_mb_tcp_debug"\
-" --app_log_level $key_app_log_level"
+" --app_log_level $key_app_log_level"\
+" $key_exp_start_disable_flag"
 
 $KEY_APP_NAME $key_cmd_args $* &
