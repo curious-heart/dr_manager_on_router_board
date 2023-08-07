@@ -180,14 +180,16 @@ static void get_cellular_st(bool debug_flag)
 
 static void get_sim_card_st(bool debug_flag)
 {
-    static const char* tag_imsi = "imsi";
+    static const char* tag_str= "imsi:";
+    static const int tag_len = 5; //len of tag_str;
+    static const char* imsi_char_set = "0123456789";
+    static const int imsi_len = 15;
     static const char* get_sim_card_st_sh = "get_sim_card_st.sh";
     static const char* get_sim_card_st_sh_debug = "get_sim_card_st.sh -d";
     FILE* r_stream = NULL;
     char* line = NULL;
     size_t len = 0;
     ssize_t nread;
-    int tag_len;
 
     if(debug_flag)
     {
@@ -203,12 +205,13 @@ static void get_sim_card_st(bool debug_flag)
         return;
     }
     gs_main_dev_st.sim_card_st = SIM_NO_CARD;
-    tag_len = strlen(tag_imsi);
     while((nread = getline(&line, &len, r_stream)) != -1)
     {
-        if(!strcmp(tag_imsi, line) && (nread > tag_len + 1))
+        int spn;
+        spn = strspn(&line[tag_len], imsi_char_set);
+        if(!strncmp(tag_str, line, tag_len) && (nread >= tag_len + imsi_len) && (spn == imsi_len))
         {
-            DIY_LOG(LOG_INFO, "IMSI:%s\n", &line[tag_len + 1]); //skip ":"
+            DIY_LOG(LOG_INFO, "%s\n", line);
             gs_main_dev_st.sim_card_st = SIM_CARD_NORM;
             break;
         }
