@@ -61,13 +61,6 @@
 			gpios = <&gpio 38 GPIO_ACTIVE_LOW>;
 			linux,code = <BTN_1>;
 		};
-/*
-		exp_start {
-			label = "exp_start";
-			gpios = <&gpio 18 GPIO_ACTIVE_LOW>;
-			linux,code = <BTN_1>;
-		};
-*/
 		dose_add {
 			label = "dose_add";
 			gpios = <&gpio 15 GPIO_ACTIVE_LOW>;

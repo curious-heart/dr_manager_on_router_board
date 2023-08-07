@@ -10,6 +10,11 @@ const char* g_dev_monitor_th_desc = "Device-State-Monitor";
 dr_device_st_pool_t g_device_st_pool = 
 {
     .hot_spot_st = HOTSPOT_DOWN, 
+    .bat_chg_st = CHARGER_INIT,
+    .cellular_mode = CELLULAR_MODE_INIT,
+    .sim_card_st = SIM_INIT,
+    .wifi_wan_st = WIFI_WAN_INIT,
+    .hv_dsp_conn_st = HV_DSP_INIT,
 };
 
 static pthread_mutex_t gs_dev_st_pool_mutex;

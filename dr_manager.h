@@ -13,6 +13,7 @@ typedef enum
 
 typedef enum
 {
+    CHARGER_INIT = -1,
     NO_CHARGER_CONNECTED = 0,
     CHARGER_CONNECTED,
 }battery_chg_st_t;
@@ -29,6 +30,7 @@ typedef enum
 
 typedef enum
 {
+    CELLULAR_MODE_INIT = -1,
     CELLULAR_MODE_NOSRV = 0, //index for img res
     CELLULAR_MODE_3G,
     CELLULAR_MODE_4G,
@@ -37,6 +39,7 @@ typedef enum
 
 typedef enum
 {
+    SIM_INIT = -1,
     SIM_NO_CARD = 0,
     SIM_CARD_LOCKED,
     SIM_CARD_NORM,
@@ -44,6 +47,7 @@ typedef enum
 
 typedef enum
 {
+    WIFI_WAN_INIT = -1,
     WIFI_WAN_DISCONNECTED = 0, //index for img res. signal 0
     WIFI_WAN_CONNECTED, //signal 1
 }wifi_wan_st_t;
@@ -61,6 +65,7 @@ typedef enum
 
 typedef enum
 {
+    HV_DSP_INIT = -1,
     HV_DSP_DISCONNECTED = 0,
     HV_DSP_CONNECTED,
 }hv_dsp_conntion_state_t;
