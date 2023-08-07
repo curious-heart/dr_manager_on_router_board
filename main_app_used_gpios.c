@@ -106,7 +106,7 @@ int app_read_gpio_value(int n)
         return -1;
     }
     memset(value_str, 0, sizeof(value_str));
-    read_len = fread(value_str, GPIO_MAX_VALUE_DIGITS, 1, op_fp);
+    read_len = fread(value_str, 1, GPIO_MAX_VALUE_DIGITS,  op_fp);
     if(read_len <= 0)
     {
         DIY_LOG(LOG_ERROR, "read from %s error, %d bytes read.\n", ptn_str, read_len);
