@@ -299,6 +299,7 @@ int main(int argc, char* argv[])
 
     atexit(clear_for_exit);
     signal(SIGINT, close_sigint);
+    signal(SIGTERM, close_sigint);
 
     device_fd = open_gbh_uevent_recv_socket();
     if(device_fd < 0)

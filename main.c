@@ -300,6 +300,7 @@ int main(int argc, char *argv[])
     }
 
     signal(SIGINT, close_sigint);
+    signal(SIGTERM, close_sigint);
 
     if(!server_only)
     {

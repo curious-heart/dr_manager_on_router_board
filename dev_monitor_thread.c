@@ -11,10 +11,15 @@ dr_device_st_pool_t g_device_st_pool =
 {
     .hot_spot_st = HOTSPOT_DOWN, 
     .bat_chg_st = CHARGER_INIT,
+    .cellular_signal_bars = -1,
     .cellular_mode = CELLULAR_MODE_INIT,
     .sim_card_st = SIM_INIT,
     .wifi_wan_st = WIFI_WAN_INIT,
     .hv_dsp_conn_st = HV_DSP_INIT,
+    .expo_volt_kv = -1,
+    .expo_am_ua = -1,
+    .expo_dura_ms = -1,
+    .expo_st = EXPOSURE_ST_INIT,
 };
 
 static pthread_mutex_t gs_dev_st_pool_mutex;
@@ -58,10 +63,9 @@ typedef struct
 static const cell_mode_mapper_t gs_cell_mode_mapper[] =
 {
     {"NOSRV",   CELLULAR_MODE_NOSRV},
-    {"WCDMA",   CELLULAR_MODE_3G},
-    {"LTE",     CELLULAR_MODE_4G},
-    {"NR4G-SA", CELLULAR_MODE_5G},
-    {"NR4G-NSA",CELLULAR_MODE_5G},
+    {"3G",   CELLULAR_MODE_3G},
+    {"4G",     CELLULAR_MODE_4G},
+    {"5G", CELLULAR_MODE_5G},
 };
 static void map_cell_mode_to_pool(const char* mode_str)
 {
@@ -139,12 +143,15 @@ static void get_cellular_st(bool debug_flag)
     }
 
     init_cell_info_var();
+    DIY_LOG(LOG_INFO, "cellular info line:\n");
     while((nread = getline(&line, &len, r_stream)) != -1)
     {
+        line[strcspn(line, "\r\n")] = '\0';
+        DIY_LOG(LOG_INFO + LOG_ONLY_INFO_STR, "%s\n", line);
         for(idx = 0; idx < ARRAY_ITEM_CNT(gs_pipe_read_helper); ++idx)
         {
             tag_len = strlen(gs_pipe_read_helper[idx].tag);
-            if(!strcmp(gs_pipe_read_helper[idx].tag, line) && (nread > tag_len + 1))
+            if(!strncmp(gs_pipe_read_helper[idx].tag, line, tag_len) && (nread > tag_len + 1))
             {
                 switch(gs_pipe_read_helper[idx].data_type)
                 {
@@ -162,7 +169,11 @@ static void get_cellular_st(bool debug_flag)
     }
 
     /*cell mode.*/
+    DIY_LOG(LOG_INFO, "cellular cell mode str: %s\n", gs_cell_mode_str);
     map_cell_mode_to_pool(gs_cell_mode_str);
+    DIY_LOG(LOG_INFO, "cellular mode: %d\n", gs_main_dev_st.cellular_mode);
+
+    DIY_LOG(LOG_INFO, "cellular conn state str: %s\n", gs_cell_state_str);
     /*wan connection.*/
     if(!strcmp(gs_cell_state_str, gs_state_str_cell_conn)) 
     {
@@ -172,6 +183,7 @@ static void get_cellular_st(bool debug_flag)
     {
         gs_main_dev_st.wan_bear &= ~WWAN_BEAR_CELLULAR;
     }
+    DIY_LOG(LOG_INFO, "wan bear: 0x%02X\n", gs_main_dev_st.wan_bear);
 
     /* since rsrp and other signal values are already obtained, in future, there can be more accurate signal-bar map 
      * implement here. Now, we just use the bar from shell script, which is much coarse...
