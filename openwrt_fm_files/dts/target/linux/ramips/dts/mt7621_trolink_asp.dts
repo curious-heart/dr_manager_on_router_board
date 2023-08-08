@@ -53,12 +53,12 @@
 
 		exp_range_led {
 			label = "exp_range_led";
-			gpios = <&gpio 39 GPIO_ACTIVE_LOW>;
+			gpios = <&gpio 43 GPIO_ACTIVE_LOW>;
 			linux,code = <BTN_0>;
 		};
 		exp_start {
 			label = "exp_start";
-			gpios = <&gpio 38 GPIO_ACTIVE_LOW>;
+			gpios = <&gpio 44 GPIO_ACTIVE_LOW>;
 			linux,code = <BTN_1>;
 		};
 		dose_add {
@@ -75,7 +75,7 @@
 
 		charger {
 			label = "charger";
-			gpios = <&gpio 40 GPIO_ACTIVE_HIGH>;
+			gpios = <&gpio 41 GPIO_ACTIVE_HIGH>;
 			linux,code = <BTN_4>;
 		};
 	};
