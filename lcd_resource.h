@@ -696,7 +696,7 @@ static const unsigned char gs_lcd_charger_res[/* LCD_CHARGER_IMG_W * ceil(LCD_CH
 #define LCD_CUBE_VOLT_POS_Y LCD_STATIC_VOLT_POS_Y 
 #define LCD_CUBE_VOLT_POS_W 40 /*maximum width*/
 #define LCD_CUBE_VOLT_POS_H 16
-#define LCD_CUBE_VOLT_MAX_INT_CHAR_NUM 3 /*e.g. "100*/
+#define LCD_CUBE_VOLT_MAX_INT_CHAR_NUM 5//3 /*e.g. 100.  we give 5 char to elimate compile warning. */
 
 #define LCD_CUBE_AMTS_POS_X (LCD_STATIC_AMT_S_POS_X + LCD_STATIC_AMT_S_POS_W)
 #define LCD_CUBE_AMTS_POS_Y LCD_STATIC_AMT_S_POS_Y 
@@ -757,12 +757,18 @@ static const char* gs_LCD_DISPLAY_UNIT_STR_CM = "cm";
 static const char* gs_LCD_DISPLAY_UNIT_STR_KV = "kV";
 static const char* gs_LCD_DISPLAY_UNIT_STR_AMTS = "mAs";
 
-#define PRINT_NUMBER_WITH_UNIT_TO_SCRN(number, max_len, format_str, unit_str, start_x, start_y) \
+/*
+ * If "number" is integer,  "precision" must be set to 1.
+ * The "format_str" must contain ".*" to use the "precision". 
+ *
+ */
+#define PRINT_NUMBER_WITH_UNIT_TO_SCRN(number, max_len, format_str, precision, unit_str, start_x, start_y) \
 {\
     char number_str[max_len + 1];\
     int block_w;\
 \
-    snprintf(number_str, sizeof(number_str), format_str, number); \
+    snprintf(number_str, sizeof(number_str), format_str, precision, number); \
+    \
     block_w = print_one_line_to_scrn(number_str, sizeof(number_str), start_x, start_y);\
     print_one_line_to_scrn(unit_str, strlen(unit_str), start_x + block_w, start_y);\
 }

@@ -323,7 +323,7 @@ static void refresh_sim_card_st_display(dr_device_st_enum_t st_id)
 
 static void refresh_cube_volt_display(dr_device_st_enum_t st_id)
 {
-    PRINT_NUMBER_WITH_UNIT_TO_SCRN(gs_device_st_pool_of_lcd.expo_volt_kv, LCD_CUBE_VOLT_MAX_INT_CHAR_NUM, "%d",\
+    PRINT_NUMBER_WITH_UNIT_TO_SCRN(gs_device_st_pool_of_lcd.expo_volt_kv, LCD_CUBE_VOLT_MAX_INT_CHAR_NUM, "%.*d", 1,\
                                    gs_LCD_DISPLAY_UNIT_STR_KV, \
                                    gs_lcd_areas[st_id].pos_x, gs_lcd_areas[st_id].pos_y);
 }
@@ -333,7 +333,7 @@ static void refresh_cube_amts_display(dr_device_st_enum_t st_id)
     float amts_n = ((float)(gs_device_st_pool_of_lcd.expo_am_ua) / 1000) 
                  * ((float)(gs_device_st_pool_of_lcd.expo_dura_ms) / 1000);
     int max_num_of_number_chars = LCD_CUBE_AMTS_MAX_INT_CHAR_NUM + 1 /*.*/ + LCD_CUBE_AMTS_MAX_FRAC_CHAR_NUM;
-    PRINT_NUMBER_WITH_UNIT_TO_SCRN(amts_n, max_num_of_number_chars, "%f",\
+    PRINT_NUMBER_WITH_UNIT_TO_SCRN(amts_n, max_num_of_number_chars, "%.*f", LCD_CUBE_AMTS_MAX_FRAC_CHAR_NUM,\
                                    gs_LCD_DISPLAY_UNIT_STR_AMTS, \
                                    gs_lcd_areas[st_id].pos_x, gs_lcd_areas[st_id].pos_y);
 }
@@ -378,7 +378,7 @@ static void refresh_tof_distance_display(dr_device_st_enum_t st_id)
         float dist_in_cm = (float)(gs_device_st_pool_of_lcd.tof_distance) / 10;
         int max_num_of_number_chars = LCD_DISTANCE_MAX_INT_CHAR_NUM + 1 /*.*/ + LCD_DISTANCE_MAX_FRAC_CHAR_NUM;
 
-        PRINT_NUMBER_WITH_UNIT_TO_SCRN(dist_in_cm, max_num_of_number_chars, "%f", \
+        PRINT_NUMBER_WITH_UNIT_TO_SCRN(dist_in_cm, max_num_of_number_chars, "%.*f", LCD_DISTANCE_MAX_FRAC_CHAR_NUM,\
                                        gs_LCD_DISPLAY_UNIT_STR_CM, \
                                        gs_lcd_areas[st_id].pos_x, gs_lcd_areas[st_id].pos_y);
     }
