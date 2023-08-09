@@ -14,7 +14,15 @@ ORI_CELL_MODE_NR5GSA="NR5G-SA"
 ORI_CELL_MODE_NR5GNSA="NR5G-NSA"
 ORI_CELL_MODE_WCDMA="WCDMA"
 
-if [ "x$test_flag" = "x" ] || [ ! -e $at_res_file ]; then #$test flag is empty, that is, NOT test mode.
+if [ ! -e $at_init_flag ]; then
+    init_at_st.sh
+    if [ "$?" != "0" ]; then
+        #init at fails. maybe because modem device has not started up. just exit and app will call this script in next cycle.
+        exit 1
+    fi
+fi
+
+if [ -c $at_port_dev ] && ([ "x$test_flag" = "x" ] || [ ! -e $at_res_file ]); then #$test flag is empty
     #send AT cmd
     echo -e "$cmd_str\r\n" > $at_port_dev
 
@@ -31,7 +39,7 @@ fi
 #5G/4G/3G/NOSRV,SEARCH/LIMSRV/NOCONN/CONNECT, 5/4/3/2/1/0
 cell_mode=$NOSRV_MODE_STR
 cell_state="SEARCH"
-signal_bars=0
+signal_bars=-1
 
 ori_cell_mode=$cell_mode
 rsrp=-200 #-156
@@ -147,49 +155,51 @@ signal_bars_map()
     signal_bars=$l_bars
 }
 
-while read line
-do
-    echo $line | awk -F: '{print $1" "$2}' > $at_proc_tmp_file
-    read tk0 tk1n < $at_proc_tmp_file
-    if [ "$tk0" = "$cmd_name" ]; then
-        echo $tk1n | awk -F, '{print $1" "$2" "$3}' > $at_proc_tmp_file
-        read tk1 tk2 tk3 < $at_proc_tmp_file
-        if [ "x$tk3" = "x" ]; then
-            cell_state=${tk2//\"/}
-            continue
-        elif [ "$tk1" = "$cmd_parm" ]; then
-            cell_state=${tk2//\"/}
-            ori_cell_mode=${tk3//\"/}
-        else
-            ori_cell_mode=${tk1//\"/}
-        fi
-        case "$ori_cell_mode" in
-            "$ORI_CELL_MODE_LTE")
-                if [ "$tk1" = "$cmd_parm" ]; then
-                    echo $tk1n | awk -F, '{print $14" "$15" "$16" "$17}' > $at_proc_tmp_file
-                else
-                    echo $tk1n | awk -F, '{print $12" "$13" "$14" "$15}' > $at_proc_tmp_file
-                fi
-                read rsrp rsrq rssi sinr < $at_proc_tmp_file
-                ;;
-            "$ORI_CELL_MODE_NR5GSA")
-                echo $tk1n | awk -F, '{print $13" "$14" "$15}' > $at_proc_tmp_file
-                read rsrp rsrq sinr < $at_proc_tmp_file
-                ;;
-            "$ORI_CELL_MODE_NR5GNSA")
-                echo $tk1n | awk -F, '{print $5" "$6" "$7}' > $at_proc_tmp_file
-                read rsrp rsrq sinr < $at_proc_tmp_file
-                ;;
-            "$ORI_CELL_MODE_WCDMA")
-                echo $tk1n | awk -F, '{print $10" "$11}' > $at_proc_tmp_file
-                read rscp ecno < $at_proc_tmp_file
-                ;;
-            *)
-                ;;
-        esac
+if [ -e $at_res_file ]; then
+    while read line
+    do
+        echo $line | awk -F: '{print $1" "$2}' > $at_proc_tmp_file
+        read tk0 tk1n < $at_proc_tmp_file
+        if [ "$tk0" = "$cmd_name" ]; then
+            echo $tk1n | awk -F, '{print $1" "$2" "$3}' > $at_proc_tmp_file
+            read tk1 tk2 tk3 < $at_proc_tmp_file
+            if [ "x$tk3" = "x" ]; then
+                cell_state=${tk2//\"/}
+                continue
+            elif [ "$tk1" = "$cmd_parm" ]; then
+                cell_state=${tk2//\"/}
+                ori_cell_mode=${tk3//\"/}
+            else
+                ori_cell_mode=${tk1//\"/}
+            fi
+            case "$ori_cell_mode" in
+                "$ORI_CELL_MODE_LTE")
+                    if [ "$tk1" = "$cmd_parm" ]; then
+                        echo $tk1n | awk -F, '{print $14" "$15" "$16" "$17}' > $at_proc_tmp_file
+                    else
+                        echo $tk1n | awk -F, '{print $12" "$13" "$14" "$15}' > $at_proc_tmp_file
+                    fi
+                    read rsrp rsrq rssi sinr < $at_proc_tmp_file
+                    ;;
+                "$ORI_CELL_MODE_NR5GSA")
+                    echo $tk1n | awk -F, '{print $13" "$14" "$15}' > $at_proc_tmp_file
+                    read rsrp rsrq sinr < $at_proc_tmp_file
+                    ;;
+                "$ORI_CELL_MODE_NR5GNSA")
+                    echo $tk1n | awk -F, '{print $5" "$6" "$7}' > $at_proc_tmp_file
+                    read rsrp rsrq sinr < $at_proc_tmp_file
+                    ;;
+                "$ORI_CELL_MODE_WCDMA")
+                    echo $tk1n | awk -F, '{print $10" "$11}' > $at_proc_tmp_file
+                    read rscp ecno < $at_proc_tmp_file
+                    ;;
+                *)
+                    ;;
+            esac
 
-    fi
-done < $at_res_file
+        fi
+    done < $at_res_file
+fi
 
 cell_mode_map $ori_cell_mode
 
