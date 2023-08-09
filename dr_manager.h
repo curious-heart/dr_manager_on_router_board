@@ -113,7 +113,8 @@ typedef struct ST_PARAMS_COLLECTION dr_device_st_local_buf_t;
         updated = true;\
     }
 
-#define ST_PARAM_CLEAR_UPD(var, ele) var.ele##_upd = false
+#define ST_PARAM_CLEAR_UPD(var, ele) (var).ele##_upd = false
+#define ST_PARAM_CHECK_UPD(var, ele) ((var).ele##_upd)
 /*------------------------------------------------------------*/
 
 extern dr_device_st_pool_t g_device_st_pool;

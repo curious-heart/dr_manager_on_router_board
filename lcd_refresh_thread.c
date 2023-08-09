@@ -194,7 +194,25 @@ static void refresh_battery_display(dr_device_st_enum_t st_id)
     /* Since bat_chag_st, bat_lvl and bat_chg_full st update all cause this function to be called,
      * we check the update st in function again to minmun the lcd refresh operations.
      * */
-    if(gs_device_st_pool_of_lcd.bat_chg_st_upd)
+
+    int map_lvl = bat_lvl_display_map(gs_device_st_pool_of_lcd.bat_lvl);
+    lcd_battery_img_type img; 
+
+    st_id = enum_bat_lvl;
+    if((CHARGER_CONNECTED == gs_device_st_pool_of_lcd.bat_chg_st) && !gs_device_st_pool_of_lcd.bat_chg_full)
+    {
+        DIY_LOG(LOG_INFO, "......battery lightnning.\n");
+        img = gs_lcd_bat_lightning_res;
+    }
+    else
+    {
+        DIY_LOG(LOG_INFO, "......battery normal.\n");
+        img = gs_lcd_bat_res;
+    }
+    write_img_to_px_rect(img[map_lvl], LCD_BAT_IMG_W, LCD_BAT_IMG_H,
+        gs_lcd_areas[st_id].pos_x, gs_lcd_areas[st_id].pos_y, gs_lcd_areas[st_id].pos_w, gs_lcd_areas[st_id].pos_h);
+
+    if(ST_PARAM_CHECK_UPD(gs_device_st_pool_of_lcd, bat_chg_st))
     {
         st_id = enum_bat_chg_st;
         if(CHARGER_CONNECTED == gs_device_st_pool_of_lcd.bat_chg_st)
@@ -210,28 +228,9 @@ static void refresh_battery_display(dr_device_st_enum_t st_id)
                             gs_lcd_areas[st_id].pos_w, gs_lcd_areas[st_id].pos_h);
         }
     }
-
-    if(gs_device_st_pool_of_lcd.bat_lvl_upd || gs_device_st_pool_of_lcd.bat_chg_full_upd)
-    {
-        int map_lvl = bat_lvl_display_map(gs_device_st_pool_of_lcd.bat_lvl);
-        lcd_battery_img_type img; 
-
-        st_id = enum_bat_lvl;
-        if((CHARGER_CONNECTED == gs_device_st_pool_of_lcd.bat_chg_st) && !gs_device_st_pool_of_lcd.bat_chg_full)
-        {
-            DIY_LOG(LOG_INFO, "......battery lightnning.\n");
-            img = gs_lcd_bat_lightning_res;
-        }
-        else
-        {
-            DIY_LOG(LOG_INFO, "......battery normal.\n");
-            img = gs_lcd_bat_res;
-        }
-        write_img_to_px_rect(img[map_lvl], LCD_BAT_IMG_W, LCD_BAT_IMG_H,
-            gs_lcd_areas[st_id].pos_x, gs_lcd_areas[st_id].pos_y, gs_lcd_areas[st_id].pos_w, gs_lcd_areas[st_id].pos_h);
-
-        gs_device_st_pool_of_lcd.bat_lvl_upd = gs_device_st_pool_of_lcd.bat_chg_full_upd = false;
-    }
+    ST_PARAM_CLEAR_UPD(gs_device_st_pool_of_lcd, bat_chg_st);
+    ST_PARAM_CLEAR_UPD(gs_device_st_pool_of_lcd, bat_lvl);
+    ST_PARAM_CLEAR_UPD(gs_device_st_pool_of_lcd, bat_chg_full);
 }
 
 static void refresh_wan_bear_type_display(dr_device_st_enum_t st_id)
@@ -271,7 +270,7 @@ static void refresh_cellular_srv_st_display(dr_device_st_enum_t st_id)
      * we check the update st in function again to minmun the lcd refresh operations.
      * */
 
-    if(gs_device_st_pool_of_lcd.cellular_signal_bars_upd)
+    if(ST_PARAM_CHECK_UPD(gs_device_st_pool_of_lcd, cellular_signal_bars))
     {
         int map_lvl = (int)gs_device_st_pool_of_lcd.cellular_signal_bars;
 
@@ -283,7 +282,7 @@ static void refresh_cellular_srv_st_display(dr_device_st_enum_t st_id)
                 gs_lcd_areas[st_id].pos_x, gs_lcd_areas[st_id].pos_y, gs_lcd_areas[st_id].pos_w, gs_lcd_areas[st_id].pos_h);
     }
 
-    if(gs_device_st_pool_of_lcd.cellular_mode_upd)
+    if(ST_PARAM_CHECK_UPD(gs_device_st_pool_of_lcd, cellular_mode))
     {
         int mode_idx = (int)gs_device_st_pool_of_lcd.cellular_mode;
 
@@ -292,8 +291,9 @@ static void refresh_cellular_srv_st_display(dr_device_st_enum_t st_id)
         if(mode_idx < 0 || mode_idx >= LCD_CELL_MODE_NUM) mode_idx = 0;
         write_img_to_px_rect(gs_lcd_mode_res[mode_idx], LCD_CELL_MODE_IMG_W, LCD_CELL_MODE_IMG_H,
                 gs_lcd_areas[st_id].pos_x, gs_lcd_areas[st_id].pos_y, gs_lcd_areas[st_id].pos_w, gs_lcd_areas[st_id].pos_h);
-        gs_device_st_pool_of_lcd.cellular_mode_upd = false;
     }
+    ST_PARAM_CLEAR_UPD(gs_device_st_pool_of_lcd, cellular_signal_bars);
+    ST_PARAM_CLEAR_UPD(gs_device_st_pool_of_lcd, cellular_mode);
 }
 
 static void refresh_wifi_wan_display(dr_device_st_enum_t st_id)
@@ -426,25 +426,13 @@ static bool access_g_st_pool_from_lcd_refresh_th(void* buf)
 #undef COLLECTION_END_FLAG
 #define COLLECTION_END_FLAG
 #undef ST_PARAM_DEF
-#define ST_PARAM_DEF(var, ele) g_device_st_pool.ele##_upd = false;
+#define ST_PARAM_DEF(var, ele) ST_PARAM_CLEAR_UPD(g_device_st_pool, ele);
 #define ST_PARAM_CLEAR_UPD_ALL ST_PARAMS_COLLECTION;
     ST_PARAM_CLEAR_UPD_ALL;
-
+#undef ST_PARAM_CLEAR_UPD_ALL
     return false;
 }
 
-#undef COLLECTION_END_FLAG
-#define COLLECTION_END_FLAG
-#undef ST_PARAM_DEF
-#define ST_PARAM_DEF(var_t, var_n) \
-{\
-    if(gs_device_st_pool_of_lcd.var_n##_upd && gs_write_info_to_lcd_func_list.var_n##_to_lcd_func)\
-    {\
-        gs_write_info_to_lcd_func_list.var_n##_to_lcd_func(enum_##var_n);\
-        gs_device_st_pool_of_lcd.var_n##_upd  = false;\
-    }\
-}
-#define REFRESH_LCD_DISPYAL ST_PARAMS_COLLECTION
 static void init_lcd_display()
 {
     int i;
@@ -459,6 +447,18 @@ static void init_lcd_display()
     }
 }
 
+#undef COLLECTION_END_FLAG
+#define COLLECTION_END_FLAG
+#undef ST_PARAM_DEF
+#define ST_PARAM_DEF(var_t, var_n) \
+{\
+    if(ST_PARAM_CHECK_UPD(gs_device_st_pool_of_lcd, var_n) && gs_write_info_to_lcd_func_list.var_n##_to_lcd_func)\
+    {\
+        gs_write_info_to_lcd_func_list.var_n##_to_lcd_func(enum_##var_n);\
+        ST_PARAM_CLEAR_UPD(gs_device_st_pool_of_lcd, var_n);\
+    }\
+}
+#define REFRESH_LCD_DISPYAL ST_PARAMS_COLLECTION
 void* lcd_refresh_thread_func(void* arg)
 {
     lcd_refresh_th_parm_t * parm = (lcd_refresh_th_parm_t*)arg;
@@ -494,12 +494,6 @@ void* lcd_refresh_thread_func(void* arg)
 
         pthread_mutex_unlock(&gs_lcd_upd_mutex);
 
-        /*Begin: for test*/
-        /*
-gs_device_st_pool_of_lcd.tof_distance = 900;
-gs_device_st_pool_of_lcd.tof_distance_upd = true;
-*/
-        /*End: for test*/
 
         REFRESH_LCD_DISPYAL; 
     }
@@ -508,6 +502,7 @@ gs_device_st_pool_of_lcd.tof_distance_upd = true;
 
     return NULL;
 }
+#undef REFRESH_LCD_DISPYAL
 
 int init_lcd_upd_mutex()
 {
