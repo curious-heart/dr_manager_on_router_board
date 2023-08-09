@@ -68,7 +68,7 @@ static const lcd_area_info_t gs_lcd_areas[] =
     {LCD_CHARGER_POS_X, LCD_CHARGER_POS_Y, LCD_CHARGER_POS_W, LCD_CHARGER_POS_H, NULL},
     {LCD_BAT_POS_X, LCD_BAT_POS_Y, LCD_BAT_POS_W, LCD_BAT_POS_H, NULL},
     {LCD_BAT_POS_X, LCD_BAT_POS_Y, LCD_BAT_POS_W, LCD_BAT_POS_H, NULL},
-    {LCD_WAN_CONN_REL_POS_X, LCD_WAN_CONN_REL_POS_X, LCD_WAN_CONN_POS_W, LCD_WAN_CONN_POS_W, NULL},
+    {LCD_WAN_CONN_REL_POS_X, LCD_WAN_CONN_REL_POS_Y, LCD_WAN_CONN_POS_W, LCD_WAN_CONN_POS_H, NULL},
     {LCD_CELL_SRV_ST_POS_X, LCD_CELL_SRV_ST_POS_Y, LCD_CELL_SRV_ST_POS_W, LCD_CELL_SRV_ST_POS_H, NULL},
     {LCD_CELL_MODE_POS_X, LCD_CELL_MODE_POS_Y, LCD_CELL_MODE_POS_W, LCD_CELL_MODE_POS_H, NULL},
     {LCD_WIFI_WAN_ST_POS_X, LCD_WIFI_WAN_ST_POS_Y, LCD_WIFI_WAN_ST_POS_W, LCD_WIFI_WAN_ST_POS_H, NULL},
@@ -239,13 +239,13 @@ static void refresh_wan_bear_type_display(dr_device_st_enum_t st_id)
     {
         write_img_to_px_rect(gs_lcd_wan_conn_res, LCD_WAN_CONN_IMG_W, LCD_WAN_CONN_IMG_H,
             LCD_CELL_SRV_ST_POS_X + gs_lcd_areas[st_id].pos_x,
-            LCD_CELL_SRV_ST_POS_Y + gs_lcd_areas[st_id].pos_y,
+            LCD_CELL_SRV_ST_POS_Y + LCD_CELL_SRV_ST_POS_H +  gs_lcd_areas[st_id].pos_y,
             gs_lcd_areas[st_id].pos_w, gs_lcd_areas[st_id].pos_h);
     }
     else
     {
         clear_screen_area(LCD_CELL_SRV_ST_POS_X + gs_lcd_areas[st_id].pos_x,
-                          LCD_CELL_SRV_ST_POS_Y + gs_lcd_areas[st_id].pos_y,
+                          LCD_CELL_SRV_ST_POS_Y + LCD_CELL_SRV_ST_POS_H + gs_lcd_areas[st_id].pos_y,
                           gs_lcd_areas[st_id].pos_w, gs_lcd_areas[st_id].pos_h);
     }
 
@@ -253,13 +253,13 @@ static void refresh_wan_bear_type_display(dr_device_st_enum_t st_id)
     {
         write_img_to_px_rect(gs_lcd_wan_conn_res, LCD_WAN_CONN_IMG_W, LCD_WAN_CONN_IMG_H,
             LCD_WIFI_WAN_ST_POS_X + gs_lcd_areas[st_id].pos_x,
-            LCD_WIFI_WAN_ST_POS_Y + gs_lcd_areas[st_id].pos_y,
+            LCD_WIFI_WAN_ST_POS_Y + LCD_WIFI_WAN_ST_POS_H + gs_lcd_areas[st_id].pos_y,
             gs_lcd_areas[st_id].pos_w, gs_lcd_areas[st_id].pos_h);
     }
     else
     {
         clear_screen_area(LCD_WIFI_WAN_ST_POS_X + gs_lcd_areas[st_id].pos_x,
-                          LCD_WIFI_WAN_ST_POS_Y +  gs_lcd_areas[st_id].pos_y,
+                          LCD_WIFI_WAN_ST_POS_Y + LCD_WIFI_WAN_ST_POS_H + gs_lcd_areas[st_id].pos_y,
                           gs_lcd_areas[st_id].pos_w, gs_lcd_areas[st_id].pos_h);
     }
 }
@@ -282,7 +282,10 @@ static void refresh_cellular_srv_st_display(dr_device_st_enum_t st_id)
                 gs_lcd_areas[st_id].pos_x, gs_lcd_areas[st_id].pos_y, gs_lcd_areas[st_id].pos_w, gs_lcd_areas[st_id].pos_h);
     }
 
-    if(ST_PARAM_CHECK_UPD(gs_device_st_pool_of_lcd, cellular_mode))
+    /*cellular_signal_bars cover cellular_mode icon, so here we should do some extra check.*/
+    if(ST_PARAM_CHECK_UPD(gs_device_st_pool_of_lcd, cellular_mode) 
+        || (ST_PARAM_CHECK_UPD(gs_device_st_pool_of_lcd, cellular_signal_bars)
+                && (gs_device_st_pool_of_lcd.cellular_mode > CELLULAR_MODE_NOSRV)))
     {
         int mode_idx = (int)gs_device_st_pool_of_lcd.cellular_mode;
 
@@ -292,6 +295,18 @@ static void refresh_cellular_srv_st_display(dr_device_st_enum_t st_id)
         write_img_to_px_rect(gs_lcd_mode_res[mode_idx], LCD_CELL_MODE_IMG_W, LCD_CELL_MODE_IMG_H,
                 gs_lcd_areas[st_id].pos_x, gs_lcd_areas[st_id].pos_y, gs_lcd_areas[st_id].pos_w, gs_lcd_areas[st_id].pos_h);
     }
+
+    /*cellular_signal_bars cover wan_conn icon, so here we should do some extra check.*/
+    if(ST_PARAM_CHECK_UPD(gs_device_st_pool_of_lcd, cellular_signal_bars)
+            &&(gs_device_st_pool_of_lcd.wan_bear & WWAN_BEAR_CELLULAR))
+    {
+        st_id = enum_wan_bear;
+        write_img_to_px_rect(gs_lcd_wan_conn_res, LCD_WAN_CONN_IMG_W, LCD_WAN_CONN_IMG_H,
+            LCD_CELL_SRV_ST_POS_X + gs_lcd_areas[st_id].pos_x,
+            LCD_CELL_SRV_ST_POS_Y + LCD_CELL_SRV_ST_POS_H + gs_lcd_areas[st_id].pos_y,
+            gs_lcd_areas[st_id].pos_w, gs_lcd_areas[st_id].pos_h);
+    }
+
     ST_PARAM_CLEAR_UPD(gs_device_st_pool_of_lcd, cellular_signal_bars);
     ST_PARAM_CLEAR_UPD(gs_device_st_pool_of_lcd, cellular_mode);
 }
@@ -305,6 +320,16 @@ static void refresh_wifi_wan_display(dr_device_st_enum_t st_id)
 
     write_img_to_px_rect(gs_wifi_wan_st_res[map_lvl], LCD_WIFI_WAN_ST_IMG_W, LCD_WIFI_WAN_ST_IMG_H, 
                 gs_lcd_areas[st_id].pos_x, gs_lcd_areas[st_id].pos_y, gs_lcd_areas[st_id].pos_w, gs_lcd_areas[st_id].pos_h);
+
+    /*wifi_wan icon cover wifi conn icon, so here we need an extra check.*/
+    if(gs_device_st_pool_of_lcd.wan_bear & WWAN_BEAR_WIFI)
+    {
+        st_id = enum_wan_bear;
+        write_img_to_px_rect(gs_lcd_wan_conn_res, LCD_WAN_CONN_IMG_W, LCD_WAN_CONN_IMG_H,
+            LCD_WIFI_WAN_ST_POS_X + gs_lcd_areas[st_id].pos_x,
+            LCD_WIFI_WAN_ST_POS_Y + LCD_WIFI_WAN_ST_POS_H + gs_lcd_areas[st_id].pos_y,
+            gs_lcd_areas[st_id].pos_w, gs_lcd_areas[st_id].pos_h);
+    }
 }
 
 static void refresh_sim_card_st_display(dr_device_st_enum_t st_id)
