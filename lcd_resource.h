@@ -392,6 +392,14 @@ static const unsigned char gs_alpha_high_chars_font[][16 /* LCD_ALPHA_HIGH_FONT_
     },
 };
 
+#define PUNC_SPACE_FONT_W 8
+#define PUNC_SPACE_FONT_H 16
+static const unsigned char gs_punc_space_font[ /* PUNC_SPACE_FONT_W * ceil(PUNC_SPACE_FONT_H / 8) */] = 
+{/* . */
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+};
+
 #define PUNC_COLON_FONT_W 8
 #define PUNC_COLON_FONT_H 16
 static const unsigned char gs_punc_colon_font[ /* PUNC_COLON_FONT_W * ceil(PUNC_COLON_FONT_H / 8) */] = 
@@ -762,15 +770,19 @@ static const char* gs_LCD_DISPLAY_UNIT_STR_AMTS = "mAs";
  * The "format_str" must contain ".*" to use the "precision". 
  *
  */
-#define PRINT_NUMBER_WITH_UNIT_TO_SCRN(number, max_len, format_str, precision, unit_str, start_x, start_y) \
+#define PRINT_NUMBER_WITH_UNIT_TO_SCRN(number, max_len, format_str, precision, unit_str, start_x, start_y, pos_w, pos_h) \
 {\
     char number_str[max_len + 1];\
-    int block_w;\
+    int block_w = 0;\
 \
     snprintf(number_str, sizeof(number_str), format_str, precision, number); \
     \
-    block_w = print_one_line_to_scrn(number_str, sizeof(number_str), start_x, start_y);\
-    print_one_line_to_scrn(unit_str, strlen(unit_str), start_x + block_w, start_y);\
+    block_w += print_one_line_to_scrn(number_str, sizeof(number_str), start_x, start_y);\
+    block_w += print_one_line_to_scrn(unit_str, strlen(unit_str), start_x + block_w, start_y);\
+    if(block_w < pos_w)\
+    {\
+        clear_screen_area(start_x + block_w, start_y, pos_w - block_w, pos_h);\
+    }\
 }
 
 #endif

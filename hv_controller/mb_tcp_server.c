@@ -810,6 +810,7 @@ mb_server_exit_code_t  mb_server_loop(mb_tcp_server_params_t * srvr_params, bool
     /* Keep track of the max file descriptor */
     fdmax = gs_mb_server_socket;
 
+    refresh_lcd_from_main_th();
     for (;;) 
     {
         rdset = refset;

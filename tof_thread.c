@@ -83,7 +83,7 @@ void* tof_thread_func(void* arg)
     tof_thread_parm_t * parm = (tof_thread_parm_t*)arg;
     float period;
     int ret;
-    unsigned short distance;
+    unsigned short distance = 0;
 
     pthread_cleanup_push(tof_th_cleanup_h, NULL);
 
@@ -112,10 +112,6 @@ void* tof_thread_func(void* arg)
         {
             distance = tof_single_measure(); 
             DIY_LOG(LOG_INFO, "%s distance:%u\n", g_tof_th_desc, distance);
-        }
-        else
-        {
-            distance = -1; 
         }
 
         if(access_device_st_pool(pthread_self(), g_tof_th_desc, upd_g_st_pool_from_tof_th, &distance))
