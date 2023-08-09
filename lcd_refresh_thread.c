@@ -275,6 +275,7 @@ static void refresh_cellular_srv_st_display(dr_device_st_enum_t st_id)
     {
         int map_lvl = (int)gs_device_st_pool_of_lcd.cellular_signal_bars;
 
+        st_id = enum_cellular_signal_bars;
         if(map_lvl < 0) map_lvl = 0;
         if(map_lvl >= MAX_CELL_WAN_LEVELS) map_lvl = MAX_CELL_WAN_LEVELS - 1; 
 
@@ -285,6 +286,8 @@ static void refresh_cellular_srv_st_display(dr_device_st_enum_t st_id)
     if(gs_device_st_pool_of_lcd.cellular_mode_upd)
     {
         int mode_idx = (int)gs_device_st_pool_of_lcd.cellular_mode;
+
+        st_id = enum_cellular_mode;
 
         if(mode_idx < 0 || mode_idx >= LCD_CELL_MODE_NUM) mode_idx = 0;
         write_img_to_px_rect(gs_lcd_mode_res[mode_idx], LCD_CELL_MODE_IMG_W, LCD_CELL_MODE_IMG_H,

@@ -11,6 +11,7 @@ dr_device_st_pool_t g_device_st_pool =
 {
     .hot_spot_st = HOTSPOT_DOWN, 
     .bat_chg_st = CHARGER_INIT,
+    .bat_lvl = -1,
     .cellular_signal_bars = -1,
     .cellular_mode = CELLULAR_MODE_INIT,
     .sim_card_st = SIM_INIT,
