@@ -31,6 +31,8 @@ typedef struct
 说明：
 1) “范围指示灯”按键仅仅是一个“开启/关闭范围指示灯”的输入信号，dr_manager收到该信号后，
 仅向下位机发送RangeIndicatorStart命令；实际的指示灯控制是在下位机上完成的。
+2) SW1~4 and Charge is configured in dts and theire press/release event is processed in application
+gpio_key_monitor. Only SC_PG is read by dr_manager, in period.
  */
 
 #define GPIO_CHARGER_FULL_IND 42//34

@@ -3,8 +3,8 @@
 
 OBJ = ./obj
 
-INC = . ./common_tools ./hv_controller ./lcd_display ./tof_measure ./tof_measure/core/inc ./tof_measure/platform/inc ./mb_tcp_server_test ./gpio_key_processor
-SRC = . ./common_tools ./hv_controller ./lcd_display ./tof_measure ./tof_measure/core/src ./tof_measure/platform/src
+INC = . ./common_tools ./hv_controller ./lcd_display ./tof_measure ./tof_measure/core/inc ./tof_measure/platform/inc ./mb_tcp_server_test ./gpio_key_processor ./op_gpio_thu_reg
+SRC = . ./common_tools ./hv_controller ./lcd_display ./tof_measure ./tof_measure/core/src ./tof_measure/platform/src 
 
 TARGET = dr_manager
 TCP_SRVR_TEST_TARGET = mb_tcp_test_client
@@ -18,7 +18,7 @@ prepare:
 INCLUDES = $(wildcard $(addsuffix /*.h, $(INC)))
 SOURCES = $(wildcard $(addsuffix /*.c, $(SRC)))
 TCP_SRVR_TEST_SOURCES = ./mb_tcp_server_test/mb_tcp_server_test.c /hv_controller/hv_registers.c ./common_tools/logger.c ./common_tools/get_opt_helper.c ./common_tools/common_tools.c
-GPIO_KEY_PROCESSOR_SOURCES = $(wildcard ./gpio_key_processor/*.c) ./common_tools/logger.c ./common_tools/get_opt_helper.c ./common_tools.c ./hv_controller/hv_controller.c ./hv_controller/hv_registers.c
+GPIO_KEY_PROCESSOR_SOURCES = $(wildcard ./gpio_key_processor/*.c) ./common_tools/logger.c ./common_tools/get_opt_helper.c ./common_tools.c ./hv_controller/hv_controller.c ./hv_controller/hv_registers.c ./op_gpio_thu_reg/op_gpio_thu_reg.c
 
 # These variables hold the name of the compilation tool, the compilation flags and the link flags
 # We make use of these variables in the package manifest
@@ -53,6 +53,8 @@ $(OBJ)/%.o: ./tof_measure/platform/src/%.c $(DEPS)
 $(OBJ)/%.o: ./mb_tcp_server_test/%.c $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)
 $(OBJ)/%.o: ./gpio_key_processor/%.c $(DEPS)
+	$(CC) -c -o $@ $< $(CFLAGS)
+$(OBJ)/%.o: ./op_gpio_thu_reg/%.c $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 $(TARGET): $(OBJECTS)

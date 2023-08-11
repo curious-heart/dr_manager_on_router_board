@@ -11,6 +11,7 @@
 #include "logger.h"
 #include "get_opt_helper.h"
 #include "gpio_key_processor.h"
+#include "op_gpio_thu_reg.h"
 
 #define UEVENT_MSG_LEN 1024 //4096
 
@@ -311,6 +312,28 @@ int main(int argc, char* argv[])
     if(!begin_key_event_handle())
     {
         return -1;
+    }
+
+    /* Read charger gpio at start. Because if device is powered on with charger plugged, no uevent would be 
+     * broadcast up.
+     * */
+    if(0 == gpio_mmap_for_read())
+    {
+#define CHARGER_GPIO_NUM 41 //refer to the table in comment in file main_app_used_gpios.h
+        int gpio_value = gpio_pin_read(CHARGER_GPIO_NUM);
+        if(gpio_value >= 0)
+        {
+            converted_gbh_uevt.key_gpio = gpio_charger;
+            converted_gbh_uevt.action = gpio_value ? key_pressed : key_released;
+            converted_gbh_uevt.seen = converted_gbh_uevt.seqnum = 0; //this two element are not used yet.
+            converted_gbh_uevt.valid = true;
+            charger_gpio_handler(&converted_gbh_uevt);
+        }
+        else
+        {
+            DIY_LOG(LOG_ERROR, "invalid value read from charger pin.\n");
+        }
+        gpio_munmap_for_read();
     }
 
     do 
