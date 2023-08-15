@@ -177,6 +177,14 @@ static void main_th_exit_handler()
 
 static bool clear_threads()
 {
+    /*
+       If we call the following functions (indeed it is the cancel_assit_thread), when kill the process from shell,
+       there is segment fault. I don't know why...
+       But it does not matter we cancel threads or not now, since there is no resource leak. So we jut comment the following
+       code parts, and in future when I get to understand more about the pthrea mechanism, I'll refresh this function.
+    */
+
+    /*
     int s;
     cancel_assit_thread(gs_dev_monitor_th_started , &gs_dev_monitor_th_id);
     gs_dev_monitor_th_started = false;
@@ -193,6 +201,8 @@ static bool clear_threads()
     s = destroy_tof_th_measure_mutex();
     PTHREAD_ERR_CHECK(s, "destory_tof_th_measure_mutex", "", " failes", false, false);
 
+    */
+
     main_th_exit_handler();
     return true;
 }
@@ -206,6 +216,7 @@ static void clear_for_exit()
         DIY_LOG(LOG_INFO, "clear for exit.................\n");
         mb_server_exit();
         hv_controller_close();
+
         clear_threads();
 
         exited = true;
