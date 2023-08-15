@@ -26,7 +26,7 @@ typedef struct
 档位+按键       |SW1    |4      |JTMS     |GPIO15 |低有效
 档位-按键       |SW2    |6      |JTDI     |GPIO14 |低有效
 充电器插入gpio  |Charge |39     |ND_WP    |GPIO41 |低有效
-满电指示gpio    |SC_PG  |37     |ND_RB_N  |GPIO42 |高有效
+满电指示gpio    |SC_PG  |28     |GPIO00   |GPIO0  |高有效
 ------------------------------------------------------------
 说明：
 1) “范围指示灯”按键仅仅是一个“开启/关闭范围指示灯”的输入信号，dr_manager收到该信号后，
@@ -35,7 +35,7 @@ typedef struct
 gpio_key_monitor. Only SC_PG is read by dr_manager, in period.
  */
 
-#define GPIO_CHARGER_FULL_IND 42//34
+#define GPIO_CHARGER_FULL_IND 0 //42//34
 
 
 #define GPIO_CTL_PTH "/sys/class/gpio"
