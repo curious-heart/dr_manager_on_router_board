@@ -48,6 +48,8 @@ typedef enum MB_REG_ENUM hv_mb_reg_e_t;
 #define EXTEND_MB_REG_AND_CNT(addr, cnt) (EXTEND_MB_REG_ADDR(addr) && EXTEND_MB_REG_ADDR((addr) + (cnt) - 1))
 #define VALID_MB_REG_AND_CNT(addr, cnt) (VALID_MB_REG_ADDR(addr) && VALID_MB_REG_ADDR((addr) + (cnt) - 1))
 
+#define MB_REG_COMM_DSP(addr, cnt) (NORMAL_MB_REG_AND_CNT(addr, cnt) || (EXT_MB_REG_DOSE_ADJ == addr))
+
 #define HV_MB_REG_RW_ATTR_R 'r'
 #define HV_MB_REG_RW_ATTR_W 'w'
 #define HV_MB_REG_RW_ATTR_RW '+'

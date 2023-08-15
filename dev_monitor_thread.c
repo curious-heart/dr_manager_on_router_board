@@ -304,12 +304,6 @@ bool access_device_st_pool(pthread_t pth_id, const char* desc, access_device_sta
      * the global pool, and use this function to call that private funciton.
      * */
     bool upd = false;
-    DIY_LOG(LOG_INFO, "thread %u ", (uint32_t)pth_id);
-    if(desc)
-    {
-        DIY_LOG(LOG_INFO + LOG_ONLY_INFO_STR_COMP, "%s ", desc);
-    }
-    DIY_LOG(LOG_INFO + LOG_ONLY_INFO_STR_COMP, "try to update device status pool.\n");
 
     if(func)
     {

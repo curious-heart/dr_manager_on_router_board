@@ -550,7 +550,7 @@ static mb_rw_reg_ret_t mb_server_process_extend_reg(uint8_t * req_msg, int req_m
     return ret;
 }
 
-static mb_rw_reg_ret_t mb_server_process_req(uint8_t * req_msg, int req_msg_len,
+static mb_rw_reg_ret_t mb_server_process_req(uint8_t * req_msg, int req_msg_len, bool * comm_with_dsp,
                                              bool server_only)
 {
     mb_rw_reg_ret_t process_ret = MB_RW_REG_RET_NONE; 
@@ -581,6 +581,11 @@ static mb_rw_reg_ret_t mb_server_process_req(uint8_t * req_msg, int req_msg_len,
     if(server_only)
     {
         return process_ret;
+    }
+
+    if(MB_REG_COMM_DSP(reg_addr_start, reg_cnt) && comm_with_dsp)
+    {
+        *comm_with_dsp = true;
     }
 
     if(MB_EXTEND_REG == check_ret)
@@ -902,7 +907,7 @@ mb_server_exit_code_t  mb_server_loop(mb_tcp_server_params_t * srvr_params, bool
                                clientaddr.sin_port);
                     }
 
-                    process_ret = mb_server_process_req(query, rc, server_only);
+                    process_ret = mb_server_process_req(query, rc, &ex_client_active, server_only);
                     if(MB_RW_REG_RET_USE_SHORT_WAIT_TIME == process_ret)
                     {
                         timeout.tv_sec = 0;
@@ -918,7 +923,6 @@ mb_server_exit_code_t  mb_server_loop(mb_tcp_server_params_t * srvr_params, bool
                             = (suseconds_t)(srvr_params->long_select_wait_time * 1000000);
                         timeout_updated = true;
                     }
-                    ex_client_active = true;
                 }
                 else if (rc == -1)
                 {

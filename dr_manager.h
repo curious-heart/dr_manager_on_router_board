@@ -126,8 +126,7 @@ int destroy_dev_st_pool_mutex();
 typedef bool (*access_device_status_pool_func_t)(void*);
 bool access_device_st_pool(pthread_t pth_id, const char* desc, access_device_status_pool_func_t func, void* arg);
 
-int init_lcd_upd_mutex();
-int destroy_lcd_upd_mutex();
+int init_lcd_upd_sync_mech();
 typedef void (*update_lcd_func_t)(void*);
 void update_lcd_display(pthread_t pth_id, const char* desc);
 

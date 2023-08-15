@@ -40,7 +40,7 @@ static bool get_fmt_datetime_str(char* buf, int len, const char* fmt_str)
 
 bool get_date_str(char* buf, int len)
 {
-    if(len < DATE_STRING_LEN + 1)
+    if(!buf || (len < DATE_STRING_LEN + 1))
     {
         return false;
     }
@@ -49,7 +49,7 @@ bool get_date_str(char* buf, int len)
 
 bool get_time_str(char* buf, int len)
 {
-    if(len < TIME_STRING_SEC_LEN + 1)
+    if(!buf || (len < TIME_STRING_SEC_LEN + 1))
     {
         return false;
     }
@@ -59,7 +59,7 @@ bool get_time_str(char* buf, int len)
 bool get_datetime_str(char* buf, int len)
 {
     /*There is a space between date and time string.*/
-    if(len < DATE_STRING_LEN + 1 + TIME_STRING_SEC_LEN + 1)
+    if(!buf || (len < DATE_STRING_LEN + 1 + TIME_STRING_SEC_LEN + 1))
     {
         return false;
     }

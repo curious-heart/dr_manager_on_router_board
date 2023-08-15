@@ -1,6 +1,7 @@
 #include <string.h>
 #include <errno.h>
 #include <pthread.h>
+#include <semaphore.h>
 
 #include "common_tools.h"
 #include "logger.h"
@@ -16,12 +17,13 @@
  *
  */
 
-static pthread_mutex_t gs_lcd_upd_mutex;
-static pthread_cond_t gs_lcd_refresh_cond = PTHREAD_COND_INITIALIZER;
+static sem_t gs_lcd_refresh_sem;
+static bool gs_sem_inited = false;
 static dr_device_st_pool_t gs_device_st_pool_of_lcd;
 static bool gs_lcd_opened = false;
 const char* g_lcd_refresh_th_desc = "LCD-Refresh";
 
+static int destroy_lcd_upd_sync_mech();
 static void lcd_refresh_thread_cleanup_h(void* arg)
 {
     DIY_LOG(LOG_INFO, "%s thread exit cleanup!\n", g_lcd_refresh_th_desc);
@@ -30,6 +32,7 @@ static void lcd_refresh_thread_cleanup_h(void* arg)
         close_lcd_dev();
         gs_lcd_opened = false;
     }
+    destroy_lcd_upd_sync_mech();
 }
 
 #include "lcd_resource.h"
@@ -519,69 +522,57 @@ void* lcd_refresh_thread_func(void* arg)
 
     while(true)
     {
-        pthread_mutex_lock(&gs_lcd_upd_mutex);
-
-        pthread_cond_wait(&gs_lcd_refresh_cond, &gs_lcd_upd_mutex);
+        sem_wait(&gs_lcd_refresh_sem);
 
         access_device_st_pool(pthread_self(), g_lcd_refresh_th_desc, access_g_st_pool_from_lcd_refresh_th,
                 &gs_device_st_pool_of_lcd);
 
-        pthread_mutex_unlock(&gs_lcd_upd_mutex);
-
-
         REFRESH_LCD_DISPYAL; 
     }
-
     pthread_cleanup_pop(1);
 
     return NULL;
 }
 #undef REFRESH_LCD_DISPYAL
 
-int init_lcd_upd_mutex()
+int init_lcd_upd_sync_mech()
 {
     int ret;
-    pthread_mutexattr_t attr;
 
-    pthread_mutexattr_init(&attr);
-    pthread_mutexattr_setrobust(&attr, PTHREAD_MUTEX_ROBUST);
+    ret = sem_init(&gs_lcd_refresh_sem, 0, 1);
+    if(0 == ret)
+    {
+        gs_sem_inited = true;
+    }
+    else
+    {
+        gs_sem_inited = false;
+        DIY_LOG(LOG_ERROR, "sem_init error: %d.\n", errno);
+    }
 
-    ret = pthread_mutex_init(&gs_lcd_upd_mutex, &attr);
     return ret;
 }
 
-int destroy_lcd_upd_mutex()
+static int destroy_lcd_upd_sync_mech()
 {
-    int ret;
-    ret = pthread_mutex_destroy(&gs_lcd_upd_mutex);
-    if(ret)
+    int ret = 0;
+
+    if(gs_sem_inited)
     {
-        DIY_LOG(LOG_ERROR, "pthread_mutex_destroy error: %d.\n", ret);
+        ret = sem_destroy(&gs_lcd_refresh_sem);
+        if(0 != ret)
+        {
+            DIY_LOG(LOG_ERROR, "sem_destroy fail: %d.\n", errno);
+        }
+
+        gs_sem_inited = false;
     }
-    ret = pthread_cond_destroy(&gs_lcd_refresh_cond);
     return ret;
 }
 
 void update_lcd_display(pthread_t pth_id, const char* desc)
 {
-    int ret;
-
-    DIY_LOG(LOG_INFO, "thread %u ", (uint32_t)pth_id);
-    if(desc)
-    {
-        DIY_LOG(LOG_INFO + LOG_ONLY_INFO_STR_COMP, "%s ", desc);
-    }
-    DIY_LOG(LOG_INFO + LOG_ONLY_INFO_STR_COMP, "try to update lcd.\n");
-
-    ret = pthread_mutex_lock(&gs_lcd_upd_mutex);
-    if(EOWNERDEAD == ret)
-    {
-        pthread_mutex_consistent(&gs_lcd_upd_mutex);
-    }
-
-    pthread_cond_signal(&gs_lcd_refresh_cond);
-
-    pthread_mutex_unlock(&gs_lcd_upd_mutex);
+    sem_post(&gs_lcd_refresh_sem);
 
     DIY_LOG(LOG_INFO, "thread %u ", (uint32_t)pth_id);
     if(desc)

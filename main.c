@@ -178,8 +178,6 @@ static void main_th_exit_handler()
 static bool clear_threads()
 {
     int s;
-    void check_and_cancel_tof_th();
-
     cancel_assit_thread(gs_dev_monitor_th_started , &gs_dev_monitor_th_id);
     gs_dev_monitor_th_started = false;
 
@@ -191,9 +189,6 @@ static bool clear_threads()
 
     s = destroy_dev_st_pool_mutex();
     PTHREAD_ERR_CHECK(s, "destory_dev_st_pool_mutex", "", " failes", false, false);
-
-    s = destroy_lcd_upd_mutex();
-    PTHREAD_ERR_CHECK(s, "destory_lcd_upd_mutex", "", " failes", false, false);
 
     s = destroy_tof_th_measure_mutex();
     PTHREAD_ERR_CHECK(s, "destory_tof_th_measure_mutex", "", " failes", false, false);
@@ -217,13 +212,13 @@ static void clear_for_exit()
     }
     else
     {
-        DIY_LOG(LOG_INFO, "app alread  cleared and exited.\n");
+        DIY_LOG(LOG_INFO, "app already  cleared and exited.\n");
     }
 }
 
 static void close_sigint(int dummy)
 {
-    DIY_LOG(LOG_INFO, "SIGINT received, now exit...\n");
+    DIY_LOG(LOG_INFO, "close_signint(dummy: %d), now exit...\n", dummy);
     clear_for_exit();
     exit(dummy);
 }
@@ -231,7 +226,7 @@ static void close_sigint(int dummy)
 static void init_thread_syncs()
 {
     init_dev_st_pool_mutex();
-    init_lcd_upd_mutex();
+    init_lcd_upd_sync_mech();
     init_tof_th_measure_mutex();
 }
 
