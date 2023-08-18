@@ -61,7 +61,7 @@ static void mb_tcp_srvr_adjust_dose(uint16_t adj_val, uint16_t* reg_buf)
     reg_buf[VoltSet + 2] = exp_parms_tuple_arr[curr_level].dura;
 }
 
-mb_rw_reg_ret_t mb_tcp_srvr_ext_reg_dose_adj_handler(uint16_t adj_val)
+mb_rw_reg_ret_t mb_tcp_srvr_ext_reg_dose_adj_handler(uint16_t adj_val, bool server_only)
 {
     mb_rw_reg_ret_t process_ret = MB_RW_REG_RET_NONE;
     modbus_t * mb_ctx = mb_server_get_ctx();
@@ -73,20 +73,23 @@ mb_rw_reg_ret_t mb_tcp_srvr_ext_reg_dose_adj_handler(uint16_t adj_val)
 
     mb_tcp_srvr_adjust_dose(adj_val, reg_mappings->tab_registers);
 
-    if(hv_controller_write_uint16s(reg_addr_start, &reg_mappings->tab_registers[reg_addr_start], reg_cnt))
+    if(!server_only)
     {
-       process_ret = mb_server_write_reg_sniff(reg_addr_start, &reg_mappings->tab_registers[reg_addr_start], reg_cnt);
-    }
-    else
-    {
-        uint16_t idx;
-        DIY_LOG(LOG_ERROR, "%swrite the following registers to hv_controller error:.\n", gp_mb_server_log_header);
-
-        for(idx = reg_addr_start; idx < reg_addr_start + reg_cnt; ++idx)
+        if(hv_controller_write_uint16s(reg_addr_start, &reg_mappings->tab_registers[reg_addr_start], reg_cnt))
         {
-            DIY_LOG(LOG_ERROR + LOG_ONLY_INFO_STR, "\t%s: %d\n", get_hv_mb_reg_str(idx), reg_mappings->tab_registers[idx]);
+           process_ret = mb_server_write_reg_sniff(reg_addr_start, &reg_mappings->tab_registers[reg_addr_start], reg_cnt);
         }
-        process_ret = MB_RW_REG_RET_ERROR;
+        else
+        {
+            uint16_t idx;
+            DIY_LOG(LOG_ERROR, "%swrite the following registers to hv_controller error:.\n", gp_mb_server_log_header);
+
+            for(idx = reg_addr_start; idx < reg_addr_start + reg_cnt; ++idx)
+            {
+                DIY_LOG(LOG_ERROR + LOG_ONLY_INFO_STR, "\t%s: %d\n", get_hv_mb_reg_str(idx), reg_mappings->tab_registers[idx]);
+            }
+            process_ret = MB_RW_REG_RET_ERROR;
+        }
     }
 
     return process_ret; 

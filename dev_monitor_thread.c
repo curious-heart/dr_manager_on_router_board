@@ -144,11 +144,11 @@ static void get_cellular_st(bool debug_flag)
     }
 
     init_cell_info_var();
-    DIY_LOG(LOG_INFO, "cellular info line:\n");
+    DIY_LOG(LOG_DEBUG, "cellular info line:\n");
     while((nread = getline(&line, &len, r_stream)) != -1)
     {
         line[strcspn(line, "\r\n")] = '\0';
-        DIY_LOG(LOG_INFO + LOG_ONLY_INFO_STR, "%s\n", line);
+        DIY_LOG(LOG_DEBUG + LOG_ONLY_INFO_STR, "%s\n", line);
         for(idx = 0; idx < ARRAY_ITEM_CNT(gs_pipe_read_helper); ++idx)
         {
             tag_len = strlen(gs_pipe_read_helper[idx].tag);
@@ -170,11 +170,11 @@ static void get_cellular_st(bool debug_flag)
     }
 
     /*cell mode.*/
-    DIY_LOG(LOG_INFO, "cellular cell mode str: %s\n", gs_cell_mode_str);
+    DIY_LOG(LOG_DEBUG + LOG_ONLY_INFO_STR, "cellular cell mode str: %s\n", gs_cell_mode_str);
     map_cell_mode_to_pool(gs_cell_mode_str);
-    DIY_LOG(LOG_INFO, "cellular mode: %d\n", gs_main_dev_st.cellular_mode);
+    DIY_LOG(LOG_DEBUG + LOG_ONLY_INFO_STR, "cellular mode: %d\n", gs_main_dev_st.cellular_mode);
 
-    DIY_LOG(LOG_INFO, "cellular conn state str: %s\n", gs_cell_state_str);
+    DIY_LOG(LOG_DEBUG + LOG_ONLY_INFO_STR, "cellular conn state str: %s\n", gs_cell_state_str);
     /*wan connection.*/
     if(!strcmp(gs_cell_state_str, gs_state_str_cell_conn)) 
     {
@@ -184,7 +184,7 @@ static void get_cellular_st(bool debug_flag)
     {
         gs_main_dev_st.wan_bear &= ~WWAN_BEAR_CELLULAR;
     }
-    DIY_LOG(LOG_INFO, "wan bear: 0x%02X\n", gs_main_dev_st.wan_bear);
+    DIY_LOG(LOG_DEBUG + LOG_ONLY_INFO_STR, "wan bear: 0x%02X\n", gs_main_dev_st.wan_bear);
 
     /* since rsrp and other signal values are already obtained, in future, there can be more accurate signal-bar map 
      * implement here. Now, we just use the bar from shell script, which is much coarse...
@@ -229,14 +229,14 @@ static void get_sim_card_st(bool debug_flag)
         spn = strspn(&line[tag_len], imsi_char_set);
         if(!strncmp(tag_str, line, tag_len) && (nread >= tag_len + imsi_len) && (spn == imsi_len))
         {
-            DIY_LOG(LOG_INFO, "%s\n", line);
+            DIY_LOG(LOG_DEBUG, "%s\n", line);
             gs_main_dev_st.sim_card_st = SIM_CARD_NORM;
             break;
         }
     }
     if(SIM_CARD_NORM != gs_main_dev_st.sim_card_st)
     {
-        DIY_LOG(LOG_WARN, "NO SIM card.\n");
+        DIY_LOG(LOG_DEBUG, "NO SIM card.\n");
     }
 
     free(line);
