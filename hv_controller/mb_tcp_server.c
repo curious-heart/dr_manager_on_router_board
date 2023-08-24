@@ -696,6 +696,22 @@ modbus_mapping_t * mb_server_get_mapping()
     return gs_mb_mapping;
 }
 
+static void init_reg_refresh()
+{
+    if(hv_controller_read_uint16s(HSV, &gs_mb_mapping->tab_registers[HSV], OilBoxTemperature - HSV + 1))
+    {
+        gs_hv_st.expo_volt_kv = gs_mb_mapping->tab_registers[VoltSet];
+        gs_hv_st.expo_am_ua = gs_mb_mapping->tab_registers[FilamentSet];
+        gs_hv_st.expo_dura_ms = gs_mb_mapping->tab_registers[ExposureTime];
+        gs_hv_st.bat_lvl = gs_mb_mapping->tab_registers[BatteryLevel];
+        refresh_lcd_from_main_th();
+    }
+    else
+    {
+        DIY_LOG(LOG_ERROR, "%sinitial modbus registers read error.\n", gp_mb_server_log_header);
+    }
+}
+
 mb_server_exit_code_t  mb_server_loop(mb_tcp_server_params_t * srvr_params, bool server_only)
 {
     uint8_t query[MODBUS_TCP_MAX_ADU_LENGTH];
@@ -806,7 +822,7 @@ mb_server_exit_code_t  mb_server_loop(mb_tcp_server_params_t * srvr_params, bool
     /* Keep track of the max file descriptor */
     fdmax = gs_mb_server_socket;
 
-    refresh_lcd_from_main_th();
+    init_reg_refresh();
     for (;;) 
     {
         rdset = refset;
