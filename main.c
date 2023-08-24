@@ -22,17 +22,22 @@ const char* g_main_thread_desc = "Main-thread";
 static pthread_t gs_dev_monitor_th_id, gs_lcd_refresh_th_id, gs_tof_th_id;
 static bool gs_dev_monitor_th_started = false, gs_lcd_refresh_th_started =false, gs_tof_th_started = false;
 
+#define MAX_USR_INPUT_LEN 16
 static void mb_reg_only_write(hv_mb_reg_e_t reg_addr)
 {
     uint32_t write_data;
     const char* reg_str;
+    char r_buf[MAX_USR_INPUT_LEN + 1];
+
     reg_str = get_hv_mb_reg_str(reg_addr);
     if(!reg_str)
     {
         return;
     }
-    printf("please input the data to be written:");
-    scanf("%u", &write_data);
+    printf("please input the data to be written:\n");
+    fgets(r_buf, sizeof(r_buf), stdin);
+    sscanf(r_buf, "%u", &write_data);
+    printf("\n");
     if(hv_controller_write_single_uint16((int)reg_addr, (uint16_t)write_data))
     {
         printf("write register data ok.\n");
@@ -79,6 +84,7 @@ static uint16_t mb_reg_read_write(hv_mb_reg_e_t reg_addr)
 
 static void rtu_master_test(mb_rtu_params_t* rtu_params )
 {
+    char r_buf[MAX_USR_INPUT_LEN + 1];
     bool end = false;
     int test_no;
     hv_mb_reg_e_t reg_addr;
@@ -114,9 +120,14 @@ static void rtu_master_test(mb_rtu_params_t* rtu_params )
         printf("Fixval = 19,               //校准值\n");
         printf("Workstatus = 20,           //充能状态\n");
         printf("exposureCount = 21,        //曝光次数\n");
-        printf("-1: exit.\n");
+        printf("\n");
 
-        scanf("%d", &test_no);
+        printf("please input the register number (-1 to exit):\n");
+
+        fgets(r_buf, sizeof(r_buf), stdin);
+        sscanf(r_buf, "%d", &test_no);
+        printf("\n");
+
         if(test_no < 0)
         {
             end = true;
@@ -263,9 +274,22 @@ int main(int argc, char *argv[])
 
     print_modbus_params(&g_cmd_line_opt_collection.rtu_params, &g_cmd_line_opt_collection.srvr_params);
 
+    switch(g_cmd_line_opt_collection.work_mode)
+    {
+        case WORK_MODE_RTU_MASTER_ONLY:
+            rtu_master_test(&g_cmd_line_opt_collection.rtu_params);
+            return 0;
+
+        case WORK_MODE_TCP_SERVER_ONLY:
+            server_only = true;
+            break;
+
+        default:
+        ;
+    }
+
     export_gpios_to_app();
 
-    atexit(clear_for_exit);
     /*Init necessary mutexes or other elements for synchronization.*/
     init_thread_syncs();
     /*start other threads. ++++++++++++++++++++++++++++++*/
@@ -291,23 +315,6 @@ int main(int argc, char *argv[])
     gs_tof_th_started = true;
     /*------------------------------*/
 
-    switch(g_cmd_line_opt_collection.work_mode)
-    {
-        case WORK_MODE_RTU_MASTER_ONLY:
-            rtu_master_test(&g_cmd_line_opt_collection.rtu_params);
-            return 0;
-
-        case WORK_MODE_TCP_SERVER_ONLY:
-            server_only = true;
-            break;
-
-        default:
-        ;
-    }
-
-    signal(SIGINT, close_sigint);
-    signal(SIGTERM, close_sigint);
-
     if(!server_only)
     {
         if(!hv_controller_open(&g_cmd_line_opt_collection.rtu_params))
@@ -316,6 +323,10 @@ int main(int argc, char *argv[])
             return -1;;
         }
     }
+
+    atexit(clear_for_exit);
+    signal(SIGINT, close_sigint);
+    signal(SIGTERM, close_sigint);
 
     mb_server_ret = mb_server_loop(&g_cmd_line_opt_collection.srvr_params, server_only);
     switch(mb_server_ret)

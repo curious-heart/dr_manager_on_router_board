@@ -86,6 +86,7 @@ char choose_read_or_write()
         printf("'c': cancel\n");
         fgets(r_buf, sizeof(r_buf), stdin);
         sscanf(r_buf, "%c", &op);
+        printf("\n");
         switch(op)
         {
             case 'r':

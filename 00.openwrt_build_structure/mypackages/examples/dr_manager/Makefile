@@ -3,7 +3,7 @@ include $(TOPDIR)/rules.mk
 # Name, version and release number
 # The name and version of your package are used to define the variable to point to the build directory of your package: $(PKG_BUILD_DIR)
 PKG_NAME:=dr_manager
-PKG_VERSION:=0.1.9_0.1.6
+PKG_VERSION:=0.2.0_0.1.6
 PKG_RELEASE:=1
 
 # Source settings (i.e. where to find the source codes)
@@ -42,11 +42,10 @@ endef
 define Package/dr_manager/install
 	$(INSTALL_DIR) $(1)/usr/bin
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/dr_manager $(1)/usr/bin
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/dr_manager.sh $(1)/usr/bin
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/dr_manager_configuration.sh $(1)/usr/bin
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/mb_tcp_test_client $(1)/usr/bin
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/gpio_key_monitor $(1)/usr/bin
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/*.sh $(1)/usr/bin
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/at_cmd_processor/*.sh $(1)/usr/bin
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/gpio_key_monitor $(1)/usr/bin
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/mb_tcp_test_client $(1)/usr/bin
 endef
 
 # This command is always the last, it uses the definitions and variables we give above in order to get the job done

@@ -247,7 +247,38 @@ static void get_wifi_wan_st(bool debug_flag)
 {}
 
 static void get_hot_spot_st(bool debug_flag)
-{}
+{
+    static const char* get_assoc_host_num_sh = "get_assoc_host_num.sh";
+    static const char* get_assoc_host_num_sh_debug = "get_assoc_host_num.sh -d";
+    FILE* r_stream = NULL;
+    char* line = NULL;
+    size_t len = 0;
+    ssize_t nread;
+    int assoc_host_num = 0;
+
+    if(debug_flag)
+    {
+        r_stream = popen(get_assoc_host_num_sh_debug, "r");
+    }
+    else
+    {
+        r_stream = popen(get_assoc_host_num_sh, "r");
+    }
+    if(NULL == r_stream)
+    {
+        DIY_LOG(LOG_ERROR, "popen %s error.\n", get_assoc_host_num_sh);
+        return;
+    }
+    gs_main_dev_st.sim_card_st = SIM_NO_CARD;
+    if((nread = getline(&line, &len, r_stream)) != -1)
+    {
+        CONVERT_FUNC_ATOI(assoc_host_num, line);
+    }
+    gs_main_dev_st.hot_spot_st= assoc_host_num;
+
+    free(line);
+    pclose(r_stream);
+}
 
 void* dev_monitor_thread_func(void* arg)
 {

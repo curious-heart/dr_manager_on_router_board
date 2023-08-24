@@ -44,6 +44,7 @@ static const char gs_hv_mb_reg_rw_attr[HV_MB_REG_END_FLAG] =
     HV_MB_REG_RW_ATTR_W, /*C(exposureCount = 21),          曝光次数*/
     0, /*C(MAX_HV_MB_REG_NUM) */
     HV_MB_REG_RW_ATTR_W, /*C(EXT_DOSE_ADJ),                       +/- key event*/
+    HV_MB_REG_RW_ATTR_RW, /*C(EXT_MB_REG_CHARGER),             charger plug in/pull out*/
     /*C(HV_MB_REG_END_FLAG), */
 };
 
