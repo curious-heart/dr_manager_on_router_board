@@ -305,7 +305,7 @@ option_process_ret_t process_cmd_options(int argc, char *argv[])
             case 0:
                 if(!strcmp(gs_long_opt_arr[longindex].name, gs_opt_version_str))
                 {
-                    printf("%s\n", g_APP_VER_STR);
+                    printf("%s-%s.%s-%s\n", g_APP_NAME, g_APP_VER_STR, BUILD_DATE_STR, BUILD_TYPE_STR);
                     return OPTION_PROCESS_EXIT_NORMAL;
                 }
                 {

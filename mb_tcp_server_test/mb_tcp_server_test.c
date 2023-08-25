@@ -9,6 +9,9 @@
 #include "logger.h"
 #include "hv_registers.h"
 
+static const char* gs_APP_NAME = "mb_tcp_test_client";
+static const char * gs_APP_VER_STR = "1.0.0";
+
 #define MAX_CHAR_NUM_READ 16
 static const char* gs_local_loop_ip = "127.0.0.1";
 static const uint16_t gs_def_mb_srvr_port = 502;
@@ -183,12 +186,13 @@ static void print_usage()
     /*should be consistent with options defined in main function.*/
     printf("mb_tcp_test_client  [--ip_addr|-a modbus_server_ip]"
            "[--port|-p modbus_server_port] [--tcp_debug|-t]"
-           "[--help|-h]\n");
+           "[--help|-h] [--version]\n");
     printf("The defaul arguments:\n");
     printf("--ip_addr %s\n", gs_local_loop_ip);
     printf("--port %u\n", gs_def_mb_srvr_port);
 }
 
+static const char* const gs_opt_version_str = "version";
 static const char* gs_opt_ip_addr_str = "ip_addr";
 #define gs_opt_ip_addr_c 'a'
 static const char* gs_opt_port_str = "port";
@@ -199,6 +203,8 @@ static const char* gs_opt_help_str = "help";
 #define gs_opt_help_c 'h'
 #define MAX_IP_ADDR_STR_SIZE 17 
 char gs_mb_tcp_ip_str[MAX_IP_ADDR_STR_SIZE];
+
+
 int main(int argc, char *argv[])
 {
     /*should be consistent with usage string in print_usage function.*/
@@ -209,9 +215,11 @@ int main(int argc, char *argv[])
         {gs_opt_port_str, required_argument, 0, gs_opt_port_c},
         {gs_opt_tcp_debug_str, no_argument, 0, gs_opt_tcp_debug_c}, 
         {gs_opt_help_str, no_argument, 0, gs_opt_help_c}, 
+        {gs_opt_version_str, no_argument, 0, 0}, 
         {0, 0, 0, 0},
     };
     int opt_c;
+    int longindex;
     bool arg_parse_result;
 
     const char* srvr_ip = gs_local_loop_ip;
@@ -220,7 +228,7 @@ int main(int argc, char *argv[])
     struct in_addr srvr_ip_in_addr;
 
     arg_parse_result = true;
-    while((opt_c = getopt_long(argc, argv, s_opt_chars, l_opt_arr, NULL)) >= 0)
+    while((opt_c = getopt_long(argc, argv, s_opt_chars, l_opt_arr, &longindex)) >= 0)
     {
         switch(opt_c)
         {
@@ -273,6 +281,15 @@ int main(int argc, char *argv[])
             case (int)gs_opt_help_c: 
                 print_usage();
                 return 0;
+
+            case 0:
+                if(!strcmp(l_opt_arr[longindex].name, gs_opt_version_str))
+                {
+                    printf("%s-%s.%s-%s\n", gs_APP_NAME, gs_APP_VER_STR, BUILD_DATE_STR, BUILD_TYPE_STR);
+                    return 0;
+                }
+                break;
+
             default:
                 arg_parse_result = false;
         }

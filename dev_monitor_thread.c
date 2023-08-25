@@ -269,12 +269,11 @@ static void get_hot_spot_st(bool debug_flag)
         DIY_LOG(LOG_ERROR, "popen %s error.\n", get_assoc_host_num_sh);
         return;
     }
-    gs_main_dev_st.sim_card_st = SIM_NO_CARD;
     if((nread = getline(&line, &len, r_stream)) != -1)
     {
         CONVERT_FUNC_ATOI(assoc_host_num, line);
     }
-    gs_main_dev_st.hot_spot_st= assoc_host_num;
+    gs_main_dev_st.hot_spot_st = assoc_host_num;
 
     free(line);
     pclose(r_stream);

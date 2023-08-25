@@ -10,10 +10,12 @@
 	model = "Trolink ASP";
 
 	aliases {
+/*
 		led-boot = &led_power;
 		led-failsafe = &led_power;
 		led-running = &led_power;
 		led-upgrade = &led_wps;
+*/
 	};
 
 	chosen {
@@ -23,6 +25,7 @@
 	leds {
 		compatible = "gpio-leds";
 
+/*
 		led_power: power {
 			label = "blue:power";
 			gpios = <&gpio 13 GPIO_ACTIVE_LOW>;
@@ -33,7 +36,7 @@
 			label = "blue:wps";
 			gpios = <&gpio 14 GPIO_ACTIVE_LOW>;
 		};
-
+*/
 		usb {
 			label = "blue:usb";
 			gpios = <&gpio 16 GPIO_ACTIVE_LOW>;

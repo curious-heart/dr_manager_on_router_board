@@ -1,6 +1,8 @@
 # Global target; when 'make' is run without arguments, this is what it should do
 #APP_LOG_LEVEL=0 #0-DEBUG, 1-INFO, 2-WARN, 3-ERROR. refer to logger.h.
 
+BUILD_TYPE=release
+BUILD_DATE = $(shell TZ='Asia/Shanghai' date +%Y%m%d%H%M%S)
 OBJ = ./obj
 
 INC = . ./common_tools ./hv_controller ./lcd_display ./tof_measure ./tof_measure/core/inc ./tof_measure/platform/inc ./mb_tcp_server_test ./gpio_key_processor ./op_gpio_thu_reg
@@ -23,7 +25,8 @@ GPIO_KEY_PROCESSOR_SOURCES = $(wildcard ./gpio_key_processor/*.c) ./common_tools
 # These variables hold the name of the compilation tool, the compilation flags and the link flags
 # We make use of these variables in the package manifest
 CC = gcc
-override CFLAGS += -Wall $(addprefix -I, $(INC)) -pthread
+override CFLAGS += -Wall $(addprefix -I, $(INC)) -pthread -DBUILD_DATE_STR="\"$(BUILD_DATE)\"" \
+	-DBUILD_TYPE_STR="\"$(BUILD_TYPE)\""
 override LDLIBS += -lm -lmodbus -pthread
  
 DEPS = $(INCLUDES)
@@ -58,7 +61,7 @@ $(OBJ)/%.o: ./op_gpio_thu_reg/%.c $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 $(TARGET): $(OBJECTS)
-	$(CC) -o $@ $^ $(LDFLAGS) $(LDLIBS)
+	$(CC) -o $@ $^ $(LDFLAGS) $(LDLIBS) 
 
 $(TCP_SRVR_TEST_TARGET): $(TCP_SRVR_TEST_OBJECTS)
 	$(CC) -o $@ $^ $(LDFLAGS) $(LDLIBS)
