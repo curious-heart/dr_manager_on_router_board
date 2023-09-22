@@ -7,6 +7,8 @@ fi
 
 echo "480" > /sys/class/gpio/export
 echo "out" > /sys/class/gpio/gpio480/direction
+echo "1" > /sys/class/gpio/gpio480/value
+sleep 1
 echo "0" > /sys/class/gpio/gpio480/value
 
 /usr/bin/dr_manager.sh &
