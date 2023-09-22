@@ -92,6 +92,7 @@ typedef struct
     void* value;
 }pipe_read_helper_t;
 static const char* gs_state_str_cell_conn = "CONNECT";
+static const char* gs_state_str_cell_no_conn = "NOCONN";
 static char gs_cell_mode_str[MAX_PIPE_READ_STR_LEN + 1];
 static char gs_cell_state_str[MAX_PIPE_READ_STR_LEN + 1];
 static int gs_cell_signal_bars, gs_cell_rsrp, gs_cell_rsrq, gs_cell_rscp, gs_cell_ecno, gs_cell_sinr, gs_cell_rssi;
@@ -183,6 +184,11 @@ static void get_cellular_st(bool debug_flag)
     else
     {
         gs_main_dev_st.wan_bear &= ~WWAN_BEAR_CELLULAR;
+        if(strcmp(gs_cell_state_str, gs_state_str_cell_no_conn))
+        {
+            /*cell_state str is neither connect or noconn, then there is no service.*/
+            gs_cell_signal_bars = 0;
+        }
     }
     DIY_LOG(LOG_DEBUG + LOG_ONLY_INFO_STR, "wan bear: 0x%02X\n", gs_main_dev_st.wan_bear);
 
