@@ -26,7 +26,7 @@ GPIO_KEY_PROCESSOR_SOURCES = $(wildcard ./gpio_key_processor/*.c) ./common_tools
 # We make use of these variables in the package manifest
 CC = gcc
 override CFLAGS += -Wall $(addprefix -I, $(INC)) -pthread -DBUILD_DATE_STR="\"$(BUILD_DATE)\"" \
-	-DBUILD_TYPE_STR="\"$(BUILD_TYPE)\""
+	-DBUILD_TYPE_STR="\"$(BUILD_TYPE)\"" -DUSE_I2C_2V8
 override LDLIBS += -lm -lmodbus -pthread
  
 DEPS = $(INCLUDES)

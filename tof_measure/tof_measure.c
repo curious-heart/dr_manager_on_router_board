@@ -170,7 +170,7 @@ int tof_open(const char* dev_name, unsigned char dev_addr)
 
     if(Status == VL53L0X_ERROR_NONE)
     {
-        DIY_LOG(LOG_DEBUG, "VL53L0X API Version: Your firmware has %d.%d.%d (revision %d)",
+        DIY_LOG(LOG_DEBUG, "VL53L0X API Version: Your firmware has %d.%d.%d (revision %d)\n",
                 pVersion->major, pVersion->minor, pVersion->build, pVersion->revision);
     }
 
