@@ -9,7 +9,8 @@
 
 static const gpio_cfg_tbl_s_t gs_app_op_gpio_table[] =
 {
-    {GPIO_CHARGER_FULL_IND, "in"},
+    /*2023-09-24 去掉对这个GPIO的配置和使用。参考main_app_used_gpios.h中的注释说明*/
+    /*{GPIO_CHARGER_FULL_IND, "in"},*/
 };
 
 int get_effective_gpio_number(int n)

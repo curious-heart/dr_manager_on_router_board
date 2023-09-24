@@ -215,11 +215,15 @@ void refresh_lcd_from_main_th()
 /*Return true if the charge full st is updated.*/
 static bool check_bat_chg_full_pin()
 {
+
+    /*2023-09-24 去掉对满电状态的判断。参考main_app_used_gpios.h中的注释说明*/
+    gs_hv_st.bat_chg_full = true;
+    return false;
+
+    /*
     int chg_full_st;
 
     chg_full_st = app_read_gpio_value(GPIO_CHARGER_FULL_IND); 
-
-    //chg_full_st = false;/*for test*/
 
     DIY_LOG(LOG_DEBUG, "........chg_full_st: %d, gs_hv_st.bat_chg_full:%d\n", chg_full_st, gs_hv_st.bat_chg_full);
 
@@ -232,6 +236,7 @@ static bool check_bat_chg_full_pin()
     {
         return false;
     }
+    */
 }
 
 /*This functin should only be called from main loop thread. So DO NOT export it in .h file, but declare it as necessary.*/

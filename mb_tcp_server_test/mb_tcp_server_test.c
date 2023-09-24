@@ -5,6 +5,7 @@
 #include <getopt.h>
 #include <errno.h>
 #include <modbus/modbus.h>
+#include <string.h>
 
 #include "logger.h"
 #include "hv_registers.h"

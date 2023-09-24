@@ -21,6 +21,7 @@ I2C接口
 
 #include "lcd_display.h"
 
+#undef DIY_LOG
 #define DIY_LOG(level, fmt, ...) 
 
 /*We use the scrn as a monochrom one.*/
