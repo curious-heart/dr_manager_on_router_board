@@ -21,6 +21,7 @@ dr_device_st_pool_t g_device_st_pool =
     .expo_am_ua = -1,
     .expo_dura_ms = -1,
     .expo_st = EXPOSURE_ST_INIT,
+    .tof_distance = (uint16_t)-1,
 };
 
 static pthread_mutex_t gs_dev_st_pool_mutex;

@@ -1,5 +1,6 @@
 #include <errno.h>
 #include <pthread.h>
+#include <semaphore.h>
 
 #include "logger.h"
 #include "dr_manager.h"
@@ -10,6 +11,9 @@ const char* g_tof_th_desc = "TOF-Measurement";
 static bool gs_tof_opened = false;
 static bool gs_tof_th_measure_now = false;
 static pthread_mutex_t gs_tof_th_measure_mutex;
+static sem_t gs_tof_th_wait_sem;
+
+static bool gs_tof_th_wait_sem_inited = false;
 
 static bool check_tof_th_measure_flag()
 {
@@ -37,6 +41,16 @@ void set_tof_th_measure_flag(bool flag)
     pthread_mutex_unlock(&gs_tof_th_measure_mutex);
 }
 
+bool inform_tof_th_to_measure()
+{
+    if(gs_tof_th_wait_sem_inited)
+    {
+        sem_post(&gs_tof_th_wait_sem);
+        return true;
+    }
+    return false;
+}
+
 static void tof_th_cleanup_h(void* arg)
 {
     DIY_LOG(LOG_INFO, "%s thread exit cleanup!\n", g_tof_th_desc);
@@ -44,6 +58,12 @@ static void tof_th_cleanup_h(void* arg)
     {
         tof_close();
         gs_tof_opened = false;
+    }
+
+    if(gs_tof_th_wait_sem_inited)
+    {
+        sem_destroy(&gs_tof_th_wait_sem);
+        gs_tof_th_wait_sem_inited = false;
     }
 }
 /*
@@ -61,19 +81,29 @@ static bool upd_g_st_pool_from_tof_th(void* arg)
     return updated;
 }
 
-int init_tof_th_measure_mutex()
+int init_tof_th_measure_syncs()
 {
     int ret;
     pthread_mutexattr_t attr;
+
+    ret = sem_init(&gs_tof_th_wait_sem, 0, 1);
+    if(ret != 0)
+    {
+        DIY_LOG(LOG_ERROR, "sem_init for gs_tof_th_wait_sem error:%d\n", errno);
+        return ret;
+    }
+    gs_tof_th_wait_sem_inited = true;
 
     pthread_mutexattr_init(&attr);
     pthread_mutexattr_setrobust(&attr, PTHREAD_MUTEX_ROBUST);
 
     ret = pthread_mutex_init(&gs_tof_th_measure_mutex, &attr);
+
+
     return ret;
 }
 
-int destroy_tof_th_measure_mutex()
+int destroy_tof_th_measure_syncs()
 {
     return pthread_mutex_destroy(&gs_tof_th_measure_mutex);
 }
@@ -84,6 +114,8 @@ void* tof_thread_func(void* arg)
     float period;
     int ret;
     unsigned short distance = 0;
+    struct timespec w_ts;
+    static unsigned short last_distance = (unsigned short)-1;
 
     pthread_cleanup_push(tof_th_cleanup_h, NULL);
 
@@ -108,18 +140,30 @@ void* tof_thread_func(void* arg)
 
     while(true)
     {
+        ret = fill_timespec_struc(&w_ts, period);
+        if(0 != ret)
+        {
+            DIY_LOG(LOG_ERROR, "fill timespec error:%d\n", ret);
+            
+            usleep(period * 1000000);
+        }
+        else
+        {
+            sem_timedwait(&gs_tof_th_wait_sem, &w_ts);
+        }
+
         if(check_tof_th_measure_flag())
         {
             distance = tof_single_measure(); 
             DIY_LOG(LOG_INFO, "%s distance:%u\n", g_tof_th_desc, distance);
-        }
 
-        if(access_device_st_pool(pthread_self(), g_tof_th_desc, upd_g_st_pool_from_tof_th, &distance))
-        {
-            update_lcd_display(pthread_self(), g_tof_th_desc);
+            if((last_distance != distance)
+                    && access_device_st_pool(pthread_self(), g_tof_th_desc, upd_g_st_pool_from_tof_th, &distance))
+            {
+                update_lcd_display(pthread_self(), g_tof_th_desc);
+            }
         }
-
-        usleep(period * 1000000);
+        last_distance = distance;
     }
 
     pthread_cleanup_pop(1);

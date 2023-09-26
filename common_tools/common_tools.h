@@ -27,4 +27,5 @@ bool get_datetime_str(char* buf, int len);
 char choose_read_or_write();
 
 bool check_time_out_of_curr_time(time_t last_point, time_t time_out);
+int fill_timespec_struc(struct timespec * ts, float seconds);
 #endif // COMMON_TOOL_FUNC_H

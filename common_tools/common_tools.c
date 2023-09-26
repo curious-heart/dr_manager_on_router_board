@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <errno.h>
 
 #include "common_tools.h"
 
@@ -105,4 +106,23 @@ char choose_read_or_write()
 bool check_time_out_of_curr_time(time_t last_point, time_t time_out)
 {
     return (time(NULL) - last_point >= time_out);
+}
+
+int fill_timespec_struc(struct timespec * ts, float seconds)
+{
+    int ret;
+    time_t sec;
+
+    if(NULL == ts) return -1;
+
+    ret = clock_gettime(CLOCK_REALTIME, ts);
+    if(ret != 0)
+    {
+        return (int)errno;
+    }
+    sec = (time_t)seconds;
+    ts->tv_sec += sec;
+    ts->tv_nsec = (long)((seconds - sec) * 1000000000);
+
+    return 0;
 }

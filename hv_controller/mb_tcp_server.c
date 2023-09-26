@@ -292,6 +292,7 @@ mb_rw_reg_ret_t mb_server_write_reg_sniff(uint16_t reg_addr_start, uint16_t * da
                 if(data_arr[idx]) //turn on range indicator
                 {
                     set_tof_th_measure_flag(true);
+                    inform_tof_th_to_measure();
                 }
                 else //turn off range indicator
                 {

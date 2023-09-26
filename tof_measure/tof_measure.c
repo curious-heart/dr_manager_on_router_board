@@ -210,7 +210,7 @@ int tof_close()
     VL53L0X_Error Status = VL53L0X_ERROR_NONE;
     int32_t status_int;
 
-    printf ("Close TOF.\n");
+    DIY_LOG(LOG_INFO, "Close TOF.\n");
     status_int = VL53L0X_i2c_close();
     if (status_int != 0)
     {
@@ -253,14 +253,14 @@ int tof_continuous_measure(unsigned short* result_buf, int count, float interval
 
     if(Status == VL53L0X_ERROR_NONE)
     {
-        printf ("Call of VL53L0X_SetDeviceMode\n");
+        DIY_LOG(LOG_DEBUG, "Call of VL53L0X_SetDeviceMode\n");
         Status = VL53L0X_SetDeviceMode(pMyDevice, VL53L0X_DEVICEMODE_CONTINUOUS_RANGING); // Setup in single ranging mode
         print_pal_error(Status);
     }
     
     if(Status == VL53L0X_ERROR_NONE)
     {
-		printf ("Call of VL53L0X_StartMeasurement\n");
+		DIY_LOG(LOG_DEBUG, "Call of VL53L0X_StartMeasurement\n");
 		Status = VL53L0X_StartMeasurement(pMyDevice);
 		print_pal_error(Status);
     }
@@ -305,13 +305,13 @@ int tof_continuous_measure(unsigned short* result_buf, int count, float interval
     
     if(Status == VL53L0X_ERROR_NONE)
     {
-        printf ("Call of VL53L0X_StopMeasurement\n");
+        DIY_LOG(LOG_DEBUG, "Call of VL53L0X_StopMeasurement\n");
         Status = VL53L0X_StopMeasurement(pMyDevice);
     }
 
     if(Status == VL53L0X_ERROR_NONE)
     {
-        printf ("Wait Stop to be competed\n");
+        DIY_LOG(LOG_DEBUG, "Wait Stop to be competed\n");
         Status = WaitStopCompleted(pMyDevice);
     }
 
@@ -344,7 +344,7 @@ unsigned short tof_single_measure()
     if(Status == VL53L0X_ERROR_NONE)
     {
         // no need to do this when we use VL53L0X_PerformSingleRangingMeasurement
-        printf ("Call of VL53L0X_SetDeviceMode\n");
+        DIY_LOG(LOG_DEBUG, "Call of VL53L0X_SetDeviceMode\n");
         Status = VL53L0X_SetDeviceMode(pMyDevice, VL53L0X_DEVICEMODE_SINGLE_RANGING); // Setup in single ranging mode
         print_pal_error(Status);
     }
@@ -375,7 +375,7 @@ unsigned short tof_single_measure()
 
     if(Status == VL53L0X_ERROR_NONE)
     {
-        printf ("Call of VL53L0X_PerformSingleRangingMeasurement\n");
+        DIY_LOG(LOG_DEBUG, "Call of VL53L0X_PerformSingleRangingMeasurement\n");
         Status = VL53L0X_PerformSingleRangingMeasurement(pMyDevice,
                 &RangingMeasurementData);
 

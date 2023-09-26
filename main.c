@@ -209,7 +209,7 @@ static bool clear_threads()
     s = destroy_dev_st_pool_mutex();
     PTHREAD_ERR_CHECK(s, "destory_dev_st_pool_mutex", "", " failes", false, false);
 
-    s = destroy_tof_th_measure_mutex();
+    s = destroy_tof_th_measure_syncs();
     PTHREAD_ERR_CHECK(s, "destory_tof_th_measure_mutex", "", " failes", false, false);
 
     */
@@ -249,7 +249,7 @@ static void init_thread_syncs()
 {
     init_dev_st_pool_mutex();
     init_lcd_upd_sync_mech();
-    init_tof_th_measure_mutex();
+    init_tof_th_measure_syncs();
 }
 
 extern cmd_line_opt_collection_t g_cmd_line_opt_collection;

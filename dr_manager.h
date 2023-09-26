@@ -146,7 +146,7 @@ typedef struct
 void* lcd_refresh_thread_func(void* arg);
 extern const char* g_lcd_refresh_th_desc;
 
-int init_tof_th_measure_mutex();
+int init_tof_th_measure_syncs();
 int destroy_tof_th_measure_mutex();
 typedef struct
 {
@@ -157,5 +157,6 @@ typedef struct
 void* tof_thread_func(void* arg);
 extern const char* g_tof_th_desc;
 void set_tof_th_measure_flag(bool flag);
+bool inform_tof_th_to_measure();
 
 #endif
