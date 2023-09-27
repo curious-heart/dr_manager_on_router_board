@@ -324,6 +324,75 @@ int tof_continuous_measure(unsigned short* result_buf, int count, float interval
     return measure_cnt;
 }
 
+int tof_single_measure_prepare()
+{
+    VL53L0X_Dev_t *pMyDevice = &gs_MyDevice;
+    VL53L0X_Error Status = VL53L0X_ERROR_NONE;
+
+    if(Status == VL53L0X_ERROR_NONE)
+    {
+        // no need to do this when we use VL53L0X_PerformSingleRangingMeasurement
+        DIY_LOG(LOG_DEBUG, "Call of VL53L0X_SetDeviceMode\n");
+        Status = VL53L0X_SetDeviceMode(pMyDevice, VL53L0X_DEVICEMODE_SINGLE_RANGING); // Setup in single ranging mode
+        print_pal_error(Status);
+    }
+
+    // Enable/Disable Sigma and Signal check
+    if (Status == VL53L0X_ERROR_NONE) 
+    {
+        Status = VL53L0X_SetLimitCheckEnable(pMyDevice,
+        		VL53L0X_CHECKENABLE_SIGMA_FINAL_RANGE, 1);
+    }
+    else
+    {
+        DIY_LOG(LOG_ERROR, "VL53L0X_SetDeviceMode error: %d\n", Status);
+        return -1;
+    }
+
+    if (Status == VL53L0X_ERROR_NONE) 
+    {
+        Status = VL53L0X_SetLimitCheckEnable(pMyDevice,
+        		VL53L0X_CHECKENABLE_SIGNAL_RATE_FINAL_RANGE, 1);
+    }
+    else
+    {
+        DIY_LOG(LOG_ERROR, "VL53L0X_SetLimitCheckEnable VL53L0X_CHECKENABLE_SIGMA_FINAL_RANGE error: %d\n", Status);
+        return -1;
+    }
+
+    if (Status == VL53L0X_ERROR_NONE) 
+    {
+        Status = VL53L0X_SetLimitCheckEnable(pMyDevice,
+        		VL53L0X_CHECKENABLE_RANGE_IGNORE_THRESHOLD, 1);
+    }
+    else
+    {
+        DIY_LOG(LOG_ERROR, "VL53L0X_SetLimitCheckEnable VL53L0X_CHECKENABLE_SIGNAL_RATE_FINAL_RANGE error: %d\n", Status);
+        return -1;
+    }
+
+    if (Status == VL53L0X_ERROR_NONE) 
+    {
+        Status = VL53L0X_SetLimitCheckValue(pMyDevice,
+        		VL53L0X_CHECKENABLE_RANGE_IGNORE_THRESHOLD,
+        		(FixPoint1616_t)(1.5*0.023*65536));
+    }
+    else
+    {
+        DIY_LOG(LOG_ERROR, "VL53L0X_SetLimitCheckEnable VL53L0X_CHECKENABLE_RANGE_IGNORE_THRESHOLD error: %d\n", Status);
+        return -1;
+    }
+
+    if (Status != VL53L0X_ERROR_NONE) 
+    {
+        DIY_LOG(LOG_ERROR, "VL53L0X_SetLimitCheckEnable VL53L0X_CHECKENABLE_RANGE_IGNORE_THRESHOLD error: %d\n", Status);
+        return -1;
+    }
+
+    return 0;
+}
+
+/*Call tof_single_measure_prepare, then call this function.*/
 unsigned short tof_single_measure()
 {
     VL53L0X_Dev_t *pMyDevice = &gs_MyDevice;
@@ -340,7 +409,7 @@ unsigned short tof_single_measure()
         return measure_ret;
     }
     */
-
+#if 0
     if(Status == VL53L0X_ERROR_NONE)
     {
         // no need to do this when we use VL53L0X_PerformSingleRangingMeasurement
@@ -372,6 +441,7 @@ unsigned short tof_single_measure()
         		VL53L0X_CHECKENABLE_RANGE_IGNORE_THRESHOLD,
         		(FixPoint1616_t)(1.5*0.023*65536));
     }
+#endif
 
     if(Status == VL53L0X_ERROR_NONE)
     {

@@ -9,16 +9,18 @@
 const char* g_tof_th_desc = "TOF-Measurement";
 
 static bool gs_tof_opened = false;
-static bool gs_tof_th_measure_now = false;
+static tof_requester_e_t gs_tof_th_measure_now = TOF_REQUESTER_NONE;
 static pthread_mutex_t gs_tof_th_measure_mutex;
-static sem_t gs_tof_th_wait_sem;
+static sem_t gs_tof_th_wait_sem, gs_tof_th_render_sem;
 
-static bool gs_tof_th_wait_sem_inited = false;
+static bool gs_tof_th_wait_sem_inited = false, gs_tof_th_render_sem_inited = false;
+static unsigned short gs_distance = (uint16_t)-1;
+static tof_thread_parm_t * gs_tof_thread_parm = NULL;
 
-static bool check_tof_th_measure_flag()
+static tof_requester_e_t check_tof_th_measure_flag()
 {
     int ret;
-    bool flag;
+    tof_requester_e_t flag;
     ret = pthread_mutex_lock(&gs_tof_th_measure_mutex);
     if(EOWNERDEAD == ret)
     {
@@ -29,7 +31,7 @@ static bool check_tof_th_measure_flag()
     return flag;
 }
 
-void set_tof_th_measure_flag(bool flag)
+void set_tof_th_measure_flag(tof_requester_e_t requester)
 {
     int ret;
     ret = pthread_mutex_lock(&gs_tof_th_measure_mutex);
@@ -37,7 +39,19 @@ void set_tof_th_measure_flag(bool flag)
     {
         pthread_mutex_consistent(&gs_tof_th_measure_mutex);
     }
-    gs_tof_th_measure_now = flag;
+    gs_tof_th_measure_now |= requester;
+    pthread_mutex_unlock(&gs_tof_th_measure_mutex);
+}
+
+void unset_tof_th_measure_flag(tof_requester_e_t requester)
+{
+    int ret;
+    ret = pthread_mutex_lock(&gs_tof_th_measure_mutex);
+    if(EOWNERDEAD == ret)
+    {
+        pthread_mutex_consistent(&gs_tof_th_measure_mutex);
+    }
+    gs_tof_th_measure_now &= (~requester);
     pthread_mutex_unlock(&gs_tof_th_measure_mutex);
 }
 
@@ -49,6 +63,45 @@ bool inform_tof_th_to_measure()
         return true;
     }
     return false;
+}
+
+static void inform_tof_measurement()
+{
+    if(gs_tof_th_render_sem_inited)
+    {
+        sem_post(&gs_tof_th_render_sem);
+    }
+}
+
+/*This functoin should be called from other thread, currently main thread.*/
+/*Return distance in mm.*/
+uint16_t request_tof_distance(tof_requester_e_t requester, float seconds)
+{
+    struct timespec ts;
+    int sem_value = -10;
+
+    if(gs_tof_th_render_sem_inited)
+    {
+        set_tof_th_measure_flag(requester);
+        inform_tof_th_to_measure();
+
+        if(0 == fill_timespec_struc(&ts, seconds))
+        {
+            sem_getvalue(&gs_tof_th_render_sem, &sem_value);
+            DIY_LOG(LOG_INFO, "gs_tof_th_render_sem value:%d\n", sem_value);
+
+            sem_timedwait(&gs_tof_th_render_sem, &ts);
+        }
+        else
+        {
+            usleep(seconds * 1000000);
+        }
+        return gs_distance;
+    }
+    else
+    {
+        return (uint16_t)-1;
+    }
 }
 
 static void tof_th_cleanup_h(void* arg)
@@ -64,6 +117,11 @@ static void tof_th_cleanup_h(void* arg)
     {
         sem_destroy(&gs_tof_th_wait_sem);
         gs_tof_th_wait_sem_inited = false;
+    }
+    if(gs_tof_th_render_sem_inited)
+    {
+        sem_destroy(&gs_tof_th_render_sem);
+        gs_tof_th_render_sem_inited = false;
     }
 }
 /*
@@ -94,6 +152,14 @@ int init_tof_th_measure_syncs()
     }
     gs_tof_th_wait_sem_inited = true;
 
+    ret = sem_init(&gs_tof_th_render_sem, 0, 0);
+    if(ret != 0)
+    {
+        DIY_LOG(LOG_ERROR, "sem_init for gs_tof_th_render_sem error:%d\n", errno);
+        return ret;
+    }
+    gs_tof_th_render_sem_inited = true;
+
     pthread_mutexattr_init(&attr);
     pthread_mutexattr_setrobust(&attr, PTHREAD_MUTEX_ROBUST);
 
@@ -110,33 +176,52 @@ int destroy_tof_th_measure_syncs()
 
 void* tof_thread_func(void* arg)
 {
-    tof_thread_parm_t * parm = (tof_thread_parm_t*)arg;
+    tof_thread_parm_t * gs_tof_thread_parm = (tof_thread_parm_t*)arg;
     float period;
     int ret;
-    unsigned short distance = 0;
     struct timespec w_ts;
-    static unsigned short last_distance = (unsigned short)-1;
+    static uint16_t last_raw_distance = (uint16_t)-1, raw_distance = (uint16_t)-1;
+    tof_requester_e_t requester;
 
     pthread_cleanup_push(tof_th_cleanup_h, NULL);
 
-    if(!parm)
+    if(!gs_tof_thread_parm)
     {
         DIY_LOG(LOG_ERROR, "Arguments passed to tof_thread_func is NULL.\n"
                 "Thread %s exit.\n", g_tof_th_desc);
         return NULL;
     }
 
-    period = parm->measure_period;
+    period = gs_tof_thread_parm->measure_period;
     DIY_LOG(LOG_INFO, "%s thread starts, with measure period %f seconds!\n", 
             g_tof_th_desc, period);
 
-    ret = tof_open(parm->dev_name, parm->dev_addr);
+    ret = tof_open(gs_tof_thread_parm->dev_name, gs_tof_thread_parm->dev_addr);
     if(0 != ret)
     {
         DIY_LOG(LOG_ERROR, "%s thread exit due to open tof error: %d.\n", g_tof_th_desc, ret);
+        gs_distance = 21000;
+        access_device_st_pool(pthread_self(), g_tof_th_desc, upd_g_st_pool_from_tof_th, &gs_distance);
+        update_lcd_display(pthread_self(), g_tof_th_desc);
         return NULL;
     }
     gs_tof_opened = true;
+
+    ret = tof_single_measure_prepare();
+    if(0 != ret)
+    {
+        DIY_LOG(LOG_ERROR, "%s thread exit due to single measure prepare error: %d.\n", g_tof_th_desc, ret);
+        tof_close();
+        gs_tof_opened = false;
+        gs_distance = 22000;
+        access_device_st_pool(pthread_self(), g_tof_th_desc, upd_g_st_pool_from_tof_th, &gs_distance);
+        update_lcd_display(pthread_self(), g_tof_th_desc);
+        return NULL;
+    }
+
+    gs_distance = 0;
+    access_device_st_pool(pthread_self(), g_tof_th_desc, upd_g_st_pool_from_tof_th, &gs_distance);
+    update_lcd_display(pthread_self(), g_tof_th_desc);
 
     while(true)
     {
@@ -152,18 +237,25 @@ void* tof_thread_func(void* arg)
             sem_timedwait(&gs_tof_th_wait_sem, &w_ts);
         }
 
-        if(check_tof_th_measure_flag())
+        requester = check_tof_th_measure_flag();
+        if(TOF_REQUESTER_NONE != requester)
         {
-            distance = tof_single_measure(); 
-            DIY_LOG(LOG_INFO, "%s distance:%u\n", g_tof_th_desc, distance);
+            raw_distance = tof_single_measure(); 
+            gs_distance = (uint16_t)((int)raw_distance + 
+                    gs_tof_thread_parm->tof_mech_cali + gs_tof_thread_parm->tof_internal_cali);
+            if(requester & TOF_REQUESTER_EXPOSURE)
+            {
+                inform_tof_measurement();
+            }
+            DIY_LOG(LOG_INFO, "%s raw distance: %u, distance:%u\n", g_tof_th_desc, raw_distance, gs_distance);
 
-            if((last_distance != distance)
-                    && access_device_st_pool(pthread_self(), g_tof_th_desc, upd_g_st_pool_from_tof_th, &distance))
+            if((last_raw_distance != raw_distance)
+                    && access_device_st_pool(pthread_self(), g_tof_th_desc, upd_g_st_pool_from_tof_th, &gs_distance))
             {
                 update_lcd_display(pthread_self(), g_tof_th_desc);
             }
+            last_raw_distance = raw_distance;
         }
-        last_distance = distance;
     }
 
     pthread_cleanup_pop(1);

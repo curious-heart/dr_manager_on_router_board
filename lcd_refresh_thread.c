@@ -204,12 +204,12 @@ static void refresh_battery_display(dr_device_st_enum_t st_id)
     st_id = enum_bat_lvl;
     if((CHARGER_CONNECTED == gs_device_st_pool_of_lcd.bat_chg_st) && !gs_device_st_pool_of_lcd.bat_chg_full)
     {
-        DIY_LOG(LOG_INFO, "......battery lightnning.\n");
+        DIY_LOG(LOG_DEBUG, "......battery lightnning.\n");
         img = gs_lcd_bat_lightning_res;
     }
     else
     {
-        DIY_LOG(LOG_INFO, "......battery normal.\n");
+        DIY_LOG(LOG_DEBUG, "......battery normal.\n");
         img = gs_lcd_bat_res;
     }
     write_img_to_px_rect(img[map_lvl], LCD_BAT_IMG_W, LCD_BAT_IMG_H,
@@ -220,13 +220,13 @@ static void refresh_battery_display(dr_device_st_enum_t st_id)
         st_id = enum_bat_chg_st;
         if(CHARGER_CONNECTED == gs_device_st_pool_of_lcd.bat_chg_st)
         {
-            DIY_LOG(LOG_INFO, "......battery charger connected.\n");
+            DIY_LOG(LOG_DEBUG, "......battery charger connected.\n");
             write_img_to_px_rect(gs_lcd_charger_res, LCD_CHARGER_IMG_W, LCD_CHARGER_IMG_H,
                   gs_lcd_areas[st_id].pos_x, gs_lcd_areas[st_id].pos_y, gs_lcd_areas[st_id].pos_w, gs_lcd_areas[st_id].pos_h);
         }
         else
         {
-            DIY_LOG(LOG_INFO, "......battery charger disconnected.\n");
+            DIY_LOG(LOG_DEBUG, "......battery charger disconnected.\n");
             clear_screen_area(gs_lcd_areas[st_id].pos_x, gs_lcd_areas[st_id].pos_y,
                             gs_lcd_areas[st_id].pos_w, gs_lcd_areas[st_id].pos_h);
         }
@@ -574,11 +574,11 @@ void update_lcd_display(pthread_t pth_id, const char* desc)
 {
     sem_post(&gs_lcd_refresh_sem);
 
-    DIY_LOG(LOG_INFO, "thread %u ", (uint32_t)pth_id);
+    DIY_LOG(LOG_DEBUG, "thread %u ", (uint32_t)pth_id);
     if(desc)
     {
         DIY_LOG(LOG_INFO + LOG_ONLY_INFO_STR_COMP, "%s ", desc);
     }
-    DIY_LOG(LOG_INFO + LOG_ONLY_INFO_STR_COMP, "finished updating lcd.\n");
+    DIY_LOG(LOG_DEBUG + LOG_ONLY_INFO_STR_COMP, "finished updating lcd.\n");
 }
 

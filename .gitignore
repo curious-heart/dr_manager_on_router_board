@@ -56,3 +56,4 @@ dkms.conf
 
 #other tmp file
 .cache
+compile_commands.json

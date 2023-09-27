@@ -153,10 +153,25 @@ typedef struct
     float measure_period;
     const char* dev_name;
     uint8_t dev_addr;
+    int tof_mech_cali; //calibratoin in mm, due to mechanical design.
+    int tof_internal_cali; //calibration in mm, due to TOF-module itself.
 }tof_thread_parm_t;
 void* tof_thread_func(void* arg);
 extern const char* g_tof_th_desc;
-void set_tof_th_measure_flag(bool flag);
+typedef enum
+{
+    /*each requester use 1 bit.*/
+    TOF_REQUESTER_NONE = 0,
+    TOF_REQUESTER_RANGE_LED = 0x1,
+    TOF_REQUESTER_EXPOSURE = 0x2,
+}tof_requester_e_t;
+void set_tof_th_measure_flag(tof_requester_e_t requester);
+void unset_tof_th_measure_flag(tof_requester_e_t requester);
 bool inform_tof_th_to_measure();
+
+/*Return distance in mm.*/
+uint16_t request_tof_distance(tof_requester_e_t requester, float seconds);
+/*According to GB 9706.254-2020 203.9.102, the minimum allowed focus-to-skin distance should not exceed 20cm.*/
+#define MIN_ALLOWED_FSD_IN_CM (20)
 
 #endif

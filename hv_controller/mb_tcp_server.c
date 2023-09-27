@@ -52,6 +52,8 @@ static time_t gs_time_point_for_conn_check;
 /*This global static var should only be accessed from main loop thread.*/
 static dr_device_st_local_buf_t gs_hv_st;
 
+static mb_tcp_server_params_t * gs_mb_tcp_server_params = NULL;
+
 void mb_server_exit()
 {
     if (gs_mb_server_socket != -1)
@@ -251,6 +253,68 @@ battery_chg_st_t get_local_rec_bat_chg_state()
     return gs_hv_st.bat_chg_st;
 }
 
+static mb_rw_reg_ret_t mb_server_pre_check_write_reg(uint16_t reg_addr_start, uint16_t * data_arr, uint16_t reg_cnt)
+{
+    mb_rw_reg_ret_t ret = MB_RW_REG_RET_NONE; 
+    uint16_t idx, data_v;
+    bool exposure_start = false, exposure_range_led = false;
+
+    for(idx = 0; idx < reg_cnt; ++idx)
+    {
+        data_v = data_arr[idx];
+        if(ExposureStart == (reg_addr_start + idx))
+        {
+            exposure_start = true;
+        }
+        else if(RangeIndicationStart == (reg_addr_start + idx))
+        {
+            exposure_range_led = true;
+        }
+    }
+
+    if(exposure_start)
+    {
+        int distance; //unit is mm.
+
+        DIY_LOG(LOG_INFO, "%s pre-check exposure start command.\n", gp_mb_server_log_header);
+
+        distance = (int)request_tof_distance(TOF_REQUESTER_EXPOSURE, gs_mb_tcp_server_params->req_tof_dist_wait_time);
+        if(distance < MIN_ALLOWED_FSD_IN_CM * 10)
+        {
+            DIY_LOG(LOG_WARN, "%sdistance %d is too small to start exposure.\n", gp_mb_server_log_header, distance);
+            if(!gs_mb_tcp_server_params->allow_force_exposure)
+            {
+                ret = MB_RW_REG_RET_REJ_TOO_CLOSE;
+            }
+            else
+            {
+                DIY_LOG(LOG_WARN + LOG_ONLY_INFO_STR, "%sbut allow_force_exposure is enabled, so still start exposure.\n",
+                        gp_mb_server_log_header);
+            }
+            unset_tof_th_measure_flag(TOF_REQUESTER_EXPOSURE);
+        }
+        else
+        {
+            DIY_LOG(LOG_WARN, "%sdistance %d is enough to start exposure\n", gp_mb_server_log_header, distance);
+        }
+    }
+    else if(exposure_range_led)
+    {
+        if(data_v) //turn on range indicator command
+        {
+            set_tof_th_measure_flag(TOF_REQUESTER_RANGE_LED);
+            inform_tof_th_to_measure();
+        }
+        else //turn off range indicator command
+        {
+            unset_tof_th_measure_flag(TOF_REQUESTER_RANGE_LED);
+        }
+    }
+
+
+    return ret;
+}
+
 mb_rw_reg_ret_t mb_server_write_reg_sniff(uint16_t reg_addr_start, uint16_t * data_arr, uint16_t reg_cnt)
 {
     bool becare = false;
@@ -286,18 +350,8 @@ mb_rw_reg_ret_t mb_server_write_reg_sniff(uint16_t reg_addr_start, uint16_t * da
                 gs_hv_st.expo_st = EXPOSURE_ST_ALARM; 
                 becare = true;
                 ret = MB_RW_REG_RET_USE_SHORT_WAIT_TIME;
-                break;
 
-            case RangeIndicationStart:
-                if(data_arr[idx]) //turn on range indicator
-                {
-                    set_tof_th_measure_flag(true);
-                    inform_tof_th_to_measure();
-                }
-                else //turn off range indicator
-                {
-                    set_tof_th_measure_flag(false);
-                }
+                unset_tof_th_measure_flag(TOF_REQUESTER_EXPOSURE);
                 break;
 
             default:
@@ -621,40 +675,30 @@ static mb_rw_reg_ret_t mb_server_process_req(uint8_t * req_msg, int req_msg_len,
         break;
 
         case MODBUS_FC_WRITE_SINGLE_REGISTER:
+        case MODBUS_FC_WRITE_MULTIPLE_REGISTERS:
         {
-            uint16_t write_data;
-            mb_tcp_server_fill_mapping_tab_reg_from_msg(req_msg, MB_REQ_MSG_SINGLE_VALUE_OFFSET_AFTER_HDR,
-                                                        reg_addr_start, 1);
+            int offset;
 
-            if(server_only)
+            if(MODBUS_FC_WRITE_SINGLE_REGISTER == func_code)
             {
-                MODBUS_REPLY(gs_mb_srvr_ctx, req_msg, req_msg_len, gs_mb_mapping);
+                offset = MB_REQ_MSG_SINGLE_VALUE_OFFSET_AFTER_HDR;
             }
             else
             {
-                write_data = gs_mb_mapping->tab_registers[reg_addr_start];
-                if(hv_controller_write_single_uint16(reg_addr_start, write_data))
-                {
-                    MODBUS_REPLY(gs_mb_srvr_ctx, req_msg, req_msg_len, gs_mb_mapping);
-                    process_ret = mb_server_write_reg_sniff(reg_addr_start,
-                                            &gs_mb_mapping->tab_registers[reg_addr_start], 1);
-                }
-                else
-                {
-                    DIY_LOG(LOG_ERROR, "%swrite registers to hv_controller error.\n",
-                                        gp_mb_server_log_header);
-                    modbus_reply_exception(gs_mb_srvr_ctx, req_msg, 
-                                            MODBUS_EXCEPTION_NOT_DEFINED);
-                    return MB_RW_REG_RET_ERROR;
-                }
+                offset = MB_REQ_MSG_MULTI_VALUE_OFFSET_AFTER_HDR;
             }
-        }
-        break;
 
-        case MODBUS_FC_WRITE_MULTIPLE_REGISTERS:
-        {
-            mb_tcp_server_fill_mapping_tab_reg_from_msg(req_msg, MB_REQ_MSG_MULTI_VALUE_OFFSET_AFTER_HDR,
-                                                        reg_addr_start, reg_cnt);
+            mb_tcp_server_fill_mapping_tab_reg_from_msg(req_msg, offset, reg_addr_start, reg_cnt);
+
+            process_ret = mb_server_pre_check_write_reg(reg_addr_start, 
+                                        &gs_mb_mapping->tab_registers[reg_addr_start], reg_cnt);
+            if(process_ret < MB_RW_REG_RET_NONE)
+            {
+                DIY_LOG(LOG_ERROR, "%spre check write reg error.\n",gp_mb_server_log_header);
+                modbus_reply_exception(gs_mb_srvr_ctx, req_msg, MODBUS_EXCEPTION_NOT_DEFINED);
+                return process_ret;
+            }
+            
             if(server_only)
             {
                 MODBUS_REPLY(gs_mb_srvr_ctx, req_msg, req_msg_len, gs_mb_mapping);
@@ -671,8 +715,7 @@ static mb_rw_reg_ret_t mb_server_process_req(uint8_t * req_msg, int req_msg_len,
                 }
                 else
                 {
-                    DIY_LOG(LOG_ERROR, "%swrite multi-registers to hv_controller error.\n",
-                                        gp_mb_server_log_header);
+                    DIY_LOG(LOG_ERROR, "%swrite register(s) to hv_controller error.\n", gp_mb_server_log_header);
                     modbus_reply_exception(gs_mb_srvr_ctx, req_msg, 
                                             MODBUS_EXCEPTION_NOT_DEFINED);
                     return MB_RW_REG_RET_ERROR;
@@ -739,6 +782,7 @@ mb_server_exit_code_t  mb_server_loop(mb_tcp_server_params_t * srvr_params, bool
         DIY_LOG(LOG_ERROR, "%sserver parameters pointer is NULL.\n", gp_mb_server_log_header);
         return MB_SERVER_EXIT_INIT_FAIL;
     }
+    gs_mb_tcp_server_params = srvr_params;
 
     timeout.tv_sec = 0;
     timeout.tv_usec = (suseconds_t)(srvr_params->long_select_wait_time * 1000000);

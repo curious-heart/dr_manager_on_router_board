@@ -11,6 +11,8 @@ typedef struct
 
     float long_select_wait_time, short_select_wait_time; //in seconds
     bool debug_flag;
+    bool allow_force_exposure; //true: allow exposrue even the focus-to-skin distance is less than MIN_ALLOWED_FSD_IN_CM
+    float req_tof_dist_wait_time;
 }mb_tcp_server_params_t;
 
 typedef struct
@@ -18,6 +20,7 @@ typedef struct
     const char* srvr_ip;
     uint16_t srvr_port;
     bool debug_flag;
+    float wait_res_timeout_sec;
 }mb_tcp_client_params_t;
 
 typedef enum

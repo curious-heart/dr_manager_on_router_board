@@ -7,7 +7,9 @@ extern const char* const gp_mb_server_log_header;
 
 typedef enum
 {
+    MB_RW_REG_RET_REJ_TOO_CLOSE = -2,
     MB_RW_REG_RET_ERROR = -1,
+
     MB_RW_REG_RET_NONE = 0,
     MB_RW_REG_RET_USE_SHORT_WAIT_TIME,
     MB_RW_REG_RET_USE_LONG_WAIT_TIME,

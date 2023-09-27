@@ -42,6 +42,8 @@ cmd_args=" --com_dev $mb_rtu_serialPortName"\
 " --mb_tcp_srvr_port $mb_tcp_srvr_port"\
 " --mb_tcp_srvr_long_time $mb_tcp_srvr_long_wait_time"\
 " --mb_tcp_srvr_short_time $mb_tcp_srvr_short_wait_time"\
+" --allow_force_exposure $mb_tcp_srvr_allow_force_exposure"\
+" --req_tof_dist_wait_time $mb_tcp_srvr_req_tof_dist_wait_time"\
 " $mb_tcp_debug"\
 " --dev_monitor_peroid $dev_monitor_period"\
 " $dev_monitor_debug"\
@@ -50,6 +52,8 @@ cmd_args=" --com_dev $mb_rtu_serialPortName"\
 " --tof_measure_period $tof_measure_period"\
 " --tof_dev_name $tof_dev_name"\
 " --tof_dev_addr $tof_i2c_addr"\
+" --tof_mech_cali $tof_mech_cali"\
+" --tof_internal_cali $tof_internal_cali"\
 "$app_work_mode"\
 " --app_log_level $app_log_level"
 
@@ -75,6 +79,7 @@ fi
 key_cmd_args=" --exp_start_key_hold $exp_start_key_hold_time"\
 " --mb_tcp_srvr_ip_addr $mb_tcp_srvr_ip"\
 " --mb_tcp_srvr_port $mb_tcp_srvr_port"\
+" --mb_tcp_client_wait_res_timeout_sec $mb_tcp_client_wait_res_timeout_sec"\
 " $key_mb_tcp_debug"\
 " --app_log_level $key_app_log_level"\
 " $key_exp_start_disable_flag"

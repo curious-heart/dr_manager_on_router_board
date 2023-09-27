@@ -17,6 +17,8 @@ static modbus_t * gs_mb_tcp_client_ctx = NULL;
 #define CONNECT_FAIL_WAIT_TIME 3 //s
 bool begin_key_event_handle()
 {
+    uint32_t res_t_sec, res_t_us;
+
     gs_mb_tcp_client_ctx = modbus_new_tcp(g_mb_tcp_client_params.srvr_ip, g_mb_tcp_client_params.srvr_port);
     if(!gs_mb_tcp_client_ctx)
     {
@@ -27,7 +29,17 @@ bool begin_key_event_handle()
     if(0 != modbus_set_debug(gs_mb_tcp_client_ctx, g_mb_tcp_client_params.debug_flag))
     {
         DIY_LOG(LOG_WARN, "modbus_set_debug fail, %d:%s\n", errno, modbus_strerror(errno));
-        DIY_LOG(LOG_WARN + LOG_ONLY_INFO_STR_COMP, "but weago ahead.\n");
+        DIY_LOG(LOG_WARN + LOG_ONLY_INFO_STR_COMP, "but we go ahead.\n");
+    }
+
+    res_t_sec = (uint32_t)g_mb_tcp_client_params.wait_res_timeout_sec;
+    res_t_us = (g_mb_tcp_client_params.wait_res_timeout_sec - res_t_sec) * 1000000;
+    if(0 != modbus_set_response_timeout(gs_mb_tcp_client_ctx, res_t_sec, res_t_us))
+    {
+        DIY_LOG(LOG_ERROR, "modbus_set_response_timeout fail, %d:%s\n", errno, modbus_strerror(errno));
+        modbus_free(gs_mb_tcp_client_ctx);
+        gs_mb_tcp_client_ctx = NULL;
+        return false;
     }
 
     while(modbus_connect(gs_mb_tcp_client_ctx) == -1)

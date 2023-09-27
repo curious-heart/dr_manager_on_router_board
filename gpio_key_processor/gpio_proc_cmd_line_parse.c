@@ -13,6 +13,7 @@ static const char* const gs_def_mb_tcp_srvr_ip = "0.0.0.0";
 static char gs_mb_tcp_srvr_ip[MAX_OPT_STR_SIZE];
 static const uint16_t gs_def_mb_tcp_srvr_port = 502;
 static const bool gs_def_mb_tcp_srvr_debug_flag= false;
+static const float gs_def_mb_tcp_client_wait_res_timout_sec = 1.5;
 /*app log level*/
 static const uint8_t gs_def_app_log_level = LOG_INFO; //refer to logger.h.
 
@@ -27,6 +28,7 @@ mb_tcp_client_params_t g_mb_tcp_client_params =
     .srvr_ip = gs_def_mb_tcp_srvr_ip,
     .srvr_port = gs_def_mb_tcp_srvr_port,
     .debug_flag = gs_def_mb_tcp_srvr_debug_flag,
+    .wait_res_timeout_sec = gs_def_mb_tcp_client_wait_res_timout_sec,
 };
 key_gpio_cfg_params_s_t g_key_gpio_cfg_params = 
 {
@@ -36,6 +38,7 @@ key_gpio_cfg_params_s_t g_key_gpio_cfg_params =
 
 static const char* const gs_opt_mb_tcp_srvr_ip_addr_str = "mb_tcp_srvr_ip_addr";
 static const char* const gs_opt_mb_tcp_srvr_port_str = "mb_tcp_srvr_port";
+static const char* const gs_opt_mb_tcp_client_wait_res_timeout_sec_str = "mb_tcp_client_wait_res_timeout_sec";
 static const char* const gs_opt_mb_tcp_srvr_debug_str = "mb_tcp_debug";
 #define gs_opt_tcp_debug_c 't'
 static const char* const gs_opt_app_log_level_str = "app_log_level";
@@ -59,6 +62,10 @@ static const char* const gs_opt_exp_start_key_disabled_str = "exp_start_disabled
     APP_CMD_OPT_ITEM(gs_opt_mb_tcp_srvr_port_str, required_argument, 0, 0) \
     APP_CMD_OPT_VALUE("mb_srvr_port",\
            &gs_def_mb_tcp_srvr_port, &g_mb_tcp_client_params.srvr_port, uint16_t)\
+\
+    APP_CMD_OPT_ITEM(gs_opt_mb_tcp_client_wait_res_timeout_sec_str, required_argument, 0, 0) \
+    APP_CMD_OPT_VALUE("mb_client_wait_res_timeout_sec",\
+           &gs_def_mb_tcp_client_wait_res_timout_sec, &g_mb_tcp_client_params.wait_res_timeout_sec, float)\
 \
     APP_CMD_OPT_ITEM(gs_opt_mb_tcp_srvr_debug_str, no_argument, 0, gs_opt_tcp_debug_c) \
     APP_CMD_OPT_VALUE("mb_tcp_debug",\
@@ -145,6 +152,10 @@ option_process_ret_t process_cmd_line(int argc, char* argv[])
                         CONVERT_FUNC_ATOUINT16(g_mb_tcp_client_params.srvr_port, optarg),
                         SHOULD_BE_NE_0(g_mb_tcp_client_params.srvr_port), SHOULD_BE_NE_0_LOG,
                         type_uint16_t);
+                OPT_CHECK_AND_DRAW(gs_long_opt_arr[longindex].name, gs_opt_mb_tcp_client_wait_res_timeout_sec_str,
+                        CONVERT_FUNC_ATOF(g_mb_tcp_client_params.wait_res_timeout_sec, optarg),
+                        SHOULD_BE_GT_0(g_mb_tcp_client_params.wait_res_timeout_sec), SHOULD_BE_GT_0_LOG,
+                        type_float);
                 OPT_CHECK_AND_DRAW(gs_long_opt_arr[longindex].name, gs_opt_exp_start_key_hold_time_str,
                         CONVERT_FUNC_ATOUINT32(g_key_gpio_cfg_params.exp_start_key_hold_time, optarg),
                         SHOULD_BE_GE_0(g_key_gpio_cfg_params.exp_start_key_hold_time), SHOULD_BE_GE_0_LOG,
