@@ -9,6 +9,7 @@ if [ -c $at_port_dev ]; then #$test flag is empty
     echo -e "ATE0\r\n" > $at_port_dev
     #change the URC port to avoid URC command overwrite at_res_file.
     echo -e "AT+QURCCFG=\"urcport\",\"uart1\"\r\n" > $at_port_dev
+    echo -e "AT+QNETDEVCTL=1,3,1\r\n" > $at_port_dev
 
     touch $at_init_flag
     exit 0

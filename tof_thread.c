@@ -82,6 +82,15 @@ uint16_t request_tof_distance(tof_requester_e_t requester, float seconds)
 
     if(gs_tof_th_render_sem_inited)
     {
+        sem_getvalue(&gs_tof_th_render_sem, &sem_value);
+        while(sem_value > 0)
+        {
+            /*clear gs_tof_th_render_sem to assure the action order: tof_thread measusre, then here get the result.*/
+            DIY_LOG(LOG_INFO, "gs_tof_th_render_sem value:%d\n", sem_value);
+            sem_wait(&gs_tof_th_render_sem);
+            sem_getvalue(&gs_tof_th_render_sem, &sem_value);
+        }
+
         set_tof_th_measure_flag(requester);
         inform_tof_th_to_measure();
 
