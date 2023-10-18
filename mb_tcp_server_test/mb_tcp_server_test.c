@@ -11,7 +11,7 @@
 #include "hv_registers.h"
 
 static const char* gs_APP_NAME = "mb_tcp_test_client";
-static const char * gs_APP_VER_STR = "1.0.0";
+static const char * gs_APP_VER_STR = "1.0.1";
 
 #define MAX_CHAR_NUM_READ 16
 static const char* gs_local_loop_ip = "127.0.0.1";
@@ -53,24 +53,45 @@ static void mb_reg_only_write(hv_mb_reg_e_t reg_addr)
 
 static uint16_t mb_reg_only_read(hv_mb_reg_e_t reg_addr)
 {
-    uint16_t read_data = 0xFFFF;
+    uint16_t read_data[2] = {0xFFFF, 0xFFFF}, translated_addr;
+    float DAP_v;
     const char* reg_str;
+    int mb_read_ret;
+
     reg_str = get_hv_mb_reg_str(reg_addr);
     if(!reg_str)
     {
-        return read_data;
+        return read_data[0];
     }
 
     if(gs_mb_tcp_client_ctx)
     {
-        if(modbus_read_registers(gs_mb_tcp_client_ctx, reg_addr, 1, &read_data) <= 0)
+        if(EXT_MB_REG_DAP_HP == reg_addr || EXT_MB_REG_DAP_LP == reg_addr )
         {
-            printf("modbus read register %s error:%d, %s\n",
-                    reg_str, errno, modbus_strerror(errno));
+            translated_addr = EXT_MB_REG_DAP_HP;
+            mb_read_ret = modbus_read_registers(gs_mb_tcp_client_ctx, translated_addr, 2, &read_data[0]);
+            if(mb_read_ret <= 0)
+            {
+                printf("modbus read register %s error:%d, %s\n", reg_str, errno, modbus_strerror(errno));
+            }
+            else
+            {
+                DAP_v = get_float_DAP_from_reg_arr(read_data);
+                printf("DAP High part: 0x%04X, Low Part: 0x%04X; DAP value: %f\n",
+                        read_data[0], read_data[1], DAP_v);
+            }
         }
         else
         {
-            printf("read register %s ok, the value is: %d\n", reg_str, read_data);
+            mb_read_ret = modbus_read_registers(gs_mb_tcp_client_ctx, reg_addr, 1, &read_data[0]);
+            if(mb_read_ret <= 0)
+            {
+                printf("modbus read register %s error:%d, %s\n", reg_str, errno, modbus_strerror(errno));
+            }
+            else
+            {
+                printf("read register %s ok, the value is: %d\n", reg_str, read_data[0]);
+            }
         }
     }
     else
@@ -78,7 +99,7 @@ static uint16_t mb_reg_only_read(hv_mb_reg_e_t reg_addr)
         printf("modbus ctx is NULL.\n");
     }
 
-    return read_data;
+    return read_data[0];
 }
 
 static uint16_t mb_reg_read_write(hv_mb_reg_e_t reg_addr)
@@ -136,6 +157,13 @@ static void mb_tcp_server_test()
         printf("Fixval = 19,               //校准值\n");
         printf("Workstatus = 20,           //充能状态\n");
         printf("exposureCount = 21,        //曝光次数\n");
+        printf("--------belowing are extend registers.\n");
+
+        printf("EXT_MB_REG_DOSE_ADJ = 129),     /*+/- key event*/\n");
+        printf("EXT_MB_REG_CHARGER =130),     /*charger plug in/pull out*/\n");
+        printf("EXT_MB_REG_DAP_HP = 131),     /*High part of a float of DAP(Dose Area Product), big endian.*/\n");
+        printf("EXT_MB_REG_DAP_LP = 132),     /*Low part of a float of DAP, big endian.*/\n");
+
         printf("-1: exit.\n");
 
         fgets(r_buf, sizeof(r_buf), stdin);
@@ -145,7 +173,7 @@ static void mb_tcp_server_test()
             end = true;
             break;
         }
-        if(test_no >= MAX_HV_MB_REG_NUM)
+        if(!VALID_MB_REG_ADDR(test_no))
         {
             printf("Invlaid register number!\n");
             continue;

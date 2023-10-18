@@ -315,11 +315,33 @@ static mb_rw_reg_ret_t mb_server_pre_check_write_reg(uint16_t reg_addr_start, ui
     return ret;
 }
 
+static float calculate_DAP_value(uint16_t kV, uint32_t uA, uint16_t ms)
+{
+    float mA = ((float)uA) / 1000, seconds = ((float)ms) / 1000;
+    return (float)kV * mA * seconds;
+}
+
+#define LOWEST_BYTE_ADDR_OF_DAP_IN_MAPPING_REGS ((uint8_t*)(&gs_mb_mapping->tab_registers[(EXT_MB_REG_DAP_LP)]) + 1)
+#define HIGHEST_BYTE_ADDR_OF_DAP_IN_MAPPING_REGS ((uint8_t*)(&gs_mb_mapping->tab_registers[(EXT_MB_REG_DAP_HP)]))
+static void set_float_DAP_to_mapping_reg(float DAP_v)
+{
+    uint8_t * reg_B_3, *float_B_0;
+    int idx, float_size = 4;
+
+    reg_B_3 = LOWEST_BYTE_ADDR_OF_DAP_IN_MAPPING_REGS;
+    float_B_0 = (uint8_t*)&DAP_v;
+    for(idx = 0; idx < float_size; ++idx)
+    {
+        *(reg_B_3 - idx) = *(float_B_0 + idx);
+    }
+}
+
 mb_rw_reg_ret_t mb_server_write_reg_sniff(uint16_t reg_addr_start, uint16_t * data_arr, uint16_t reg_cnt)
 {
     bool becare = false;
     uint16_t idx = 0;
     mb_rw_reg_ret_t ret = MB_RW_REG_RET_NONE; 
+    float DAP_v;
 
     if(gs_hv_st.hv_dsp_conn_st != HV_DSP_CONNECTED)
     {
@@ -334,16 +356,25 @@ mb_rw_reg_ret_t mb_server_write_reg_sniff(uint16_t reg_addr_start, uint16_t * da
             case VoltSet:     // 5,          /*5管电压设置值*/
                 gs_hv_st.expo_volt_kv = data_arr[idx];
                 becare = true;
+
+                DAP_v = calculate_DAP_value(gs_hv_st.expo_volt_kv, gs_hv_st.expo_am_ua, gs_hv_st.expo_dura_ms);
+                set_float_DAP_to_mapping_reg(DAP_v);
                 break;
 
             case FilamentSet:     // 6,      /*6 管设置值电流 （决定灯丝电流决定管电流）*/
                 gs_hv_st.expo_am_ua = data_arr[idx];
                 becare = true;
+
+                DAP_v = calculate_DAP_value(gs_hv_st.expo_volt_kv, gs_hv_st.expo_am_ua, gs_hv_st.expo_dura_ms);
+                set_float_DAP_to_mapping_reg(DAP_v);
                 break;
 
             case ExposureTime:     // 7,     /*曝光时间*/
                 gs_hv_st.expo_dura_ms = data_arr[idx];
                 becare = true;
+
+                DAP_v = calculate_DAP_value(gs_hv_st.expo_volt_kv, gs_hv_st.expo_am_ua, gs_hv_st.expo_dura_ms);
+                set_float_DAP_to_mapping_reg(DAP_v);
                 break;
 
             case ExposureStart:     // 13,   /*曝光启动*/
@@ -520,8 +551,15 @@ static void mb_tcp_server_fill_mapping_tab_reg_from_msg(uint8_t *req_msg, int of
     uint16_t idx;
     for(idx = 0; idx < cnt; ++idx)
     {
-        gs_mb_mapping->tab_registers[reg_addr_start + idx]
-            = MODBUS_GET_INT16_FROM_INT8(req_msg, gs_mb_header_len + offset  + 2 * idx);
+        if(VALID_MB_REG_ADDR(reg_addr_start + idx))
+        {
+            gs_mb_mapping->tab_registers[(reg_addr_start + idx)]
+                = MODBUS_GET_INT16_FROM_INT8(req_msg, gs_mb_header_len + offset  + 2 * idx);
+        }
+        else
+        {
+            DIY_LOG(LOG_ERROR, "Invalid reg addr: %d, not fill into tab_registers.\n", reg_addr_start + idx);
+        }
     }
 }
 
@@ -550,7 +588,7 @@ static mb_rw_reg_ret_t mb_server_process_extend_reg(uint8_t * req_msg, int req_m
             uint16_t write_data;
             mb_tcp_server_fill_mapping_tab_reg_from_msg(req_msg, MB_REQ_MSG_SINGLE_VALUE_OFFSET_AFTER_HDR,
                                                         reg_addr_start, 1);
-            write_data = gs_mb_mapping->tab_registers[reg_addr_start];
+            write_data = gs_mb_mapping->tab_registers[(reg_addr_start)];
 
             switch(reg_addr_start)
             {
@@ -653,12 +691,12 @@ static mb_rw_reg_ret_t mb_server_process_req(uint8_t * req_msg, int req_msg_len,
             else
             {
                 if(hv_controller_read_uint16s(reg_addr_start,
-                            &gs_mb_mapping->tab_registers[reg_addr_start],
+                            &gs_mb_mapping->tab_registers[(reg_addr_start)],
                             reg_cnt))
                 {
                     MODBUS_REPLY(gs_mb_srvr_ctx, req_msg, req_msg_len, gs_mb_mapping);
                     process_ret = mb_server_read_reg_sniff(reg_addr_start,
-                                            &gs_mb_mapping->tab_registers[reg_addr_start],
+                                            &gs_mb_mapping->tab_registers[(reg_addr_start)],
                                             reg_cnt);
 
                 }
@@ -691,7 +729,7 @@ static mb_rw_reg_ret_t mb_server_process_req(uint8_t * req_msg, int req_msg_len,
             mb_tcp_server_fill_mapping_tab_reg_from_msg(req_msg, offset, reg_addr_start, reg_cnt);
 
             process_ret = mb_server_pre_check_write_reg(reg_addr_start, 
-                                        &gs_mb_mapping->tab_registers[reg_addr_start], reg_cnt);
+                                        &gs_mb_mapping->tab_registers[(reg_addr_start)], reg_cnt);
             if(process_ret < MB_RW_REG_RET_NONE)
             {
                 DIY_LOG(LOG_ERROR, "%spre check write reg error.\n",gp_mb_server_log_header);
@@ -706,12 +744,12 @@ static mb_rw_reg_ret_t mb_server_process_req(uint8_t * req_msg, int req_msg_len,
             else
             {
                 if(hv_controller_write_uint16s(reg_addr_start,
-                            &gs_mb_mapping->tab_registers[reg_addr_start],
+                            &gs_mb_mapping->tab_registers[(reg_addr_start)],
                             reg_cnt))
                 {
                     MODBUS_REPLY(gs_mb_srvr_ctx, req_msg, req_msg_len, gs_mb_mapping);
                     process_ret = mb_server_write_reg_sniff(reg_addr_start,
-                                        &gs_mb_mapping->tab_registers[reg_addr_start], reg_cnt);
+                                        &gs_mb_mapping->tab_registers[(reg_addr_start)], reg_cnt);
                 }
                 else
                 {

@@ -28,11 +28,14 @@
     C(Workstatus = 20),                    /*充能状态*/\
     C(exposureCount = 21),                 /*曝光次数*/\
 \
-    C(MAX_HV_MB_REG_NUM), /*normal register end flag.*/\
+    C(MAX_HV_NORMAL_MB_REG_NUM), /*normal register end flag.*/\
 \
+    C(EXT_MB_REG_START_FLAG = 128), /*extend register start flag.*/\
     /*Below are extend register, that is, they are processed internally by server and not passed to hv controller.*/ \
-    C(EXT_MB_REG_DOSE_ADJ),                       /*+/- key event*/\
-    C(EXT_MB_REG_CHARGER),                       /*charger plug in/pull out*/\
+    C(EXT_MB_REG_DOSE_ADJ = 129),                       /*+/- key event*/\
+    C(EXT_MB_REG_CHARGER = 130),                       /*charger plug in/pull out*/\
+    C(EXT_MB_REG_DAP_HP = 131),                       /*High part of a float of DAP(Dose Area Product), big endian.*/\
+    C(EXT_MB_REG_DAP_LP = 132),                       /*Low part of a float of DAP, big endian.*/\
 \
     C(HV_MB_REG_END_FLAG), /*register end flag.*/\
 }
@@ -41,20 +44,36 @@
 #define C(a) a
 typedef enum MB_REG_ENUM hv_mb_reg_e_t;
 
-#define NORMAL_MB_REG_ADDR(addr) (HSV <= (addr) && (addr) < MAX_HV_MB_REG_NUM)
-#define EXTEND_MB_REG_ADDR(addr) (MAX_HV_MB_REG_NUM < (addr) && (addr) < HV_MB_REG_END_FLAG)
-#define VALID_MB_REG_ADDR(addr) (NORMAL_MB_REG_ADDR(addr) ||EXTEND_MB_REG_ADDR(addr))
+#define NORMAL_MB_REG_ADDR(addr) (HSV <= (addr) && (addr) < MAX_HV_NORMAL_MB_REG_NUM)
+#define EXTEND_MB_REG_ADDR(addr) (EXT_MB_REG_START_FLAG < (addr) && (addr) < HV_MB_REG_END_FLAG)
+#define VALID_MB_REG_ADDR(addr) (NORMAL_MB_REG_ADDR(addr) || EXTEND_MB_REG_ADDR(addr))
 #define NORMAL_MB_REG_AND_CNT(addr, cnt) (NORMAL_MB_REG_ADDR(addr) && NORMAL_MB_REG_ADDR((addr) + (cnt) - 1))
 #define EXTEND_MB_REG_AND_CNT(addr, cnt) (EXTEND_MB_REG_ADDR(addr) && EXTEND_MB_REG_ADDR((addr) + (cnt) - 1))
 #define VALID_MB_REG_AND_CNT(addr, cnt) (VALID_MB_REG_ADDR(addr) && VALID_MB_REG_ADDR((addr) + (cnt) - 1))
 
+/*those registers that need to communicate with dsp.*/
 #define MB_REG_COMM_DSP(addr, cnt) (NORMAL_MB_REG_AND_CNT(addr, cnt) || (EXT_MB_REG_DOSE_ADJ == addr))
+
+/* The number of registers, including the two flag: MAX_HV_NORMAL_MB_REG_NUM and EXT_MB_REG_START_FLAG,
+ * but not including the HV_MB_REG_END_FLAG.
+ */
+#define ALL_MB_REG_NUM (MAX_HV_NORMAL_MB_REG_NUM + (HV_MB_REG_END_FLAG - EXT_MB_REG_START_FLAG))
+
+/* The extend reg addr to its order idx.*/
+#define EXTEND_MB_REG_ADDR2IDX(ext_reg_addr) (MAX_HV_NORMAL_MB_REG_NUM + 1 + ((ext_reg_addr) - EXT_MB_REG_START_FLAG)) 
+/* The reg addr to its order idx. refer to its use in function get_hv_mb_reg_str.*/
+#define MB_REG_ADDR2IDX(reg_addr) (NORMAL_MB_REG_ADDR(reg_addr) ? (reg_addr) : EXTEND_MB_REG_ADDR2IDX(reg_addr))
 
 #define HV_MB_REG_RW_ATTR_R 'r'
 #define HV_MB_REG_RW_ATTR_W 'w'
 #define HV_MB_REG_RW_ATTR_RW '+'
 const char* get_hv_mb_reg_str(hv_mb_reg_e_t reg_addr);
 const char get_hv_mb_reg_rw_attr(hv_mb_reg_e_t reg_addr);
+
+/*reg_addr should be uint16_t array of at least 2 items, and the fist two items contain the high and low part of DAP.*/
+#define LOWEST_BYTE_ADDR_OF_DAP_IN_REG_ARR(reg_arr) ((uint8_t*)(&((reg_arr)[1])) + 1)
+#define HIGHEST_BYTE_ADDR_OF_DAP_IN_REG_ARR(reg_arr) ((uint8_t*)(&(reg_arr)[0]))
+float get_float_DAP_from_reg_arr(uint16_t * dap_high_reg_ptr);
 
 typedef enum
 {

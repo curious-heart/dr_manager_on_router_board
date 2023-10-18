@@ -133,7 +133,7 @@ static void rtu_master_test(mb_rtu_params_t* rtu_params )
             end = true;
             break;
         }
-        if(test_no >= MAX_HV_MB_REG_NUM)
+        if(!VALID_MB_REG_ADDR(test_no))
         {
             printf("Invlaid register number!\n");
             continue;
