@@ -433,8 +433,6 @@ mb_rw_reg_ret_t mb_server_read_reg_sniff(uint16_t reg_addr_start, uint16_t * dat
 
 
             case BatteryLevel:
-                DIY_LOG(LOG_INFO, "............gs_hv_st.bat_lvl: %d, data_arr[%d]:%d.\n", 
-                                    gs_hv_st.bat_lvl, idx, data_arr[idx]);
                 if(gs_hv_st.bat_lvl != data_arr[idx])
                 {
                     gs_hv_st.bat_lvl = data_arr[idx];

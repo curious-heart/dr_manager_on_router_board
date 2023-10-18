@@ -54,7 +54,7 @@ cmd_args=" --com_dev $mb_rtu_serialPortName"\
 " --tof_dev_addr $tof_i2c_addr"\
 " --tof_mech_cali $tof_mech_cali"\
 " --tof_internal_cali $tof_internal_cali"\
-"$app_work_mode"\
+" $app_work_mode"\
 " --app_log_level $app_log_level"
 
 APP_NAME=dr_manager
