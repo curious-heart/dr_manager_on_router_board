@@ -159,10 +159,10 @@ static void mb_tcp_server_test()
         printf("exposureCount = 21,        //曝光次数\n");
         printf("--------belowing are extend registers.\n");
 
-        printf("EXT_MB_REG_DOSE_ADJ = 129),     /*+/- key event*/\n");
-        printf("EXT_MB_REG_CHARGER =130),     /*charger plug in/pull out*/\n");
-        printf("EXT_MB_REG_DAP_HP = 131),     /*High part of a float of DAP(Dose Area Product), big endian.*/\n");
-        printf("EXT_MB_REG_DAP_LP = 132),     /*Low part of a float of DAP, big endian.*/\n");
+        printf("EXT_MB_REG_DOSE_ADJ = 101),     /*+/- key event*/\n");
+        printf("EXT_MB_REG_CHARGER = 102),     /*charger plug in/pull out*/\n");
+        printf("EXT_MB_REG_DAP_HP = 103),     /*High part of a float of DAP(Dose Area Product), big endian.*/\n");
+        printf("EXT_MB_REG_DAP_LP = 104),     /*Low part of a float of DAP, big endian.*/\n");
 
         printf("-1: exit.\n");
 

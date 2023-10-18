@@ -1,6 +1,7 @@
 #ifndef _MB_TCP_SERVER_INTERNAL_H_
 #define _MB_TCP_SERVER_INTERNAL_H_
 
+#include <stdbool.h>
 #include <modbus/modbus.h>
 
 extern const char* const gp_mb_server_log_header;
@@ -17,7 +18,7 @@ typedef enum
 
 modbus_t * mb_server_get_ctx();
 modbus_mapping_t * mb_server_get_mapping();
-mb_rw_reg_ret_t mb_server_read_reg_sniff(uint16_t reg_addr_start, uint16_t * data_arr, uint16_t reg_cnt);
-mb_rw_reg_ret_t mb_server_write_reg_sniff(uint16_t reg_addr_start, uint16_t * data_arr, uint16_t reg_cnt);
+mb_rw_reg_ret_t mb_server_read_reg_sniff(uint16_t reg_addr_start, uint16_t * data_arr, uint16_t reg_cnt, bool server_only);
+mb_rw_reg_ret_t mb_server_write_reg_sniff(uint16_t reg_addr_start, uint16_t * data_arr, uint16_t reg_cnt, bool server_only);
 
 #endif

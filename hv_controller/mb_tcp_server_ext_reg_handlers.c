@@ -77,7 +77,8 @@ mb_rw_reg_ret_t mb_tcp_srvr_ext_reg_dose_adj_handler(uint16_t adj_val, bool serv
     {
         if(hv_controller_write_uint16s(reg_addr_start, &reg_mappings->tab_registers[reg_addr_start], reg_cnt))
         {
-           process_ret = mb_server_write_reg_sniff(reg_addr_start, &reg_mappings->tab_registers[reg_addr_start], reg_cnt);
+           process_ret 
+               = mb_server_write_reg_sniff(reg_addr_start, &reg_mappings->tab_registers[reg_addr_start], reg_cnt, server_only);
         }
         else
         {
@@ -90,6 +91,11 @@ mb_rw_reg_ret_t mb_tcp_srvr_ext_reg_dose_adj_handler(uint16_t adj_val, bool serv
             }
             process_ret = MB_RW_REG_RET_ERROR;
         }
+    }
+    else
+    {
+       process_ret 
+           = mb_server_write_reg_sniff(reg_addr_start, &reg_mappings->tab_registers[reg_addr_start], reg_cnt, server_only);
     }
 
     return process_ret; 

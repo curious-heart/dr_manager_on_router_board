@@ -256,7 +256,7 @@ battery_chg_st_t get_local_rec_bat_chg_state()
 static mb_rw_reg_ret_t mb_server_pre_check_write_reg(uint16_t reg_addr_start, uint16_t * data_arr, uint16_t reg_cnt)
 {
     mb_rw_reg_ret_t ret = MB_RW_REG_RET_NONE; 
-    uint16_t idx, data_v;
+    uint16_t idx, data_v = 0;
     bool exposure_start = false, exposure_range_led = false;
 
     for(idx = 0; idx < reg_cnt; ++idx)
@@ -336,7 +336,7 @@ static void set_float_DAP_to_mapping_reg(float DAP_v)
     }
 }
 
-mb_rw_reg_ret_t mb_server_write_reg_sniff(uint16_t reg_addr_start, uint16_t * data_arr, uint16_t reg_cnt)
+mb_rw_reg_ret_t mb_server_write_reg_sniff(uint16_t reg_addr_start, uint16_t * data_arr, uint16_t reg_cnt, bool server_only)
 {
     bool becare = false;
     uint16_t idx = 0;
@@ -378,9 +378,12 @@ mb_rw_reg_ret_t mb_server_write_reg_sniff(uint16_t reg_addr_start, uint16_t * da
                 break;
 
             case ExposureStart:     // 13,   /*曝光启动*/
-                gs_hv_st.expo_st = EXPOSURE_ST_ALARM; 
-                becare = true;
-                ret = MB_RW_REG_RET_USE_SHORT_WAIT_TIME;
+                if(!server_only)
+                {
+                    gs_hv_st.expo_st = EXPOSURE_ST_ALARM; 
+                    becare = true;
+                    ret = MB_RW_REG_RET_USE_SHORT_WAIT_TIME;
+                }
 
                 unset_tof_th_measure_flag(TOF_REQUESTER_EXPOSURE);
                 break;
@@ -398,11 +401,16 @@ mb_rw_reg_ret_t mb_server_write_reg_sniff(uint16_t reg_addr_start, uint16_t * da
     return ret;
 }
 
-mb_rw_reg_ret_t mb_server_read_reg_sniff(uint16_t reg_addr_start, uint16_t * data_arr, uint16_t reg_cnt)
+mb_rw_reg_ret_t mb_server_read_reg_sniff(uint16_t reg_addr_start, uint16_t * data_arr, uint16_t reg_cnt, bool server_only)
 {
     bool becare = false;
     uint16_t idx = 0;
     mb_rw_reg_ret_t ret = MB_RW_REG_RET_NONE; 
+
+    if(server_only)
+    {
+        return ret;
+    }
 
     if(gs_hv_st.hv_dsp_conn_st != HV_DSP_CONNECTED)
     {
@@ -582,31 +590,68 @@ static mb_rw_reg_ret_t mb_server_process_extend_reg(uint8_t * req_msg, int req_m
     switch(func)
     {
         case MODBUS_FC_WRITE_SINGLE_REGISTER:
+        case MODBUS_FC_WRITE_MULTIPLE_REGISTERS:
         {
-            uint16_t write_data;
-            mb_tcp_server_fill_mapping_tab_reg_from_msg(req_msg, MB_REQ_MSG_SINGLE_VALUE_OFFSET_AFTER_HDR,
-                                                        reg_addr_start, 1);
-            write_data = gs_mb_mapping->tab_registers[(reg_addr_start)];
+            int offset;
+            uint16_t idx;
 
-            switch(reg_addr_start)
+            if(MODBUS_FC_WRITE_SINGLE_REGISTER == func)
             {
-                case EXT_MB_REG_DOSE_ADJ:
-                    ret = mb_tcp_srvr_ext_reg_dose_adj_handler(write_data, server_only);
-                    break;
+                offset = MB_REQ_MSG_SINGLE_VALUE_OFFSET_AFTER_HDR;
+            }
+            else
+            {
+                offset = MB_REQ_MSG_MULTI_VALUE_OFFSET_AFTER_HDR;
+            }
+            mb_tcp_server_fill_mapping_tab_reg_from_msg(req_msg, offset, reg_addr_start, reg_cnt);
 
-                case EXT_MB_REG_CHARGER:
-                    ret = mb_tcp_srvr_ext_reg_charger_handler(write_data);
-                    break;
+            for(idx = 0; idx < reg_cnt; ++idx)
+            {
+                if(EXTEND_MB_REG_ADDR(reg_addr_start + idx))
+                {
+                    uint16_t write_data;
 
-                default:
-                    DIY_LOG(LOG_WARN + LOG_ONLY_INFO_STR_COMP, "But nothing to do now...\n");
+                    if(HV_MB_REG_RW_ATTR_R == get_hv_mb_reg_rw_attr(reg_addr_start + idx))
+                    {
+                        DIY_LOG(LOG_ERROR, "%sthe register %d is read-only, can't be written.\n",
+                                gp_mb_server_log_header, (reg_addr_start + idx));
+                        ret =  MB_RW_REG_RET_ERROR ;
+                        break;
+                    }
+
+                    write_data = gs_mb_mapping->tab_registers[(reg_addr_start + idx)];
+                    switch(reg_addr_start + idx)
+                    {
+                        case EXT_MB_REG_DOSE_ADJ:
+                            ret = mb_tcp_srvr_ext_reg_dose_adj_handler(write_data, server_only);
+                            break;
+
+                        case EXT_MB_REG_CHARGER:
+                            ret = mb_tcp_srvr_ext_reg_charger_handler(write_data);
+                            break;
+
+                        default:
+                            DIY_LOG(LOG_WARN + LOG_ONLY_INFO_STR_COMP, "But nothing to do now...\n");
+                            break;
+                    }
+                    if(ret != MB_RW_REG_RET_NONE)
+                    {
+                        break;
+                    }
+
+                }
+                else
+                {
+                    DIY_LOG(LOG_ERROR, "%sInvalid extend reg addr: %d.\n", gp_mb_server_log_header, reg_addr_start + idx);
+                    ret = MB_RW_REG_RET_ERROR;
                     break;
+                }
             }
 
             if(MB_RW_REG_RET_ERROR == ret)
             {
-                DIY_LOG(LOG_ERROR, "%sprocess extend register %s write error.\n",
-                                    gp_mb_server_log_header, get_hv_mb_reg_str(reg_addr_start));
+                DIY_LOG(LOG_ERROR, "%sprocess extend register(s) %s write error, reg_cnt:%d.\n",
+                                    gp_mb_server_log_header, get_hv_mb_reg_str(reg_addr_start), reg_cnt);
                 modbus_reply_exception(gs_mb_srvr_ctx, req_msg, MODBUS_EXCEPTION_NOT_DEFINED);
             }
             else
@@ -616,17 +661,34 @@ static mb_rw_reg_ret_t mb_server_process_extend_reg(uint8_t * req_msg, int req_m
         }
         break;
 
-        case MODBUS_FC_WRITE_MULTIPLE_REGISTERS:
-        {
-            mb_tcp_server_fill_mapping_tab_reg_from_msg(req_msg, MB_REQ_MSG_MULTI_VALUE_OFFSET_AFTER_HDR,
-                                                        reg_addr_start, reg_cnt);
-            MODBUS_REPLY(gs_mb_srvr_ctx, req_msg, req_msg_len, gs_mb_mapping);
-        }
-        break;
-
         case MODBUS_FC_READ_HOLDING_REGISTERS:
         {
-            MODBUS_REPLY(gs_mb_srvr_ctx, req_msg, req_msg_len, gs_mb_mapping);
+            int idx;
+            for(idx = 0; idx < reg_cnt; ++idx)
+            {
+                if(!EXTEND_MB_REG_ADDR(reg_addr_start + idx))
+                {
+                    DIY_LOG(LOG_ERROR, "%sInvalid extend reg addr: %d.\n", gp_mb_server_log_header, reg_addr_start + idx);
+                    ret = MB_RW_REG_RET_ERROR;
+                    break;
+                }
+                else if(HV_MB_REG_RW_ATTR_W == get_hv_mb_reg_rw_attr(reg_addr_start + idx))
+                {
+                    DIY_LOG(LOG_ERROR, "%sthe register %d is write-only, can't be read.\n",
+                            gp_mb_server_log_header, (reg_addr_start + idx));
+                    ret =  MB_RW_REG_RET_ERROR ;
+                    break;
+                }
+            }
+
+            if(MB_RW_REG_RET_ERROR == ret)
+            {
+                modbus_reply_exception(gs_mb_srvr_ctx, req_msg, MODBUS_EXCEPTION_NOT_DEFINED);
+            }
+            else
+            {
+                MODBUS_REPLY(gs_mb_srvr_ctx, req_msg, req_msg_len, gs_mb_mapping);
+            }
         }
         break;
 
@@ -685,6 +747,9 @@ static mb_rw_reg_ret_t mb_server_process_req(uint8_t * req_msg, int req_msg_len,
             if(server_only)
             {
                 MODBUS_REPLY(gs_mb_srvr_ctx, req_msg, req_msg_len, gs_mb_mapping);
+                process_ret = mb_server_read_reg_sniff(reg_addr_start,
+                                        &gs_mb_mapping->tab_registers[(reg_addr_start)],
+                                        reg_cnt, server_only);
             }
             else
             {
@@ -695,7 +760,7 @@ static mb_rw_reg_ret_t mb_server_process_req(uint8_t * req_msg, int req_msg_len,
                     MODBUS_REPLY(gs_mb_srvr_ctx, req_msg, req_msg_len, gs_mb_mapping);
                     process_ret = mb_server_read_reg_sniff(reg_addr_start,
                                             &gs_mb_mapping->tab_registers[(reg_addr_start)],
-                                            reg_cnt);
+                                            reg_cnt, server_only);
 
                 }
                 else
@@ -738,6 +803,8 @@ static mb_rw_reg_ret_t mb_server_process_req(uint8_t * req_msg, int req_msg_len,
             if(server_only)
             {
                 MODBUS_REPLY(gs_mb_srvr_ctx, req_msg, req_msg_len, gs_mb_mapping);
+                process_ret = mb_server_write_reg_sniff(reg_addr_start,
+                                    &gs_mb_mapping->tab_registers[(reg_addr_start)], reg_cnt, server_only);
             }
             else
             {
@@ -747,7 +814,7 @@ static mb_rw_reg_ret_t mb_server_process_req(uint8_t * req_msg, int req_msg_len,
                 {
                     MODBUS_REPLY(gs_mb_srvr_ctx, req_msg, req_msg_len, gs_mb_mapping);
                     process_ret = mb_server_write_reg_sniff(reg_addr_start,
-                                        &gs_mb_mapping->tab_registers[(reg_addr_start)], reg_cnt);
+                                        &gs_mb_mapping->tab_registers[(reg_addr_start)], reg_cnt, server_only);
                 }
                 else
                 {

@@ -30,12 +30,12 @@
 \
     C(MAX_HV_NORMAL_MB_REG_NUM), /*normal register end flag.*/\
 \
-    C(EXT_MB_REG_START_FLAG = 128), /*extend register start flag.*/\
+    C(EXT_MB_REG_START_FLAG = 100), /*extend register start flag.*/\
     /*Below are extend register, that is, they are processed internally by server and not passed to hv controller.*/ \
-    C(EXT_MB_REG_DOSE_ADJ = 129),                       /*+/- key event*/\
-    C(EXT_MB_REG_CHARGER = 130),                       /*charger plug in/pull out*/\
-    C(EXT_MB_REG_DAP_HP = 131),                       /*High part of a float of DAP(Dose Area Product), big endian.*/\
-    C(EXT_MB_REG_DAP_LP = 132),                       /*Low part of a float of DAP, big endian.*/\
+    C(EXT_MB_REG_DOSE_ADJ = 101),                       /*+/- key event*/\
+    C(EXT_MB_REG_CHARGER = 102),                       /*charger plug in/pull out*/\
+    C(EXT_MB_REG_DAP_HP = 103),                       /*High part of a float of DAP(Dose Area Product), big endian.*/\
+    C(EXT_MB_REG_DAP_LP = 104),                       /*Low part of a float of DAP, big endian.*/\
 \
     C(HV_MB_REG_END_FLAG), /*register end flag.*/\
 }
