@@ -3,7 +3,7 @@ include $(TOPDIR)/rules.mk
 # Name, version and release number
 # The name and version of your package are used to define the variable to point to the build directory of your package: $(PKG_BUILD_DIR)
 PKG_NAME:=dr_manager
-PKG_VERSION:=0.2.5-d3_0.2.1
+PKG_VERSION:=0.2.6-d1_0.2.1
 PKG_RELEASE:=1
 
 # Source settings (i.e. where to find the source codes)
@@ -17,7 +17,7 @@ define Package/dr_manager
 	SECTION:=examples
 	CATEGORY:=Examples
 	TITLE:=DR Manager
-	DEPENDS:=+libmodbus libpthread
+	DEPENDS:=+libmodbus libpthread libsqlite3
 endef
 
 # Package description; a more verbose description on what our package does
@@ -44,6 +44,8 @@ define Package/dr_manager/install
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/dr_manager $(1)/usr/bin
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/*.sh $(1)/usr/bin
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/at_cmd_processor/*.sh $(1)/usr/bin
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/dap_calc/*.sqlite3 $(1)/usr/bin
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/dap_calc/dap_data.txt $(1)/usr/bin
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/gpio_key_monitor $(1)/usr/bin
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/mb_tcp_test_client $(1)/usr/bin
 endef

@@ -35,6 +35,7 @@
 #include "mb_tcp_server_ext_reg_handlers.h"
 #include "option_configuration_process.h"
 #include "main_app_used_gpios.h"
+#include "dap_calc.h"
 
 /*Do not use it in area out of modbus tcp server code.*/
 const char* const gp_mb_server_log_header = "modbus server: ";
@@ -73,6 +74,8 @@ void mb_server_exit()
         gs_mb_mapping = NULL;
     }
     gs_mb_header_len = -1;
+
+    close_DAP_db();
 }
 
 static const char* mb_exception_string(uint32_t exception_code)
@@ -313,12 +316,6 @@ static mb_rw_reg_ret_t mb_server_pre_check_write_reg(uint16_t reg_addr_start, ui
 
 
     return ret;
-}
-
-static float calculate_DAP_value(uint16_t kV, uint32_t uA, uint16_t ms)
-{
-    float mA = ((float)uA) / 1000, seconds = ((float)ms) / 1000;
-    return (float)kV * mA * seconds;
 }
 
 #define LOWEST_BYTE_ADDR_OF_DAP_IN_MAPPING_REGS ((uint8_t*)(&gs_mb_mapping->tab_registers[(EXT_MB_REG_DAP_LP)]) + 1)
@@ -965,6 +962,9 @@ mb_server_exit_code_t  mb_server_loop(mb_tcp_server_params_t * srvr_params, bool
     DIY_LOG(LOG_INFO, "%smodbus server listenning on %s:%d, socket fd: %d...\n",
             gp_mb_server_log_header, srvr_params->srvr_ip, srvr_params->srvr_port,
             gs_mb_server_socket);
+
+
+    init_DAP_db();
 
     gs_time_point_for_conn_check = time(NULL);
     /* Clear the reference set of socket */

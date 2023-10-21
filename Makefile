@@ -5,8 +5,8 @@ BUILD_TYPE=release
 BUILD_DATE = $(shell TZ='Asia/Shanghai' date +%Y%m%d%H%M%S)
 OBJ = ./obj
 
-INC = . ./common_tools ./hv_controller ./lcd_display ./tof_measure ./tof_measure/core/inc ./tof_measure/platform/inc ./mb_tcp_server_test ./gpio_key_processor ./op_gpio_thu_reg
-SRC = . ./common_tools ./hv_controller ./lcd_display ./tof_measure ./tof_measure/core/src ./tof_measure/platform/src 
+INC = . ./common_tools ./hv_controller ./lcd_display ./tof_measure ./tof_measure/core/inc ./tof_measure/platform/inc ./mb_tcp_server_test ./gpio_key_processor ./op_gpio_thu_reg ./dap_calc
+SRC = . ./common_tools ./hv_controller ./lcd_display ./tof_measure ./tof_measure/core/src ./tof_measure/platform/src ./dap_calc
 
 TARGET = dr_manager
 TCP_SRVR_TEST_TARGET = mb_tcp_test_client
@@ -27,7 +27,7 @@ GPIO_KEY_PROCESSOR_SOURCES = $(wildcard ./gpio_key_processor/*.c) ./common_tools
 CC = gcc
 override CFLAGS += -Wall $(addprefix -I, $(INC)) -pthread -DBUILD_DATE_STR="\"$(BUILD_DATE)\"" \
 	-DBUILD_TYPE_STR="\"$(BUILD_TYPE)\"" -DUSE_I2C_2V8
-override LDLIBS += -lm -lmodbus -pthread
+override LDLIBS += -lm -lmodbus -pthread -lsqlite3
  
 DEPS = $(INCLUDES)
 OBJECTS = $(patsubst %.c, $(OBJ)/%.o, $(notdir $(SOURCES)))
@@ -58,6 +58,8 @@ $(OBJ)/%.o: ./mb_tcp_server_test/%.c $(DEPS)
 $(OBJ)/%.o: ./gpio_key_processor/%.c $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)
 $(OBJ)/%.o: ./op_gpio_thu_reg/%.c $(DEPS)
+	$(CC) -c -o $@ $< $(CFLAGS)
+$(OBJ)/%.o: ./dap_calc/%.c $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 $(TARGET): $(OBJECTS)

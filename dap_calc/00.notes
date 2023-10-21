@@ -1,0 +1,6 @@
+dap_cal.py is used to generate dap_db.sqlite3 and dap_data.txt files. This process is performed before dr_manager is started up.
+
+dr_manager lookup into dap_db.sqlite3 using (kV, uA, ms) as key, if a DAP_mGym2 value is found, then use it for display; or dr_manager calculates DAP value using the coefficients in table coefficient_tbl. The formula is:
+co_kV * kV + co_mA * uA/1000 + co_sec * ms/1000 + co_D
+
+dap_data.txt is generated with dap_db.sqlite3 but it is not used by dr_manager, and it is just for human read by convenience.

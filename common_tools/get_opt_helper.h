@@ -81,8 +81,8 @@ extern const char* type_id_str_arr[];
 #define CONVERT_FUNC_ATOUINT8(var, value) (var) = (uint8_t)strtol((value), NULL, 0)
 #define CONVERT_FUNC_ATOUINT16(var, value) (var) = (uint16_t)strtol((value), NULL, 0)
 #define CONVERT_FUNC_ATOUINT32(var, value) (var) = (uint32_t)strtol((value), NULL, 0)
-#define CONVERT_FUNC_ATOF(var, value) (var) = (float)atof((value))
-#define CONVERT_FUNC_ATODB(var, value) (var) = (double)atof((value))
+#define CONVERT_FUNC_ATOF(var, value) (var) = strtof((value), NULL)
+#define CONVERT_FUNC_ATODB(var, value) (var) = strtod((value), NULL)
 
 #else
 #define CONVERT_FUNC(var, value) _Generic((var),\
