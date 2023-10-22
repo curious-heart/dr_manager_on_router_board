@@ -78,8 +78,8 @@ static const lcd_area_info_t gs_lcd_areas[] =
     {LCD_SIM_CARD_ST_POS_X, LCD_SIM_CARD_ST_POS_Y, LCD_SIM_CARD_ST_POS_W, LCD_SIM_CARD_ST_POS_H, NULL},
     {LCD_EXPO_ST_POS_X, LCD_EXPO_ST_POS_Y, LCD_EXPO_ST_POS_W, LCD_EXPO_ST_POS_H, NULL},
     {LCD_CUBE_VOLT_POS_X, LCD_CUBE_VOLT_POS_Y, LCD_CUBE_VOLT_POS_W, LCD_CUBE_VOLT_POS_H, NULL},
-    {LCD_CUBE_AMTS_POS_X, LCD_CUBE_AMTS_POS_Y, LCD_CUBE_AMTS_POS_W, LCD_CUBE_AMTS_POS_H, NULL},
-    {LCD_CUBE_AMTS_POS_X, LCD_CUBE_AMTS_POS_Y, LCD_CUBE_AMTS_POS_W, LCD_CUBE_AMTS_POS_H, NULL},
+    {LCD_CUBE_AMT_POS_X, LCD_CUBE_AMT_POS_Y, LCD_CUBE_AMT_POS_W, LCD_CUBE_AMT_POS_H, NULL},
+    {LCD_DURA_POS_X, LCD_DURA_POS_Y, LCD_DURA_POS_W, LCD_DURA_POS_H, NULL},
     {LCD_EXPO_ST_POS_X, LCD_EXPO_ST_POS_Y, LCD_EXPO_ST_POS_W, LCD_EXPO_ST_POS_H, NULL},
     {LCD_DISTANCE_POS_X, LCD_DISTANCE_POS_Y, LCD_DISTANCE_POS_W, LCD_DISTANCE_POS_H, NULL},
 
@@ -90,8 +90,6 @@ static const lcd_area_info_t gs_lcd_areas[] =
          &gs_static_dev_st_res},
     {LCD_STATIC_VOLT_POS_X, LCD_STATIC_VOLT_POS_Y, LCD_STATIC_VOLT_POS_W, LCD_STATIC_VOLT_POS_H,
          &gs_static_volt_res},
-    {LCD_STATIC_AMT_S_POS_X, LCD_STATIC_AMT_S_POS_Y, LCD_STATIC_AMT_S_POS_W, LCD_STATIC_AMT_S_POS_H,
-         &gs_static_amt_s_res},
     {LCD_STATIC_AMT_POS_X, LCD_STATIC_AMT_POS_Y, LCD_STATIC_AMT_POS_W, LCD_STATIC_AMT_POS_H,
          &gs_static_amt_res},
     {LCD_STATIC_DURA_POS_X, LCD_STATIC_DURA_POS_Y, LCD_STATIC_DURA_POS_W, LCD_STATIC_DURA_POS_H,
@@ -357,13 +355,22 @@ static void refresh_cube_volt_display(dr_device_st_enum_t st_id)
                                    gs_lcd_areas[st_id].pos_w, gs_lcd_areas[st_id].pos_h);
 }
 
-static void refresh_cube_amts_display(dr_device_st_enum_t st_id)
+static void refresh_cube_amt_display(dr_device_st_enum_t st_id)
 {
-    float amts_n = ((float)(gs_device_st_pool_of_lcd.expo_am_ua) / 1000) 
-                 * ((float)(gs_device_st_pool_of_lcd.expo_dura_ms) / 1000);
-    int max_num_of_number_chars = LCD_CUBE_AMTS_MAX_INT_CHAR_NUM + 1 /*.*/ + LCD_CUBE_AMTS_MAX_FRAC_CHAR_NUM;
-    PRINT_NUMBER_WITH_UNIT_TO_SCRN(amts_n, max_num_of_number_chars, "%.*f", LCD_CUBE_AMTS_MAX_FRAC_CHAR_NUM,\
-                                   gs_LCD_DISPLAY_UNIT_STR_AMTS, \
+    float amt_n = (float)(gs_device_st_pool_of_lcd.expo_am_ua) / 1000;
+    int max_num_of_number_chars = LCD_CUBE_AMT_MAX_INT_CHAR_NUM + 1 /*.*/ + LCD_CUBE_AMT_MAX_FRAC_CHAR_NUM;
+    PRINT_NUMBER_WITH_UNIT_TO_SCRN(amt_n, max_num_of_number_chars, "%.*f", LCD_CUBE_AMT_MAX_FRAC_CHAR_NUM,\
+                                   gs_LCD_DISPLAY_UNIT_STR_AMT, \
+                                   gs_lcd_areas[st_id].pos_x, gs_lcd_areas[st_id].pos_y,
+                                   gs_lcd_areas[st_id].pos_w, gs_lcd_areas[st_id].pos_h);
+}
+
+static void refresh_dura_display(dr_device_st_enum_t st_id)
+{
+    float sec_n = (float)(gs_device_st_pool_of_lcd.expo_dura_ms) / 1000;
+    int max_num_of_number_chars = LCD_DURA_MAX_INT_CHAR_NUM + 1 /*.*/ + LCD_DURA_MAX_FRAC_CHAR_NUM;
+    PRINT_NUMBER_WITH_UNIT_TO_SCRN(sec_n, max_num_of_number_chars, "%.*f", LCD_DURA_MAX_FRAC_CHAR_NUM,\
+                                   gs_LCD_DISPLAY_UNIT_STR_SEC, \
                                    gs_lcd_areas[st_id].pos_x, gs_lcd_areas[st_id].pos_y,
                                    gs_lcd_areas[st_id].pos_w, gs_lcd_areas[st_id].pos_h);
 }
@@ -441,8 +448,8 @@ static const write_info_to_lcd_funcs_t gs_write_info_to_lcd_func_list =
     refresh_sim_card_st_display,
     refresh_expo_st_display,
     refresh_cube_volt_display,
-    refresh_cube_amts_display,
-    refresh_cube_amts_display,
+    refresh_cube_amt_display,
+    refresh_dura_display,
     refresh_expo_st_display,
     refresh_tof_distance_display,
 };

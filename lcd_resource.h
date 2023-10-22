@@ -34,22 +34,40 @@ static const lcd_display_resource_t gs_static_volt_res =
 #define LCD_STATIC_VOLT_POS_W LCD_STATIC_VOLT_IMG_W
 #define LCD_STATIC_VOLT_POS_H LCD_STATIC_VOLT_IMG_H
 
-#define LCD_STATIC_AMT_S_IMG_W (80 + 8) /* title + colon */
-#define LCD_STATIC_AMT_S_IMG_H 16
-static const unsigned char gs_static_amt_s_display_data[/* LCD_STATIC_AMT_S_IMG_W * ceil(LCD_STATIC_AMT_S_IMG_H / 8) */] = 
+#define LCD_STATIC_AMT_IMG_W (48 + 8) /* title + colon */
+#define LCD_STATIC_AMT_IMG_H 16
+static const unsigned char gs_static_amt_display_data[/* LCD_STATIC_AMT_IMG_W * ceil(LCD_STATIC_AMT_IMG_H / 8) */] = 
 {
-    0x00, 0x00, 0xF8, 0x88, 0x88, 0x88, 0x88, 0xFF, 0x88, 0x88, 0x88, 0x88, 0xF8, 0x00, 0x00, 0x00, 0x10, 0x60, 0x02, 0x8C, 0x00, 0x44, 0x64, 0x54, 0x4D, 0x46, 0x44, 0x54, 0x64, 0xC4, 0x04, 0x00, 0x00, 0xFC, 0x84, 0x84, 0x84, 0xFC, 0x00, 0x10, 0x10, 0x10, 0x10, 0x10, 0xFF, 0x10, 0x10, 0x00, 0x00, 0xF8, 0x01, 0x06, 0x00, 0xF0, 0x12, 0x12, 0x12, 0xF2, 0x02, 0x02, 0x02, 0xFE, 0x00, 0x00, 0x20, 0x24, 0x24, 0xA4, 0xFE, 0x23, 0x22, 0x20, 0xFC, 0x04, 0x04, 0x04, 0x04, 0xFC, 0x00, 0x00, /* colon */ 0x00, 0x00, 0x00, 0xC0, 0xC0, 0x00, 0x00, 0x00, 
-    0x00, 0x00, 0x1F, 0x08, 0x08, 0x08, 0x08, 0x7F, 0x88, 0x88, 0x88, 0x88, 0x9F, 0x80, 0xF0, 0x00, 0x04, 0x04, 0x7E, 0x01, 0x80, 0x40, 0x3E, 0x00, 0x00, 0xFE, 0x00, 0x00, 0x7E, 0x80, 0xE0, 0x00, 0x00, 0x3F, 0x10, 0x10, 0x10, 0x3F, 0x00, 0x00, 0x01, 0x06, 0x40, 0x80, 0x7F, 0x00, 0x00, 0x00, 0x00, 0xFF, 0x00, 0x00, 0x00, 0x1F, 0x11, 0x11, 0x11, 0x1F, 0x00, 0x40, 0x80, 0x7F, 0x00, 0x00, 0x10, 0x08, 0x06, 0x01, 0xFF, 0x01, 0x06, 0x80, 0x63, 0x19, 0x01, 0x01, 0x09, 0x33, 0xC0, 0x00, /* colon */ 0x00, 0x00, 0x00, 0x30, 0x30, 0x00, 0x00, 0x00, 
+    0x88, 0x64, 0x23, 0xA2, 0xA6, 0xAA, 0xA2, 0xBA, 0xA4, 0xA3, 0xA2, 0x26, 0x2A, 0xA2, 0x62, 0x00, 0x00, 0x00, 0xF8, 0x88, 0x88, 0x88, 0x88, 0xFF, 0x88, 0x88, 0x88, 0x88, 0xF8, 0x00, 0x00, 0x00, 0x10, 0x60, 0x02, 0x8C, 0x00, 0x44, 0x64, 0x54, 0x4D, 0x46, 0x44, 0x54, 0x64, 0xC4, 0x04, 0x00, /* colon */ 0x00, 0x00, 0x00, 0xC0, 0xC0, 0x00, 0x00, 0x00, 
+    0x00, 0x00, 0x00, 0xFF, 0x4A, 0x4A, 0x4A, 0x4A, 0x4A, 0x4A, 0x4B, 0xF8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1F, 0x08, 0x08, 0x08, 0x08, 0x7F, 0x88, 0x88, 0x88, 0x88, 0x9F, 0x80, 0xF0, 0x00, 0x04, 0x04, 0x7E, 0x01, 0x80, 0x40, 0x3E, 0x00, 0x00, 0xFE, 0x00, 0x00, 0x7E, 0x80, 0xE0, 0x00, /* colon */ 0x00, 0x00, 0x00, 0x30, 0x30, 0x00, 0x00, 0x00, 
 };
-static const lcd_display_resource_t gs_static_amt_s_res = 
+static const lcd_display_resource_t gs_static_amt_res = 
 {
-    LCD_STATIC_AMT_S_IMG_W, LCD_STATIC_AMT_S_IMG_H,
-    gs_static_amt_s_display_data,
+    LCD_STATIC_AMT_IMG_W, LCD_STATIC_AMT_IMG_H,
+    gs_static_amt_display_data,
 };
-#define LCD_STATIC_AMT_S_POS_X LCD_DISPLAY_ORI_X
-#define LCD_STATIC_AMT_S_POS_Y (LCD_DISPLAY_ORI_Y + LCD_STATIC_VOLT_POS_H + LCD_DISPLAY_V_GAP)
-#define LCD_STATIC_AMT_S_POS_W LCD_STATIC_AMT_S_IMG_W
-#define LCD_STATIC_AMT_S_POS_H LCD_STATIC_AMT_S_IMG_H
+#define LCD_STATIC_AMT_POS_X LCD_DISPLAY_ORI_X
+#define LCD_STATIC_AMT_POS_Y (LCD_DISPLAY_ORI_Y + LCD_STATIC_VOLT_POS_H + LCD_DISPLAY_V_GAP)
+#define LCD_STATIC_AMT_POS_W LCD_STATIC_AMT_IMG_W
+#define LCD_STATIC_AMT_POS_H LCD_STATIC_AMT_IMG_H
+
+#define LCD_STATIC_DURA_IMG_W (32 + 8) /* title + colon */
+#define LCD_STATIC_DURA_IMG_H 16
+static const unsigned char gs_static_dura_display_data[/* LCD_STATIC_DURA_IMG_W * ceil(LCD_STATIC_DURA_IMG_H / 8) */] = 
+{
+    0x00, 0xFC, 0x84, 0x84, 0x84, 0xFC, 0x00, 0x10, 0x10, 0x10, 0x10, 0x10, 0xFF, 0x10, 0x10, 0x00, 0x00, 0xF8, 0x01, 0x06, 0x00, 0xF0, 0x12, 0x12, 0x12, 0xF2, 0x02, 0x02, 0x02, 0xFE, 0x00, 0x00,  /* colon */ 0x00, 0x00, 0x00, 0xC0, 0xC0, 0x00, 0x00, 0x00, 
+    0x00, 0x3F, 0x10, 0x10, 0x10, 0x3F, 0x00, 0x00, 0x01, 0x06, 0x40, 0x80, 0x7F, 0x00, 0x00, 0x00, 0x00, 0xFF, 0x00, 0x00, 0x00, 0x1F, 0x11, 0x11, 0x11, 0x1F, 0x00, 0x40, 0x80, 0x7F, 0x00, 0x00,  /* colon */ 0x00, 0x00, 0x00, 0x30, 0x30, 0x00, 0x00, 0x00, 
+};
+static const lcd_display_resource_t gs_static_dura_res = 
+{
+    LCD_STATIC_DURA_IMG_W, LCD_STATIC_DURA_IMG_H,
+    gs_static_dura_display_data,
+};
+/* 8*8 is the width of maximum amt len, e.gl 10.123mA; 20 is margin.*/
+#define LCD_STATIC_DURA_POS_X (LCD_STATIC_AMT_POS_X + LCD_STATIC_AMT_POS_W + 8*8 + 20)
+#define LCD_STATIC_DURA_POS_Y LCD_STATIC_AMT_POS_Y
+#define LCD_STATIC_DURA_POS_W LCD_STATIC_DURA_IMG_W
+#define LCD_STATIC_DURA_POS_H LCD_STATIC_DURA_IMG_H
 
 #define LCD_STATIC_DEV_ST_IMG_W (32 + 8) /* title + colon */
 #define LCD_STATIC_DEV_ST_IMG_H 16
@@ -64,7 +82,7 @@ static const lcd_display_resource_t gs_static_dev_st_res =
     gs_static_dev_st_display_data,
 };
 #define LCD_STATIC_DEV_ST_POS_X (LCD_DISPLAY_ORI_X)
-#define LCD_STATIC_DEV_ST_POS_Y (LCD_DISPLAY_ORI_Y +  LCD_STATIC_VOLT_POS_H + LCD_STATIC_AMT_S_POS_H + \
+#define LCD_STATIC_DEV_ST_POS_Y (LCD_DISPLAY_ORI_Y +  LCD_STATIC_VOLT_POS_H + LCD_STATIC_AMT_POS_H + \
                                     2 * LCD_DISPLAY_V_GAP)
 #define LCD_STATIC_DEV_ST_POS_W LCD_STATIC_DEV_ST_IMG_W
 #define LCD_STATIC_DEV_ST_POS_H LCD_STATIC_DEV_ST_IMG_H
@@ -85,32 +103,6 @@ static const lcd_display_resource_t gs_static_dist_res =
 #define LCD_STATIC_DIST_POS_Y LCD_STATIC_DEV_ST_POS_Y
 #define LCD_STATIC_DIST_POS_W LCD_STATIC_DIST_IMG_W
 #define LCD_STATIC_DIST_POS_H LCD_STATIC_DIST_IMG_H
-
-#define LCD_STATIC_AMT_IMG_W (48 + 8)
-#define LCD_STATIC_AMT_IMG_H 16
-static const unsigned char gs_static_amt_display_data[/* LCD_STATIC_AMT_IMG_W * ceil(LCD_STATIC_AMT_IMG_H / 8) */] = {};
-static const lcd_display_resource_t gs_static_amt_res = 
-{
-    LCD_STATIC_AMT_IMG_W, LCD_STATIC_AMT_IMG_H,
-    gs_static_amt_display_data,
-};
-#define LCD_STATIC_AMT_POS_X 0
-#define LCD_STATIC_AMT_POS_Y 0
-#define LCD_STATIC_AMT_POS_W 0
-#define LCD_STATIC_AMT_POS_H 0
-
-#define LCD_STATIC_DURA_IMG_W (64 + 8)
-#define LCD_STATIC_DURA_IMG_H 16
-static const unsigned char gs_static_dura_display_data[/* LCD_STATIC_DURA_IMG_W * ceil(LCD_STATIC_DURA_IMG_H / 8) */] = {};
-static const lcd_display_resource_t gs_static_dura_res = 
-{
-    LCD_STATIC_DURA_IMG_W, LCD_STATIC_DURA_IMG_H,
-    gs_static_dura_display_data,
-};
-#define LCD_STATIC_DURA_POS_X 0
-#define LCD_STATIC_DURA_POS_Y 0
-#define LCD_STATIC_DURA_POS_W 0
-#define LCD_STATIC_DURA_POS_H 0
 
 #define LCD_STATIC_LOGO_IMG_W 36
 #define LCD_STATIC_LOGO_IMG_H 20
@@ -702,16 +694,23 @@ static const unsigned char gs_lcd_charger_res[/* LCD_CHARGER_IMG_W * ceil(LCD_CH
 
 #define LCD_CUBE_VOLT_POS_X (LCD_STATIC_VOLT_POS_X + LCD_STATIC_VOLT_POS_W)
 #define LCD_CUBE_VOLT_POS_Y LCD_STATIC_VOLT_POS_Y 
-#define LCD_CUBE_VOLT_POS_W 40 /*maximum width*/
+#define LCD_CUBE_VOLT_POS_W (5*8) /*maximum width, e.g. 100kV */
 #define LCD_CUBE_VOLT_POS_H 16
 #define LCD_CUBE_VOLT_MAX_INT_CHAR_NUM 5//3 /*e.g. 100.  we give 5 char to elimate compile warning. */
 
-#define LCD_CUBE_AMTS_POS_X (LCD_STATIC_AMT_S_POS_X + LCD_STATIC_AMT_S_POS_W)
-#define LCD_CUBE_AMTS_POS_Y LCD_STATIC_AMT_S_POS_Y 
-#define LCD_CUBE_AMTS_POS_W 64 /*maximum width*/
-#define LCD_CUBE_AMTS_POS_H 16
-#define LCD_CUBE_AMTS_MAX_INT_CHAR_NUM 2 /*e.g. "6*/
-#define LCD_CUBE_AMTS_MAX_FRAC_CHAR_NUM 2 /*e.g. "6.25*/
+#define LCD_CUBE_AMT_POS_X (LCD_STATIC_AMT_POS_X + LCD_STATIC_AMT_POS_W)
+#define LCD_CUBE_AMT_POS_Y LCD_STATIC_AMT_POS_Y 
+#define LCD_CUBE_AMT_POS_W (8*8) /*maximum width, e.g. 10.123mA */
+#define LCD_CUBE_AMT_POS_H 16
+#define LCD_CUBE_AMT_MAX_INT_CHAR_NUM 2 /*e.g. 10.123*/
+#define LCD_CUBE_AMT_MAX_FRAC_CHAR_NUM 3 /*e.g. 10.123*/
+
+#define LCD_DURA_POS_X (LCD_STATIC_DURA_POS_X + LCD_STATIC_DURA_POS_W)
+#define LCD_DURA_POS_Y LCD_STATIC_DURA_POS_Y 
+#define LCD_DURA_POS_W (7*8) /*maximum width, e.g. 10.123s */
+#define LCD_DURA_POS_H 16
+#define LCD_DURA_MAX_INT_CHAR_NUM 2 /*e.g. 10.123*/
+#define LCD_DURA_MAX_FRAC_CHAR_NUM 3 /*e.g. 10.123*/
 
 #define LCD_EXPO_ST_IDLE_IMG_W 32
 #define LCD_EXPO_ST_IDLE_IMG_H 16
@@ -763,7 +762,8 @@ static const lcd_display_resource_t gs_expo_st_hv_disconn_res =
 
 static const char* gs_LCD_DISPLAY_UNIT_STR_CM = "cm";
 static const char* gs_LCD_DISPLAY_UNIT_STR_KV = "kV";
-static const char* gs_LCD_DISPLAY_UNIT_STR_AMTS = "mAs";
+static const char* gs_LCD_DISPLAY_UNIT_STR_AMT = "mA";
+static const char* gs_LCD_DISPLAY_UNIT_STR_SEC = "s";
 
 /*
  * If "number" is integer,  "precision" must be set to 1.
