@@ -71,7 +71,7 @@ static const lcd_area_info_t gs_lcd_areas[] =
     {LCD_CHARGER_POS_X, LCD_CHARGER_POS_Y, LCD_CHARGER_POS_W, LCD_CHARGER_POS_H, NULL},
     {LCD_BAT_POS_X, LCD_BAT_POS_Y, LCD_BAT_POS_W, LCD_BAT_POS_H, NULL},
     {LCD_BAT_POS_X, LCD_BAT_POS_Y, LCD_BAT_POS_W, LCD_BAT_POS_H, NULL},
-    {LCD_WAN_CONN_REL_POS_X, LCD_WAN_CONN_REL_POS_Y, LCD_WAN_CONN_POS_W, LCD_WAN_CONN_POS_H, NULL},
+    {LCD_CELL_WAN_CONN_POS_X, LCD_CELL_WAN_CONN_POS_Y, LCD_CELL_WAN_CONN_POS_W, LCD_CELL_WAN_CONN_POS_H, NULL},
     {LCD_CELL_SRV_ST_POS_X, LCD_CELL_SRV_ST_POS_Y, LCD_CELL_SRV_ST_POS_W, LCD_CELL_SRV_ST_POS_H, NULL},
     {LCD_CELL_MODE_POS_X, LCD_CELL_MODE_POS_Y, LCD_CELL_MODE_POS_W, LCD_CELL_MODE_POS_H, NULL},
     {LCD_WIFI_WAN_ST_POS_X, LCD_WIFI_WAN_ST_POS_Y, LCD_WIFI_WAN_ST_POS_W, LCD_WIFI_WAN_ST_POS_H, NULL},
@@ -167,12 +167,22 @@ static void refresh_hotspot_display(dr_device_st_enum_t st_id)
     {
         int client_num = (int)(gs_device_st_pool_of_lcd.hot_spot_st - HOTSPOT_NORMAL_0);
 
+        /*hotspot icon.*/
         write_img_to_px_rect(gs_lcd_hotspot_res, LCD_HOTSPOT_IMG_W, LCD_HOTSPOT_IMG_H,
               gs_lcd_areas[st_id].pos_x, gs_lcd_areas[st_id].pos_y, gs_lcd_areas[st_id].pos_w, gs_lcd_areas[st_id].pos_h);
 
         if(client_num < 0) client_num = 0;
-        if(client_num >= LCD_SMALL_DIGIT_NUM) client_num = LCD_SMALL_DIGIT_NUM - 1;
+        if(client_num >= LCD_SMALL_DIGIT_NUM)
+        {
+            /*plus icon*/
+            write_img_to_px_rect(gs_lcd_small_plus_3x3_res, LCD_SMALL_PLUS_3X3_IMG_W, LCD_SMALL_PLUS_3X3_IMG_H,
+                LCD_HOT_SPOT_NUM_PLUS_POS_X, LCD_HOT_SPOT_NUM_PLUS_POS_Y, 
+                LCD_HOT_SPOT_NUM_PLUS_POS_W, LCD_HOT_SPOT_NUM_PLUS_POS_H); 
 
+            client_num = LCD_SMALL_DIGIT_NUM - 1;
+        }
+
+        /* small digit icon.*/
         write_img_to_px_rect(gs_lcd_small_digit_res[client_num], LCD_SMALL_DIGIT_IMG_W, LCD_SMALL_DIGIT_IMG_H,
             LCD_HOT_SPOT_NUM_POS_X, LCD_HOT_SPOT_NUM_POS_Y, LCD_HOT_SPOT_NUM_POS_W, LCD_HOT_SPOT_NUM_POS_H); 
     }
@@ -252,16 +262,10 @@ static void refresh_wan_bear_type_display(dr_device_st_enum_t st_id)
 
     if(gs_device_st_pool_of_lcd.wan_bear & WWAN_BEAR_WIFI)
     {
-        write_img_to_px_rect(gs_lcd_wan_conn_res, LCD_WAN_CONN_IMG_W, LCD_WAN_CONN_IMG_H,
-            LCD_WIFI_WAN_ST_POS_X + gs_lcd_areas[st_id].pos_x,
-            LCD_WIFI_WAN_ST_POS_Y + LCD_WIFI_WAN_ST_POS_H + gs_lcd_areas[st_id].pos_y,
-            gs_lcd_areas[st_id].pos_w, gs_lcd_areas[st_id].pos_h);
+        /* Wi-Fi connection does not display connection icon, but only wi-fi icon.*/
     }
     else
     {
-        clear_screen_area(LCD_WIFI_WAN_ST_POS_X + gs_lcd_areas[st_id].pos_x,
-                          LCD_WIFI_WAN_ST_POS_Y + LCD_WIFI_WAN_ST_POS_H + gs_lcd_areas[st_id].pos_y,
-                          gs_lcd_areas[st_id].pos_w, gs_lcd_areas[st_id].pos_h);
     }
 }
 
@@ -303,9 +307,7 @@ static void refresh_cellular_srv_st_display(dr_device_st_enum_t st_id)
     {
         st_id = enum_wan_bear;
         write_img_to_px_rect(gs_lcd_wan_conn_res, LCD_WAN_CONN_IMG_W, LCD_WAN_CONN_IMG_H,
-            LCD_CELL_SRV_ST_POS_X + gs_lcd_areas[st_id].pos_x,
-            LCD_CELL_SRV_ST_POS_Y + LCD_CELL_SRV_ST_POS_H + gs_lcd_areas[st_id].pos_y,
-            gs_lcd_areas[st_id].pos_w, gs_lcd_areas[st_id].pos_h);
+            gs_lcd_areas[st_id].pos_x, gs_lcd_areas[st_id].pos_y, gs_lcd_areas[st_id].pos_w, gs_lcd_areas[st_id].pos_h);
     }
 
     ST_PARAM_CLEAR_UPD(gs_device_st_pool_of_lcd, cellular_signal_bars);
@@ -323,6 +325,7 @@ static void refresh_wifi_wan_display(dr_device_st_enum_t st_id)
                 gs_lcd_areas[st_id].pos_x, gs_lcd_areas[st_id].pos_y, gs_lcd_areas[st_id].pos_w, gs_lcd_areas[st_id].pos_h);
 
     /*wifi_wan icon cover wifi conn icon, so here we need an extra check.*/
+    /*
     if(gs_device_st_pool_of_lcd.wan_bear & WWAN_BEAR_WIFI)
     {
         st_id = enum_wan_bear;
@@ -331,6 +334,7 @@ static void refresh_wifi_wan_display(dr_device_st_enum_t st_id)
             LCD_WIFI_WAN_ST_POS_Y + LCD_WIFI_WAN_ST_POS_H + gs_lcd_areas[st_id].pos_y,
             gs_lcd_areas[st_id].pos_w, gs_lcd_areas[st_id].pos_h);
     }
+    */
 }
 
 static void refresh_sim_card_st_display(dr_device_st_enum_t st_id)
