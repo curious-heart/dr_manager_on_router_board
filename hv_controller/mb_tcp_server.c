@@ -55,6 +55,9 @@ static dr_device_st_local_buf_t gs_hv_st;
 
 static mb_tcp_server_params_t * gs_mb_tcp_server_params = NULL;
 
+static uint16_t gs_dsp_sw_ver;
+static bool gs_server_ready = false;
+
 void mb_server_exit()
 {
     if (gs_mb_server_socket != -1)
@@ -854,11 +857,22 @@ static void init_reg_refresh()
         gs_hv_st.expo_dura_ms = gs_mb_mapping->tab_registers[ExposureTime];
         gs_hv_st.bat_lvl = gs_mb_mapping->tab_registers[BatteryLevel];
         refresh_lcd_from_main_th();
+
+        gs_dsp_sw_ver = gs_mb_mapping->tab_registers[HSV];
     }
     else
     {
         DIY_LOG(LOG_ERROR, "%sinitial modbus registers read error.\n", gp_mb_server_log_header);
     }
+}
+
+uint16_t get_dsp_sw_ver()
+{
+    return gs_dsp_sw_ver;
+}
+bool mb_server_is_ready()
+{
+    return gs_server_ready;
 }
 
 mb_server_exit_code_t  mb_server_loop(mb_tcp_server_params_t * srvr_params, bool server_only)
@@ -976,6 +990,7 @@ mb_server_exit_code_t  mb_server_loop(mb_tcp_server_params_t * srvr_params, bool
     fdmax = gs_mb_server_socket;
 
     init_reg_refresh();
+    gs_server_ready = true;
     for (;;) 
     {
         rdset = refset;

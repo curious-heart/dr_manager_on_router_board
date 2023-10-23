@@ -174,4 +174,8 @@ uint16_t request_tof_distance(tof_requester_e_t requester, float seconds);
 /*According to GB 9706.254-2020 203.9.102, the minimum allowed focus-to-skin distance should not exceed 20cm.*/
 #define MIN_ALLOWED_FSD_IN_CM (20)
 
+/*Call this function after mb server started.*/
+uint16_t get_dsp_sw_ver();
+bool mb_server_is_ready();
+
 #endif

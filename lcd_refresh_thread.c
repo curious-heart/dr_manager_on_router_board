@@ -481,6 +481,91 @@ static bool access_g_st_pool_from_lcd_refresh_th(void* buf)
     return false;
 }
 
+#define MAX_FW_V_LINE_LEN 256
+static void display_ver_str()
+{
+    extern const char * g_APP_VER_STR;
+    //update this version whenever update g_APP_VER_STR in file gpio_key_app_version_def.c
+    static const char* gpio_APP_VER_STR = "021"; 
+    char ver_str[LCD_VER_STR_MAX_CHAR_CNT + 1] = {0};
+    int ver_str_len = 0, w_len = 0, buf_size = sizeof(ver_str), cur_size;
+    FILE* fw_v_file;
+    char fw_v_line_buf[MAX_FW_V_LINE_LEN + 1], *line_ptr, *fw_v_pos;
+    uint16_t dsp_sw_v = get_dsp_sw_ver();
+
+    /* generate the string.*/
+    cur_size = buf_size;
+    do
+    {
+        w_len = snprintf(&ver_str[ver_str_len], cur_size, "v%u.%u-", (dsp_sw_v & 0xFF00)>>8, (dsp_sw_v & 0x00FF));
+        if(w_len <= 0 || w_len >= cur_size) break;
+        ver_str_len += w_len; cur_size = buf_size - ver_str_len;
+
+        w_len = snprintf(&ver_str[ver_str_len], cur_size, "%s.%s.", g_APP_VER_STR, gpio_APP_VER_STR);
+        if(w_len <= 0 || w_len >= cur_size) break;
+        ver_str_len += w_len; cur_size = buf_size - ver_str_len;
+
+        fw_v_file = fopen("/etc/openwrt_version", "r");
+        if(NULL == fw_v_file) { DIY_LOG(LOG_ERROR, "Open openwrt_version error.\n"); break; }
+        line_ptr = fgets(fw_v_line_buf, sizeof(fw_v_line_buf), fw_v_file);
+        if(NULL == line_ptr) { fclose(fw_v_file); DIY_LOG(LOG_ERROR, "read openwrt_version gets NULL.\n"); break; }
+        fclose(fw_v_file);
+        fw_v_pos = strstr(fw_v_line_buf, ", ");
+        if(NULL == fw_v_pos) { DIY_LOG(LOG_ERROR, "no fw version number found.\n"); break; }
+        fw_v_pos += 2; //skip the ", "
+        w_len = snprintf(&ver_str[ver_str_len], cur_size, "%s", fw_v_pos);
+        if(w_len <= 0) break;
+        ver_str_len += w_len; cur_size = buf_size - ver_str_len;
+
+        break;
+    }while(true);
+    DIY_LOG(LOG_INFO, "The version string to be displayd:\n%s\n", ver_str);
+
+    /* display the string */
+    if(ver_str_len  > 0)
+    {
+        int idx = 0;
+        char ch = ver_str[idx];
+        const unsigned char* img = NULL;
+        int img_w, img_h;
+        int sum_w = 0;
+
+        while(idx < ver_str_len && ch)
+        {
+            if('0' <= ch && ch <= '9')
+            {
+                img_w = LCD_SMALL_DIGIT_IMG_W;
+                img_h = LCD_SMALL_DIGIT_IMG_H;
+                img = gs_lcd_small_digit_res[ch - '0'];
+            }
+            else if('-' == ch)
+            {
+                img_w = LCD_SMALL_MINUS_3X5_IMG_W;
+                img_h = LCD_SMALL_MINUS_3X5_IMG_H;
+                img = gs_lcd_small_minus_3x5_res;
+            }
+            else if('v' == ch)
+            {
+                img_w = LCD_SMALL_V_3X5_IMG_W;
+                img_h = LCD_SMALL_V_3X5_IMG_H;
+                img = gs_lcd_small_v_3x5_res;
+            }
+            else
+            {//assuming '.'
+                img_w = LCD_SMALL_DOT_3X5_IMG_W;
+                img_h = LCD_SMALL_DOT_3X5_IMG_H;
+                img = gs_lcd_small_dot_3x5_res;
+            }
+
+            write_img_to_px_pos(img, img_w, img_h, LCD_VER_STR_POS_X + sum_w, LCD_VER_STR_POS_Y);
+            sum_w += img_w + 1;
+
+            ++idx;
+            ch = ver_str[idx];
+        }
+    }
+}
+
 static void init_lcd_display()
 {
     int i;
@@ -509,6 +594,7 @@ static void init_lcd_display()
 #define REFRESH_LCD_DISPYAL ST_PARAMS_COLLECTION
 void* lcd_refresh_thread_func(void* arg)
 {
+    static bool ver_displayed = false;
     lcd_refresh_th_parm_t * parm = (lcd_refresh_th_parm_t*)arg;
 
     DIY_LOG(LOG_INFO, "%s thread start!\n", g_lcd_refresh_th_desc);
@@ -539,6 +625,12 @@ void* lcd_refresh_thread_func(void* arg)
                 &gs_device_st_pool_of_lcd);
 
         REFRESH_LCD_DISPYAL; 
+
+        if(!ver_displayed && mb_server_is_ready())
+        {
+            display_ver_str();
+            ver_displayed = true;
+        }
     }
     pthread_cleanup_pop(1);
 

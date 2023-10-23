@@ -225,6 +225,13 @@ static unsigned char gs_lcd_small_minus_3x5_res[] =
     0x04, 0x04, 0x04, 
 };
 
+#define LCD_SMALL_V_3X5_IMG_W 3
+#define LCD_SMALL_V_3X5_IMG_H 5
+static unsigned char gs_lcd_small_v_3x5_res[] = 
+{
+    0x06, 0x18, 0x06, 
+};
+
 #define LCD_ALPHA_LOW_FONT_W 8 
 #define LCD_ALPHA_LOW_FONT_H 16
 static const unsigned char gs_alpha_low_chars_font[][16 /* LCD_ALPHA_LOW_FONT_W * ceil(LCD_ALPHA_LOW_FONT_H / 8) */] =
@@ -772,6 +779,17 @@ static const char* gs_LCD_DISPLAY_UNIT_STR_CM = "cm";
 static const char* gs_LCD_DISPLAY_UNIT_STR_KV = "kV";
 static const char* gs_LCD_DISPLAY_UNIT_STR_AMT = "mA";
 static const char* gs_LCD_DISPLAY_UNIT_STR_SEC = "s";
+
+/*
+"v" dsp-sw_ver "-" dr_manger_v "." gpio_processor_v "." openwrt_ver
+v123.456-00.11.22.0.333.00.00.00 
+ */
+#define LCD_VER_STR_MAX_CHAR_CNT 32
+/*"v" and "." and "-" are of the same width with small digit*/
+#define LCD_VER_STR_POS_W (LCD_VER_STR_MAX_CHAR_CNT * (LCD_SMALL_DIGIT_IMG_W + 1)) 
+#define LCD_VER_STR_POS_H (LCD_SMALL_DIGIT_IMG_H)
+#define LCD_VER_STR_POS_X (LCD_SCRN_WIDTH - LCD_VER_STR_POS_W - 1)
+#define LCD_VER_STR_POS_Y (LCD_DISTANCE_POS_Y + LCD_DISTANCE_POS_H + LCD_DISPLAY_V_GAP -1)
 
 /*
  * If "number" is integer,  "precision" must be set to 1.
