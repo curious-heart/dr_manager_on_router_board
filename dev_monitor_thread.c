@@ -294,7 +294,16 @@ static void get_wifi_info(bool static_info, bool debug_flag)
             int assoc_number = 0, is_client = 0, client_signal = 0, client_signal_bars = 0;
             sscanf(line, "%d,%d,%d,%d", &assoc_number, &is_client, &client_signal, &client_signal_bars);
             gs_main_dev_st.hot_spot_st = assoc_number;
-            gs_main_dev_st.wifi_wan_st = (wifi_wan_st_t)client_signal_bars;
+            if(0 == is_client)
+            {
+                gs_main_dev_st.wifi_wan_st = WIFI_WAN_DISCONNECTED;
+                gs_main_dev_st.wan_bear &= ~WWAN_BEAR_WIFI;
+            }
+            else
+            {
+                gs_main_dev_st.wifi_wan_st = (wifi_wan_st_t)client_signal_bars;
+                gs_main_dev_st.wan_bear |= WWAN_BEAR_WIFI;
+            }
 
             DIY_LOG(LOG_INFO,
                 "Wi-Fi dynamic info: association host nubmer:%d, client_conn:%d, client_signal:%d, client_signal_bars:%d\n",
