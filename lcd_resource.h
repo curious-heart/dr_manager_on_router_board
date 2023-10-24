@@ -484,6 +484,91 @@ static const unsigned char gs_lcd_display_def_char[ /* LCD_DISPLAY_DEFAULT_CHAR_
     0xFF, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0xFF, 
 };
 
+#define LCD_SMALL_ALPHA_3X5_FONT_W 3
+#define LCD_SMALL_ALPHA_3X5_FONT_H 5
+#define LCD_SMALL_ALPHA_3X5_FONT_SIZE 3 /* LCD_SMALL_ALPHA_3X5_FONT_W * ceil(LCD_SMALL_ALPHA_3X5_FONT_H / 8) */
+static const unsigned char gs_lcd_small_alpha_3x5_font_res[][LCD_SMALL_ALPHA_3X5_FONT_SIZE] =
+{
+    {//'A'
+        0x1F, 0x05, 0x1F, 
+    },
+    {//'b'
+        0x1F, 0x14, 0x1C, 
+    },
+    {//'C'
+        0x1F, 0x11, 0x11, 
+    },
+    {//'d'
+        0x1C, 0x14, 0x1F, 
+    },
+    {//'E'
+        0x1F, 0x15, 0x15, 
+    },
+    {//'F'
+        0x1F, 0x05, 0x05, 
+    },
+    {//'G'
+        0x1F, 0x11, 0x1D, 
+    },
+    {//'H'
+        0x1F, 0x04, 0x1F, 
+    },
+    {//'I'
+        0x11, 0x1F, 0x11, 
+    },
+    {//'J'
+        0x10, 0x1F, 0x00, 
+    },
+    {//'k'
+        0x1E, 0x08, 0x14, 
+    },
+    {//'L'
+        0x1F, 0x10, 0x10, 
+    },
+    {//'M'
+        0x1F, 0x0E, 0x1F, 
+    },
+    {//'n'
+        0x1C, 0x04, 0x1C, 
+    },
+    {//'o'
+        0x1C, 0x14, 0x1C, 
+    },
+    {//'p'
+        0x1F, 0x05, 0x07, 
+    },
+    {//'q'
+        0x07, 0x05, 0x1F, 
+    },
+    {//'r'
+        0x1F, 0x04, 0x02, 
+    },
+    {//'S'
+        0x15, 0x15, 0x15, 
+    },
+    {//'T'
+        0x01, 0x1F, 0x01, 
+    },
+    {//'U'
+        0x1F, 0x10, 0x1F, 
+    },
+    {//'v'
+        0x06, 0x18, 0x06, 
+    },
+    {//'w'
+        0x1F, 0x1C, 0x1F, 
+    },
+    {//'x'
+        0x1A, 0x04, 0x1A, 
+    },
+    {//'Y'
+        0x03, 0x1C, 0x03, 
+    },
+    {//'z'
+        0x19, 0x15, 0x13, 
+    },
+};
+
 /*--------------------The following are "dynamaic" info resurce.*/
 
 /* The following "box" is the area contains all "main" icons, including sim, wifi, cell signal, hotspot, battery.
@@ -783,6 +868,8 @@ static const char* gs_LCD_DISPLAY_UNIT_STR_SEC = "s";
 /*
 "v" dsp-sw_ver "-" dr_manger_v "." gpio_processor_v "." openwrt_ver
 v123.456-00.11.22.0.333.00.00.00 
+                  ^
+                  0 means release, other value means dbg.
  */
 #define LCD_VER_STR_MAX_CHAR_CNT 32
 /*"v" and "." and "-" are of the same width with small digit*/
@@ -790,6 +877,9 @@ v123.456-00.11.22.0.333.00.00.00
 #define LCD_VER_STR_POS_H (LCD_SMALL_DIGIT_IMG_H)
 #define LCD_VER_STR_POS_X (LCD_SCRN_WIDTH - LCD_VER_STR_POS_W - 1)
 #define LCD_VER_STR_POS_Y (LCD_DISTANCE_POS_Y + LCD_DISTANCE_POS_H + LCD_DISPLAY_V_GAP -1)
+
+#define LCD_VER_STR_RIGHT_ALIGN_POS_X (LCD_SCRN_WIDTH - 1 - 1)
+#define LCD_VER_STR_RIGHT_ALIGN_POS_Y LCD_VER_STR_POS_Y
 
 /*
  * If "number" is integer,  "precision" must be set to 1.

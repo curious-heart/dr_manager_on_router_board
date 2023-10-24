@@ -114,7 +114,7 @@ option_process_ret_t process_cmd_line(int argc, char* argv[])
         switch(opt_c)
         {
             case gs_opt_help_c: 
-                print_app_cmd_line_usage(g_APP_NAME, gs_long_opt_arr, gs_cmd_opt_desc_val,
+                print_app_cmd_line_usage(g_gpio_processor_APP_NAME, gs_long_opt_arr, gs_cmd_opt_desc_val,
                         ARRAY_ITEM_CNT(gs_long_opt_arr) - 1);
                 return OPTION_PROCESS_EXIT_NORMAL;
 
@@ -125,7 +125,7 @@ option_process_ret_t process_cmd_line(int argc, char* argv[])
             case 0:
                 if(!strcmp(gs_long_opt_arr[longindex].name, gs_opt_version_str))
                 {
-                    printf("%s-%s.%s-%s\n", g_APP_NAME, g_APP_VER_STR, BUILD_DATE_STR, BUILD_TYPE_STR);
+                    printf("%s-%s.%s-%s\n", g_gpio_processor_APP_NAME, g_gpio_processor_APP_VER_STR, BUILD_DATE_STR, BUILD_TYPE_STR);
                     return OPTION_PROCESS_EXIT_NORMAL;
                 }
                 if(!strcmp(gs_long_opt_arr[longindex].name, gs_opt_exp_start_key_disabled_str))
@@ -174,7 +174,7 @@ option_process_ret_t process_cmd_line(int argc, char* argv[])
     }
     else
     {
-        print_app_cmd_line_usage(g_APP_NAME, gs_long_opt_arr, gs_cmd_opt_desc_val, ARRAY_ITEM_CNT(gs_long_opt_arr) - 1);
+        print_app_cmd_line_usage(g_gpio_processor_APP_NAME, gs_long_opt_arr, gs_cmd_opt_desc_val, ARRAY_ITEM_CNT(gs_long_opt_arr) - 1);
         return OPTION_PROCESS_EXIT_ERROR;
     } 
 }

@@ -30,7 +30,7 @@ override CFLAGS += -Wall $(addprefix -I, $(INC)) -pthread -DBUILD_DATE_STR="\"$(
 override LDLIBS += -lm -lmodbus -pthread -lsqlite3
  
 DEPS = $(INCLUDES)
-OBJECTS = $(patsubst %.c, $(OBJ)/%.o, $(notdir $(SOURCES)))
+OBJECTS = $(patsubst %.c, $(OBJ)/%.o, $(notdir $(SOURCES))) ./gpio_key_processor/gpio_key_app_version_def.c 
 TCP_SRVR_TEST_OBJECTS = $(patsubst %.c, $(OBJ)/%.o, $(notdir $(TCP_SRVR_TEST_SOURCES)))
 GPIO_KEY_PROCESSOR_OBJECTS = $(patsubst %.c, $(OBJ)/%.o, $(notdir $(GPIO_KEY_PROCESSOR_SOURCES)))
  

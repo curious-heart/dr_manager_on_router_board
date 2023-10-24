@@ -485,8 +485,7 @@ static bool access_g_st_pool_from_lcd_refresh_th(void* buf)
 static void display_ver_str()
 {
     extern const char * g_APP_VER_STR;
-    //update this version whenever update g_APP_VER_STR in file gpio_key_app_version_def.c
-    static const char* gpio_APP_VER_STR = "021"; 
+    extern const char* g_gpio_processor_APP_VER_STR;
     char ver_str[LCD_VER_STR_MAX_CHAR_CNT + 1] = {0};
     int ver_str_len = 0, w_len = 0, buf_size = sizeof(ver_str), cur_size;
     FILE* fw_v_file;
@@ -501,7 +500,7 @@ static void display_ver_str()
         if(w_len <= 0 || w_len >= cur_size) break;
         ver_str_len += w_len; cur_size = buf_size - ver_str_len;
 
-        w_len = snprintf(&ver_str[ver_str_len], cur_size, "%s.%s.", g_APP_VER_STR, gpio_APP_VER_STR);
+        w_len = snprintf(&ver_str[ver_str_len], cur_size, "%s.%s.", g_APP_VER_STR, g_gpio_processor_APP_VER_STR);
         if(w_len <= 0 || w_len >= cur_size) break;
         ver_str_len += w_len; cur_size = buf_size - ver_str_len;
 
@@ -524,19 +523,33 @@ static void display_ver_str()
     /* display the string */
     if(ver_str_len  > 0)
     {
-        int idx = 0;
-        char ch = ver_str[idx];
+        int idx;
+        char ch;
         const unsigned char* img = NULL;
         int img_w, img_h;
         int sum_w = 0;
 
-        while(idx < ver_str_len && ch)
+        idx = ver_str_len - 1;
+        while(idx >= 0)
         {
+            ch = ver_str[idx];
             if('0' <= ch && ch <= '9')
             {
                 img_w = LCD_SMALL_DIGIT_IMG_W;
                 img_h = LCD_SMALL_DIGIT_IMG_H;
                 img = gs_lcd_small_digit_res[ch - '0'];
+            }
+            else if('A' <= ch && ch <= 'Z')
+            {
+                img_w = LCD_SMALL_ALPHA_3X5_FONT_W;
+                img_h = LCD_SMALL_ALPHA_3X5_FONT_H;
+                img = gs_lcd_small_alpha_3x5_font_res[ch - 'A'];
+            }
+            else if('a' <= ch && ch <= 'z')
+            {
+                img_w = LCD_SMALL_ALPHA_3X5_FONT_W;
+                img_h = LCD_SMALL_ALPHA_3X5_FONT_H;
+                img = gs_lcd_small_alpha_3x5_font_res[ch - 'a'];
             }
             else if('-' == ch)
             {
@@ -557,11 +570,10 @@ static void display_ver_str()
                 img = gs_lcd_small_dot_3x5_res;
             }
 
-            write_img_to_px_pos(img, img_w, img_h, LCD_VER_STR_POS_X + sum_w, LCD_VER_STR_POS_Y);
+            write_img_to_px_pos(img, img_w, img_h, LCD_VER_STR_RIGHT_ALIGN_POS_X - sum_w, LCD_VER_STR_RIGHT_ALIGN_POS_Y);
             sum_w += img_w + 1;
 
-            ++idx;
-            ch = ver_str[idx];
+            --idx;
         }
     }
 }
