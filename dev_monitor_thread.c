@@ -29,6 +29,9 @@ static pthread_mutex_t gs_dev_st_pool_mutex;
 /*This global static var should only be accessed from monitor thread.*/
 static dr_device_st_local_buf_t gs_main_dev_st;
 
+/* the last 6 digits of MAC address. */
+static char gs_mac_tail6_str[6 + 1] = {0};
+
 /*
  * DO NOT call this function directly because it is not thread safe.
  * Use it as a function point parameter of function access_device_st_pool.
@@ -250,40 +253,69 @@ static void get_sim_card_st(bool debug_flag)
     pclose(r_stream);
 }
 
-static void get_wifi_wan_st(bool debug_flag)
-{}
-
-static void get_hot_spot_st(bool debug_flag)
+static void get_wifi_info(bool static_info, bool debug_flag)
 {
-    static const char* get_assoc_host_num_sh = "get_assoc_host_num.sh";
-    static const char* get_assoc_host_num_sh_debug = "get_assoc_host_num.sh -d";
+    static const char* get_static_sh = "get_wifi_static_info.sh";
+    static const char* get_static_sh_debug= "get_wifi_static_info.sh -d";
+    static const char* get_dynamic_sh = "get_wifi_dynamic_info.sh";
+    static const char* get_dynamic_sh_debug= "get_wifi_dynamic_info.sh -d";
+    const char* curr_sh;
+
     FILE* r_stream = NULL;
     char* line = NULL;
     size_t len = 0;
     ssize_t nread;
-    int assoc_host_num = 0;
 
-    if(debug_flag)
+    if(static_info)
     {
-        r_stream = popen(get_assoc_host_num_sh_debug, "r");
+        curr_sh = debug_flag ? get_static_sh : get_static_sh_debug;
     }
     else
     {
-        r_stream = popen(get_assoc_host_num_sh, "r");
+        curr_sh = debug_flag ? get_dynamic_sh : get_dynamic_sh_debug;
     }
+
+    r_stream = popen(curr_sh, "r");
     if(NULL == r_stream)
     {
-        DIY_LOG(LOG_ERROR, "popen %s error.\n", get_assoc_host_num_sh);
+        DIY_LOG(LOG_ERROR, "popen %s error.\n", curr_sh);
         return;
     }
     if((nread = getline(&line, &len, r_stream)) != -1)
     {
-        CONVERT_FUNC_ATOI(assoc_host_num, line);
+        if(static_info)
+        {
+            snprintf(gs_mac_tail6_str, sizeof(gs_mac_tail6_str), "%s", line);
+            DIY_LOG(LOG_INFO, "mac addr last 6 digits:%s\n", gs_mac_tail6_str);
+        }
+        else
+        {
+            /*dynamic info: assoc_number,is_client,client_signal,client_signal_bars*/
+            int assoc_number = 0, is_client = 0, client_signal = 0, client_signal_bars = 0;
+            sscanf(line, "%d,%d,%d,%d", &assoc_number, &is_client, &client_signal, &client_signal_bars);
+            gs_main_dev_st.hot_spot_st = assoc_number;
+            gs_main_dev_st.wifi_wan_st = (wifi_wan_st_t)client_signal_bars;
+
+            DIY_LOG(LOG_INFO,
+                "Wi-Fi dynamic info: association host nubmer:%d, client_conn:%d, client_signal:%d, client_signal_bars:%d\n",
+                assoc_number, is_client, client_signal, client_signal_bars);
+        }
     }
-    gs_main_dev_st.hot_spot_st = assoc_host_num;
 
     free(line);
     pclose(r_stream);
+}
+
+const char* get_wifi_mac_tail6()
+{
+    static bool already_got = false;
+
+    if(!already_got)
+    {
+        get_wifi_info(true, false);
+        already_got = true;
+    }
+    return gs_mac_tail6_str;
 }
 
 void* dev_monitor_thread_func(void* arg)
@@ -307,8 +339,7 @@ void* dev_monitor_thread_func(void* arg)
     {
         get_cellular_st(sh_debug_flag);
         get_sim_card_st(sh_debug_flag);
-        get_wifi_wan_st(sh_debug_flag);
-        get_hot_spot_st(sh_debug_flag);
+        get_wifi_info(false, sh_debug_flag);
 
         if(access_device_st_pool(pthread_self(), g_dev_monitor_th_desc, update_dev_st_pool_from_monitor_th,
                                               &gs_main_dev_st))

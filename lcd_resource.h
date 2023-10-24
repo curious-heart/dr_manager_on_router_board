@@ -881,6 +881,10 @@ v123.456-00.11.22.0.333.00.00.00
 #define LCD_VER_STR_RIGHT_ALIGN_POS_X (LCD_SCRN_WIDTH - 1 - 1)
 #define LCD_VER_STR_RIGHT_ALIGN_POS_Y LCD_VER_STR_POS_Y
 
+#define LCD_WIFI_MAC_TAIL6_POS_X LCD_DISPLAY_ORI_X
+#define LCD_WIFI_MAC_TAIL6_POS_Y (LCD_DISTANCE_POS_Y + LCD_DISTANCE_POS_H + LCD_DISPLAY_V_GAP -1)
+
+
 /*
  * If "number" is integer,  "precision" must be set to 1.
  * The "format_str" must contain ".*" to use the "precision". 

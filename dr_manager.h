@@ -178,4 +178,5 @@ uint16_t request_tof_distance(tof_requester_e_t requester, float seconds);
 uint16_t get_dsp_sw_ver();
 bool mb_server_is_ready();
 
+const char* get_wifi_mac_tail6();
 #endif

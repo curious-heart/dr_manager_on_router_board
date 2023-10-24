@@ -578,6 +578,50 @@ static void display_ver_str()
     }
 }
 
+static void display_wifi_mac_tail6()
+{
+    const char* wifi_mac_tail6 = get_wifi_mac_tail6();
+    char ch;
+    const int max_len = 6;
+    const unsigned char* img = NULL;
+    int img_w, img_h;
+    int sum_w = 0;
+    int idx = 0, len = strlen(wifi_mac_tail6);
+
+    while(idx < len && idx < max_len)
+    {
+        ch = wifi_mac_tail6[idx];
+        if('0' <= ch && ch <= '9')
+        {
+            img_w = LCD_SMALL_DIGIT_IMG_W;
+            img_h = LCD_SMALL_DIGIT_IMG_H;
+            img = gs_lcd_small_digit_res[ch - '0'];
+        }
+        else if('A' <= ch && ch <= 'Z')
+        {
+            img_w = LCD_SMALL_ALPHA_3X5_FONT_W;
+            img_h = LCD_SMALL_ALPHA_3X5_FONT_H;
+            img = gs_lcd_small_alpha_3x5_font_res[ch - 'A'];
+        }
+        else if('a' <= ch && ch <= 'z')
+        {
+            img_w = LCD_SMALL_ALPHA_3X5_FONT_W;
+            img_h = LCD_SMALL_ALPHA_3X5_FONT_H;
+            img = gs_lcd_small_alpha_3x5_font_res[ch - 'a'];
+        }
+        else
+        {//assuming '.'
+            img_w = LCD_SMALL_DOT_3X5_IMG_W;
+            img_h = LCD_SMALL_DOT_3X5_IMG_H;
+            img = gs_lcd_small_dot_3x5_res;
+        }
+        write_img_to_px_pos(img, img_w, img_h, LCD_WIFI_MAC_TAIL6_POS_X + sum_w, LCD_WIFI_MAC_TAIL6_POS_Y);
+        sum_w += img_w + 1;
+
+        ++idx;
+    }
+}
+
 static void init_lcd_display()
 {
     int i;
@@ -590,6 +634,7 @@ static void init_lcd_display()
                                  gs_lcd_areas[i].pos_w, gs_lcd_areas[i].pos_h);
         }
     }
+    display_wifi_mac_tail6();
 }
 
 #undef COLLECTION_END_FLAG
