@@ -23,6 +23,8 @@ static dr_device_st_pool_t gs_device_st_pool_of_lcd;
 static bool gs_lcd_opened = false;
 const char* g_lcd_refresh_th_desc = "LCD-Refresh";
 
+static bool gs_wifi_mac_tail6_displayed = false;
+
 static int destroy_lcd_upd_sync_mech();
 static void lcd_refresh_thread_cleanup_h(void* arg)
 {
@@ -577,7 +579,7 @@ static void display_ver_str()
     }
 }
 
-static void display_wifi_mac_tail6()
+static bool display_wifi_mac_tail6()
 {
     const char* wifi_mac_tail6 = get_wifi_mac_tail6();
     char ch;
@@ -585,8 +587,14 @@ static void display_wifi_mac_tail6()
     const unsigned char* img = NULL;
     int img_w, img_h;
     int sum_w = 0;
-    int idx = 0, len = strlen(wifi_mac_tail6);
+    int idx = 0, len;
 
+    if(NULL == wifi_mac_tail6)
+    {
+        return false;
+    }
+
+    len = strlen(wifi_mac_tail6);
     while(idx < len && idx < max_len)
     {
         ch = wifi_mac_tail6[idx];
@@ -619,6 +627,7 @@ static void display_wifi_mac_tail6()
 
         ++idx;
     }
+    return true;
 }
 
 static void init_lcd_display()
@@ -633,7 +642,7 @@ static void init_lcd_display()
                                  gs_lcd_areas[i].pos_w, gs_lcd_areas[i].pos_h);
         }
     }
-    display_wifi_mac_tail6();
+    gs_wifi_mac_tail6_displayed = display_wifi_mac_tail6();
 }
 
 #undef COLLECTION_END_FLAG
@@ -686,6 +695,11 @@ void* lcd_refresh_thread_func(void* arg)
         {
             display_ver_str();
             ver_displayed = true;
+        }
+
+        if(!gs_wifi_mac_tail6_displayed)
+        {
+            gs_wifi_mac_tail6_displayed = display_wifi_mac_tail6();
         }
     }
     pthread_cleanup_pop(1);

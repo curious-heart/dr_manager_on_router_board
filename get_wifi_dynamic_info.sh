@@ -14,7 +14,7 @@ while read -t 1 line
 do
     if [ "$(echo $line | grep 'Mode: Client')" != "" ]; then 
         is_client=1
-    elif [ $is_client ] && [ "$(echo $line | grep 'Signal:')" != "" ]; then
+    elif [ "$is_client" == 1 ] && [ "$(echo $line | grep 'Signal:')" != "" ]; then
         client_signal=$(echo $line | awk -F" " '{print $2}')
         break
     fi

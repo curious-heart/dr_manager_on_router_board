@@ -292,7 +292,27 @@ static void get_wifi_info(bool static_info, bool debug_flag)
         {
             /*dynamic info: assoc_number,is_client,client_signal,client_signal_bars*/
             int assoc_number = 0, is_client = 0, client_signal = 0, client_signal_bars = 0;
-            sscanf(line, "%d,%d,%d,%d", &assoc_number, &is_client, &client_signal, &client_signal_bars);
+            int line_len = strlen(line);
+            char* n_s;
+
+            do
+            {
+                /* sscanf may not work as I expected... maybe in future when I'm more fammiliar with this function,
+                 * I can use it.
+                   sscanf(line, "%d,%d,%d,%d", &assoc_number, &is_client, &client_signal, &client_signal_bars);
+                 */
+                n_s = line;
+                CONVERT_FUNC_ATOI(assoc_number, n_s);
+                n_s = strstr(n_s, ","); if((n_s != NULL) && (n_s + 1 < line + line_len)) ++n_s; else break; //skip the ","
+                CONVERT_FUNC_ATOI(is_client, n_s);
+                n_s = strstr(n_s, ","); if((n_s != NULL) && (n_s + 1 < line + line_len)) ++n_s; else break;//skip the ","
+                CONVERT_FUNC_ATOI(client_signal, n_s);
+                n_s = strstr(n_s, ","); if((n_s != NULL) && (n_s + 1 < line + line_len)) ++n_s; else break;//skip the ","
+                CONVERT_FUNC_ATOI(client_signal_bars, n_s);
+
+                break;
+            }while(true);
+
             gs_main_dev_st.hot_spot_st = assoc_number;
             if(0 == is_client)
             {
@@ -322,9 +342,20 @@ const char* get_wifi_mac_tail6()
     if(!already_got)
     {
         get_wifi_info(true, false);
-        already_got = true;
+        if(strlen(gs_mac_tail6_str) == 6)
+        {
+            already_got = true;
+            return gs_mac_tail6_str;
+        }
+        else
+        {
+            return NULL;
+        }
     }
-    return gs_mac_tail6_str;
+    else
+    {
+        return gs_mac_tail6_str;
+    }
 }
 
 void* dev_monitor_thread_func(void* arg)
