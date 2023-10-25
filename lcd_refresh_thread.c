@@ -47,7 +47,6 @@ static void lcd_refresh_thread_cleanup_h(void* arg)
     \
     enum_static_device_st_str,\
     enum_static_volt_str,/*cube voltage*/\
-    enum_static_am_s_str,/*mAs*/\
     enum_static_amt_str,/*cube mA*/\
     enum_static_dura_str, /*exposure time*/\
     enum_static_distance_str,\

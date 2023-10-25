@@ -90,8 +90,8 @@ typedef enum
     ST_PARAM_DEF(sim_card_st_t, sim_card_st)\
     ST_PARAM_DEF(hv_dsp_conntion_state_t, hv_dsp_conn_st)\
     ST_PARAM_DEF(uint16_t, expo_volt_kv) /*uint: kV*/\
-    ST_PARAM_DEF(uint16_t, expo_dura_ms) /*uint: ms*/\
     ST_PARAM_DEF(uint32_t, expo_am_ua) /*unit: uA*/\
+    ST_PARAM_DEF(uint16_t, expo_dura_ms) /*uint: ms*/\
     ST_PARAM_DEF(exposure_state_t, expo_st)\
     ST_PARAM_DEF(uint16_t, tof_distance)\
 \
