@@ -192,6 +192,7 @@ static void get_cellular_st(bool debug_flag)
         {
             /*cell_state str is neither connect or noconn, then there is no service.*/
             gs_cell_signal_bars = 0;
+            gs_main_dev_st.cellular_mode = CELLULAR_MODE_NOSRV;
         }
     }
     DIY_LOG(LOG_DEBUG + LOG_ONLY_INFO_STR, "wan bear: 0x%02X\n", gs_main_dev_st.wan_bear);

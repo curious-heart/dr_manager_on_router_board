@@ -1,9 +1,11 @@
 #!/bin/sh
 
+#Note: read trim the leading space by default, so the ^[[:space:]] must be used carefully.
+#
 wifi_info_tmp_file=/tmp/.wifi_info
-wlan_line_pattern="wlan.*ESSID:"
-Signal_line_pattern="Signal"
-Mode_line_pattern="Mode:"
+wlan_line_pattern="^wlan.*ESSID:"
+Signal_line_pattern="^[[:space:]]\+Signal:"
+Mode_line_pattern="^[[:space:]]\+Mode:"
 drew_lines_pattern="$wlan_line_pattern""\|""$Signal_line_pattern""\|""$Mode_line_pattern"
 
 iwinfo | grep "$drew_lines_pattern" > $wifi_info_tmp_file
@@ -12,11 +14,15 @@ is_client=0
 client_signal=0
 while read -t 1 line
 do
-    if [ "$(echo $line | grep 'Mode: Client')" != "" ]; then 
+    t_line_1=$(echo "$line" | grep "^[[:space:]]*Mode:[[:space:]]\+Client[[:space:]]\+Channel:[[:space:]]*[0-9]\{1,\}")
+    if [ "$t_line_1" != "" ]; then
         is_client=1
-    elif [ "$is_client" == 1 ] && [ "$(echo $line | grep 'Signal:')" != "" ]; then
-        client_signal=$(echo $line | awk -F" " '{print $2}')
-        break
+    elif [ "$is_client" == "1" ]; then
+        t_line_2=$(echo "$line" | grep "^[[:space:]]*Signal:[[:space:]]\+-\{0,1\}[0-9]\{1,\}")
+        if [ "$t_line_2" != "" ]; then
+            client_signal=$(echo $line | awk -F" " '{print $2}')
+            break
+        fi
     fi
 done < $wifi_info_tmp_file
 
