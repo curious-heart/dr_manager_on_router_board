@@ -42,12 +42,12 @@ static const char gs_hv_mb_reg_rw_attr[] =
     HV_MB_REG_RW_ATTR_W, /*C(Fixval = 19),                 19 校准值**/
     HV_MB_REG_RW_ATTR_R, /*C(Workstatus = 20),             20充能状态*/
     HV_MB_REG_RW_ATTR_W, /*C(exposureCount = 21),          曝光次数*/
+    HV_MB_REG_RW_ATTR_R, /*(EXT_MB_REG_DAP_HP = 22*/
+    HV_MB_REG_RW_ATTR_R, /*EXT_MB_REG_DAP_LP = 23*/
     0, /*C(MAX_HV_NORMAL_MB_REG_NUM) */
     0, /*C(EXT_MB_REG_START_FLAG)*/
     HV_MB_REG_RW_ATTR_W, /*C(EXT_DOSE_ADJ),                       +/- key event*/
     HV_MB_REG_RW_ATTR_RW, /*C(EXT_MB_REG_CHARGER),             charger plug in/pull out*/
-    HV_MB_REG_RW_ATTR_R, /*(EXT_MB_REG_DAP_HP = 131*/
-    HV_MB_REG_RW_ATTR_R, /*EXT_MB_REG_DAP_LP = 132*/
     /*C(HV_MB_REG_END_FLAG), */
 };
 

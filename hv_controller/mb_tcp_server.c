@@ -150,7 +150,7 @@ static mb_reg_check_ret_t mb_server_check_func_reg_cnt(uint8_t * req_msg,
             if(NORMAL_MB_REG_AND_CNT(reg_addr_start, reg_cnt))
             {
                 if(exception_code) *exception_code = 0;
-                ret = MB_NORMAL_REG;
+                ret = (DAP_REG_ADDR_AND_CNT(reg_addr_start, reg_cnt)) ? MB_EXTEND_REG : MB_NORMAL_REG;
             }
             else if(EXTEND_MB_REG_AND_CNT(reg_addr_start, reg_cnt))
             {
@@ -666,7 +666,7 @@ static mb_rw_reg_ret_t mb_server_process_extend_reg(uint8_t * req_msg, int req_m
             int idx;
             for(idx = 0; idx < reg_cnt; ++idx)
             {
-                if(!EXTEND_MB_REG_ADDR(reg_addr_start + idx))
+                if(!EXTEND_MB_REG_ADDR(reg_addr_start + idx) && !DAP_REG_ADDR(reg_addr_start + idx))
                 {
                     DIY_LOG(LOG_ERROR, "%sInvalid extend reg addr: %d.\n", gp_mb_server_log_header, reg_addr_start + idx);
                     ret = MB_RW_REG_RET_ERROR;

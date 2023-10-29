@@ -3,6 +3,9 @@
 
 #include <stdint.h>
 
+/* when modify registers definition, please also modify gs_hv_mb_reg_rw_attr in hv_registers.c.
+ */
+
 #define MB_REG_ENUM \
 {\
     C(HSV = 0),                            /*软硬件版本*/\
@@ -27,6 +30,8 @@
     C(Fixval = 19),                        /*校准值*/\
     C(Workstatus = 20),                    /*充能状态*/\
     C(exposureCount = 21),                 /*曝光次数*/\
+    C(EXT_MB_REG_DAP_HP = 22),                       /*High part of a float of DAP(Dose Area Product), big endian.*/\
+    C(EXT_MB_REG_DAP_LP = 23),                       /*Low part of a float of DAP, big endian.*/\
 \
     C(MAX_HV_NORMAL_MB_REG_NUM), /*normal register end flag.*/\
 \
@@ -34,8 +39,6 @@
     /*Below are extend register, that is, they are processed internally by server and not passed to hv controller.*/ \
     C(EXT_MB_REG_DOSE_ADJ = 101),                       /*+/- key event*/\
     C(EXT_MB_REG_CHARGER = 102),                       /*charger plug in/pull out*/\
-    C(EXT_MB_REG_DAP_HP = 103),                       /*High part of a float of DAP(Dose Area Product), big endian.*/\
-    C(EXT_MB_REG_DAP_LP = 104),                       /*Low part of a float of DAP, big endian.*/\
 \
     C(HV_MB_REG_END_FLAG), /*register end flag.*/\
 }
@@ -50,6 +53,8 @@ typedef enum MB_REG_ENUM hv_mb_reg_e_t;
 #define NORMAL_MB_REG_AND_CNT(addr, cnt) (NORMAL_MB_REG_ADDR(addr) && NORMAL_MB_REG_ADDR((addr) + (cnt) - 1))
 #define EXTEND_MB_REG_AND_CNT(addr, cnt) (EXTEND_MB_REG_ADDR(addr) && EXTEND_MB_REG_ADDR((addr) + (cnt) - 1))
 #define VALID_MB_REG_AND_CNT(addr, cnt) (VALID_MB_REG_ADDR(addr) && VALID_MB_REG_ADDR((addr) + (cnt) - 1))
+#define DAP_REG_ADDR(addr) ((EXT_MB_REG_DAP_HP == (addr)) || (EXT_MB_REG_DAP_LP == (addr)))
+#define DAP_REG_ADDR_AND_CNT(addr, cnt) (DAP_REG_ADDR(addr) && NORMAL_MB_REG_ADDR((addr) + (cnt) - 1))
 
 /*those registers that need to communicate with dsp.*/
 #define MB_REG_COMM_DSP(addr, cnt) (NORMAL_MB_REG_AND_CNT(addr, cnt) || (EXT_MB_REG_DOSE_ADJ == addr))

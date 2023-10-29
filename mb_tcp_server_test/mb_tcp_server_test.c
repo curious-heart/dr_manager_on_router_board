@@ -11,7 +11,7 @@
 #include "hv_registers.h"
 
 static const char* gs_APP_NAME = "mb_tcp_test_client";
-static const char * gs_APP_VER_STR = "1.0.1";
+static const char * gs_APP_VER_STR = "1.0.1.d";
 
 #define MAX_CHAR_NUM_READ 16
 static const char* gs_local_loop_ip = "127.0.0.1";
@@ -157,12 +157,12 @@ static void mb_tcp_server_test()
         printf("Fixval = 19,               //校准值\n");
         printf("Workstatus = 20,           //充能状态\n");
         printf("exposureCount = 21,        //曝光次数\n");
+        printf("EXT_MB_REG_DAP_HP = 22),     /*High part of a float of DAP(Dose Area Product), big endian.*/\n");
+        printf("EXT_MB_REG_DAP_LP = 23),     /*Low part of a float of DAP, big endian.*/\n");
         printf("--------belowing are extend registers.\n");
 
         printf("EXT_MB_REG_DOSE_ADJ = 101),     /*+/- key event*/\n");
         printf("EXT_MB_REG_CHARGER = 102),     /*charger plug in/pull out*/\n");
-        printf("EXT_MB_REG_DAP_HP = 103),     /*High part of a float of DAP(Dose Area Product), big endian.*/\n");
-        printf("EXT_MB_REG_DAP_LP = 104),     /*Low part of a float of DAP, big endian.*/\n");
 
         printf("-1: exit.\n");
 
