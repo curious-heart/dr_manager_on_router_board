@@ -75,7 +75,7 @@ static void inform_tof_measurement()
 
 /*This functoin should be called from other thread, currently main thread.*/
 /*Return distance in mm.*/
-uint16_t request_tof_distance(tof_requester_e_t requester, float seconds)
+uint16_t request_tof_distance(tof_requester_e_t requester, float seconds, bool wait_measure)
 {
     struct timespec ts;
     int sem_value = -10;
@@ -94,16 +94,19 @@ uint16_t request_tof_distance(tof_requester_e_t requester, float seconds)
         set_tof_th_measure_flag(requester);
         inform_tof_th_to_measure();
 
-        if(0 == fill_timespec_struc(&ts, seconds))
+        if(wait_measure)
         {
-            sem_getvalue(&gs_tof_th_render_sem, &sem_value);
-            DIY_LOG(LOG_INFO, "gs_tof_th_render_sem value:%d\n", sem_value);
+            if(0 == fill_timespec_struc(&ts, seconds))
+            {
+                sem_getvalue(&gs_tof_th_render_sem, &sem_value);
+                DIY_LOG(LOG_INFO, "gs_tof_th_render_sem value:%d\n", sem_value);
 
-            sem_timedwait(&gs_tof_th_render_sem, &ts);
-        }
-        else
-        {
-            usleep(seconds * 1000000);
+                sem_timedwait(&gs_tof_th_render_sem, &ts);
+            }
+            else
+            {
+                usleep(seconds * 1000000);
+            }
         }
         return gs_distance;
     }

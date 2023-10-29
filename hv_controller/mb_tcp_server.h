@@ -13,6 +13,7 @@ typedef struct
     bool debug_flag;
     bool allow_force_exposure; //true: allow exposrue even the focus-to-skin distance is less than MIN_ALLOWED_FSD_IN_CM
     float req_tof_dist_wait_time;
+    bool expo_tof_measure_wait;
 }mb_tcp_server_params_t;
 
 typedef struct

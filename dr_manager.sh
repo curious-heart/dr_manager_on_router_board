@@ -44,6 +44,7 @@ cmd_args=" --com_dev $mb_rtu_serialPortName"\
 " --mb_tcp_srvr_short_time $mb_tcp_srvr_short_wait_time"\
 " --allow_force_exposure $mb_tcp_srvr_allow_force_exposure"\
 " --req_tof_dist_wait_time $mb_tcp_srvr_req_tof_dist_wait_time"\
+" --expo_tof_measure_wait $mb_tcp_srvr_expo_tof_measure_wait"\
 " $mb_tcp_debug"\
 " --dev_monitor_peroid $dev_monitor_period"\
 " $dev_monitor_debug"\

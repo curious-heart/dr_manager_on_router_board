@@ -284,7 +284,8 @@ static mb_rw_reg_ret_t mb_server_pre_check_write_reg(uint16_t reg_addr_start, ui
 
         DIY_LOG(LOG_INFO, "%s pre-check exposure start command.\n", gp_mb_server_log_header);
 
-        distance = (int)request_tof_distance(TOF_REQUESTER_EXPOSURE, gs_mb_tcp_server_params->req_tof_dist_wait_time);
+        distance = (int)request_tof_distance(TOF_REQUESTER_EXPOSURE, 
+                gs_mb_tcp_server_params->req_tof_dist_wait_time, gs_mb_tcp_server_params->expo_tof_measure_wait);
         if(distance < MIN_ALLOWED_FSD_IN_CM * 10)
         {
             DIY_LOG(LOG_WARN, "%sdistance %d is too small to start exposure.\n", gp_mb_server_log_header, distance);

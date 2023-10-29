@@ -18,6 +18,7 @@ mb_tcp_srvr_short_wait_time=0.5
 mb_tcp_srvr_debug_flag=0
 mb_tcp_srvr_allow_force_exposure=0
 mb_tcp_srvr_req_tof_dist_wait_time=1.5
+mb_tcp_srvr_expo_tof_measure_wait=0
 #monitor (check device state) period.
 dev_monitor_period=3
 dev_monitor_debug_flag=0

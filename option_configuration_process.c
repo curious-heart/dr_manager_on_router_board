@@ -29,6 +29,7 @@ static const float gs_def_mb_tcp_srvr_long_wait_time = 10, gs_def_mb_tcp_srvr_sh
 static const bool gs_def_mb_tcp_srvr_debug_flag= false;
 static const bool gs_def_mb_tcp_srvr_allow_force_exposure = false;
 static const float gs_def_mb_tcp_srvr_req_tof_dist_wait_time = 1.5; //in seconds
+static const bool gs_def_mb_tcp_srvr_expo_tof_measure_wait = false; 
 /*monitor (check device state) period.*/
 static const float gs_def_dev_monitor_period = 3;
 static const bool gs_def_dev_monitor_debug_flag = false;
@@ -72,6 +73,7 @@ cmd_line_opt_collection_t g_cmd_line_opt_collection =
         .debug_flag = gs_def_mb_tcp_srvr_debug_flag, 
         .allow_force_exposure = gs_def_mb_tcp_srvr_allow_force_exposure,
         .req_tof_dist_wait_time = gs_def_mb_tcp_srvr_req_tof_dist_wait_time, //in seconds
+        .expo_tof_measure_wait = gs_def_mb_tcp_srvr_expo_tof_measure_wait,
     },
 
     .dev_monitor_th_parm = 
@@ -118,6 +120,7 @@ static const char* const gs_opt_mb_tcp_srvr_w_short_time_str = "mb_tcp_srvr_shor
 static const char* const gs_opt_mb_tcp_srvr_debug_str = "mb_tcp_debug";
 static const char* const gs_opt_mb_tcp_srvr_allow_force_exposure_str = "allow_force_exposure";
 static const char* const gs_opt_mb_tcp_srvr_req_tof_dist_wait_time_str = "req_tof_dist_wait_time";
+static const char* const gs_opt_mb_tcp_srvr_expo_tof_measure_wait_str = "expo_tof_measure_wait";
 #define gs_opt_tcp_debug_c 't'
 static const char* const gs_opt_dev_monitor_period_str = "dev_monitor_peroid";
 static const char* const gs_opt_dev_monitor_debug_flag_str = "dev_monitor_debug";
@@ -207,6 +210,10 @@ static const char* const gs_opt_version_str = "version";
     APP_CMD_OPT_ITEM(gs_opt_mb_tcp_srvr_req_tof_dist_wait_time_str, required_argument, 0, 0) \
     APP_CMD_OPT_VALUE("mb_srvr_req_tof_dist_wait_time(s)", \
             &gs_def_mb_tcp_srvr_req_tof_dist_wait_time, &g_cmd_line_opt_collection.srvr_params.req_tof_dist_wait_time, float) \
+\
+    APP_CMD_OPT_ITEM(gs_opt_mb_tcp_srvr_expo_tof_measure_wait_str, required_argument, 0, 0) \
+    APP_CMD_OPT_VALUE("expo_tof_measure_wait",\
+           &gs_def_mb_tcp_srvr_expo_tof_measure_wait, &g_cmd_line_opt_collection.srvr_params.expo_tof_measure_wait, bool) \
 \
     APP_CMD_OPT_ITEM(gs_opt_dev_monitor_period_str, required_argument, 0, 0)\
     APP_CMD_OPT_VALUE("dev_st_monitor_period(s)",\
@@ -370,6 +377,9 @@ option_process_ret_t process_cmd_options(int argc, char *argv[])
                         CONVERT_FUNC_ATOF(g_cmd_line_opt_collection.srvr_params.req_tof_dist_wait_time, optarg),
                         SHOULD_BE_GT_0(g_cmd_line_opt_collection.srvr_params.req_tof_dist_wait_time), SHOULD_BE_GT_0_LOG, 
                         type_float);
+                OPT_CHECK_AND_DRAW(gs_long_opt_arr[longindex].name, gs_opt_mb_tcp_srvr_expo_tof_measure_wait_str,
+                        CONVERT_FUNC_ATOBOOL(g_cmd_line_opt_collection.srvr_params.expo_tof_measure_wait, optarg),
+                        true, NULL, type_bool);
 
                 OPT_CHECK_AND_DRAW(gs_long_opt_arr[longindex].name, gs_opt_tof_measure_period_str,
                         CONVERT_FUNC_ATOF(g_cmd_line_opt_collection.tof_th_parm.measure_period, optarg),
