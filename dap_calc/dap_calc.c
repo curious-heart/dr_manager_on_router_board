@@ -12,28 +12,31 @@ static const char* gs_dap_tbl_co_name = "coefficient_tbl";
 static const char* gs_dap_tbl_data_name = "dap_data_tbl";
 
 /*the order in the array gs_dap_tbl_co_headers should accord with function.*/
-static const char* gs_dap_tbl_co_headers =  "co_kV,co_mA,co_sec,co_D";
+static const char* gs_dap_tbl_co_headers =  "co_kV,co_mA,co_sec,co_D,co_size_times";
 static const char* gs_dap_tbl_data_col_name_kV = "kV";
 static const char* gs_dap_tbl_data_col_name_uA = "uA";
 static const char* gs_dap_tbl_data_col_name_ms = "ms";
-static const char* gs_dap_tbl_data_col_name_DAP = "DAP_mGym3";
+static const char* gs_dap_tbl_data_col_name_DAP = "DAP_uGym2";
 
 static sqlite3* gs_dap_db = NULL;
 static float gs_curr_dap_val;
 static const float gs_def_co_kV = 690.0026667, gs_def_co_mA = 34689.19811, gs_def_co_sec = 29106, gs_def_co_D = -67396.55975;
+static const float gs_def_co_size_times = 3.9982002504686105; // (pi * 34.5 * 33.2 / (15*15*4))
 static float gs_co_kV = gs_def_co_kV, gs_co_mA = gs_def_co_mA, gs_co_sec = gs_def_co_sec, gs_co_D = gs_def_co_D;
+static float gs_co_size_times = gs_def_co_size_times;
 
 #define MAX_SQL_STM_LEN 128
 
 static void print_used_coefficient_for_DAP()
 {
     DIY_LOG(LOG_INFO, "%s\n", gs_dap_tbl_co_headers);
-    DIY_LOG(LOG_INFO + LOG_ONLY_INFO_STR, "%.2f,%.2f,%.2f,%.2f\n", gs_co_kV, gs_co_mA, gs_co_sec, gs_co_D);
+    DIY_LOG(LOG_INFO + LOG_ONLY_INFO_STR, "%.2f,%.2f,%.2f,%.2f,%.2f\n",
+            gs_co_kV, gs_co_mA, gs_co_sec, gs_co_D, gs_co_size_times);
 }
 
 static int load_coefficient_cb(void *, int col_num, char ** exec_output, char ** col_names)
 {
-    static float* const co_v_ptr_arr[] = {&gs_co_kV, &gs_co_mA, &gs_co_sec, &gs_co_D};
+    static float* const co_v_ptr_arr[] = {&gs_co_kV, &gs_co_mA, &gs_co_sec, &gs_co_D, &gs_co_size_times};
     int idx, dap_tbl_co_col_cnt = ARRAY_ITEM_CNT(co_v_ptr_arr);
     if(dap_tbl_co_col_cnt != col_num)
     {
@@ -98,6 +101,7 @@ static bool load_coefficient()
     {
         DIY_LOG(LOG_WARN, "We use default coefficient for DAP calculation.\n");
         gs_co_kV = gs_def_co_kV; gs_co_mA = gs_def_co_mA; gs_co_sec = gs_def_co_sec; gs_co_D = gs_def_co_D;
+        gs_co_size_times = gs_def_co_size_times;
     }
 
     print_used_coefficient_for_DAP();
@@ -162,7 +166,7 @@ float calculate_DAP_value(uint16_t kV, uint32_t uA, uint16_t ms)
         {
             break;
         }
-        /* SELECT DAP_mGym2 FROM dap_data_tbl WHERE kV=90 and uA=5000 and ms=1400; */
+        /* SELECT DAP_uGym2 FROM dap_data_tbl WHERE kV=90 and uA=5000 and ms=1400; */
         w_len = snprintf(sql_stm, sb_size, "SELECT %s FROM %s WHERE %s=%d and %s=%d and %s=%d;",
                                             gs_dap_tbl_data_col_name_DAP, gs_dap_tbl_data_name, 
                                             gs_dap_tbl_data_col_name_kV, kV,
@@ -197,7 +201,7 @@ float calculate_DAP_value(uint16_t kV, uint32_t uA, uint16_t ms)
     }
     else
     {
-        DAP_v = gs_co_kV * kV + gs_co_mA * mA + gs_co_sec * seconds + gs_co_D;
+        DAP_v = (gs_co_kV * kV + gs_co_mA * mA + gs_co_sec * seconds + gs_co_D) * gs_co_size_times / 100000;
     }
     DIY_LOG(LOG_INFO,
         "\n%s\t%s\t%s\t%s\t\n%d\t%d\t%d\t%f\n\n", 

@@ -1,19 +1,22 @@
 import sqlite3
 import sys
 import os
+import numpy as np
 
 dap_db_fn = "dap_db.sqlite3"
 dap_tbl_co_name = "coefficient_tbl"
 dap_tbl_data_name = "dap_data_tbl"
 
-dap_tbl_co_headers = {"co_kV":"REAL", "co_mA":"REAL", "co_sec":"REAL", "co_D":"REAL"}
-dap_tbl_data_headers = {"kV":"INTEGER", "uA":"INTEGER", "ms":"INTEGER", "DAP_mGym2":"REAL"}
+DAPv_unit_str = "uGym2"
+dap_tbl_co_headers = {"co_kV":"REAL", "co_mA":"REAL", "co_sec":"REAL", "co_D":"REAL", "co_size_times":"REAL"}
+dap_tbl_data_headers = {"kV":"INTEGER", "uA":"INTEGER", "ms":"INTEGER", "DAP_" + DAPv_unit_str:"REAL"}
 dap_tbl_data_pkeys = ("kV", "uA", "ms")
 
 co_kV = 690.0026667
 co_mA = 34689.19811
 co_sec = 29106
 co_D = -67396.55975
+co_size_times = (np.pi * 34.5 * 33.2 / (15*15*4))
 
 kV_range = tuple(range(60, 90+1))
 uA_list = (500, 625, 800, 1000, 1250, 1575, 2000, 2500, 3150, 4000, 5000)
@@ -69,7 +72,7 @@ dap_data_fn = "dap_data.txt"
 
 user_choose = 'y'
 if(os.path.exists(dap_db_fn)):
-    user_choose = input("The database file {} exists, do you want to overwrite it?(y/n)")
+    user_choose = input("The database file {} exists, do you want to overwrite it?(y/n)".format(dap_db_fn))
     if 'y' == user_choose:
         os.remove(dap_db_fn)
     else:
@@ -81,7 +84,7 @@ if not db_conn or not db_cur:
     sys.exit(-1)
 
 create_db_tbl(db_conn, db_cur, dap_tbl_co_name, dap_tbl_co_headers)
-write_to_db_tbl(db_conn, db_cur, dap_tbl_co_name, "", ((co_kV, co_mA, co_sec, co_D),))
+write_to_db_tbl(db_conn, db_cur, dap_tbl_co_name, "", ((co_kV, co_mA, co_sec, co_D, co_size_times),))
 
 create_db_tbl(db_conn, db_cur, dap_tbl_data_name, dap_tbl_data_headers, dap_tbl_data_pkeys)
 
@@ -91,19 +94,25 @@ print("co_kV:\t{}".format(co_kV), file = dap_f)
 print("co_mA:\t{}".format(co_mA), file = dap_f)
 print("co_sec:\t{}".format(co_sec), file = dap_f)
 print("co_D:\t{}".format(co_D), file = dap_f)
+print("co_size_times:\t{}\n".format(co_size_times), file = dap_f)
+
+print("calculate formula:\n"
+      "DAP_{} = (co_kV*kV + co_mA*mA + co_sec*sec + co_D) * co_size_times / 100000".format(DAPv_unit_str),
+      file = dap_f)
 print("", file = dap_f)
 
 width = len(str(len(list(kV_range)) * len(uA_list) * len(ms_list)))
 #print("No.len:{}".format(width), file = dap_f)
 print("", file = dap_f)
 
-print("kV\tuA\tms\tDAP(mGym2)", file = dap_f)
+print("kV\tuA\tms\tDAP_{}".format(DAPv_unit_str), file = dap_f)
 idx = 1
 DAP_v_list = []
 for kV in kV_range:
     for (mA, uA) in mA_uA_list:
         for (sec, ms) in sec_ms_list:
-            DAP_v = co_kV * kV + co_mA * mA + co_sec * sec + co_D
+            DAP_v = (co_kV * kV + co_mA * mA + co_sec * sec + co_D)/100000
+            DAP_v = DAP_v *co_size_times 
             DAP_v_list.append((kV, uA, ms, DAP_v))
             print("{kV}\t{uA}\t{ms}\t{dap}"
                     .format(kV=kV, uA=uA, ms=ms, dap=DAP_v, width = width), 
