@@ -499,7 +499,7 @@ static void display_ver_str()
     char ver_str[LCD_VER_STR_MAX_CHAR_CNT + 1] = {0};
     int ver_str_len = 0, w_len = 0, buf_size = sizeof(ver_str), cur_size;
     FILE* fw_v_file;
-    char fw_v_line_buf[MAX_FW_V_LINE_LEN + 1], *line_ptr, *fw_v_pos;
+    char fw_v_line_buf[MAX_FW_V_LINE_LEN + 1], *line_ptr, *fw_v_pos, *invalid_char_pos;
     uint16_t dsp_sw_v = get_dsp_sw_ver();
 
     /* generate the string.*/
@@ -519,6 +519,8 @@ static void display_ver_str()
         fw_v_pos = strstr(fw_v_line_buf, ", ");
         if(NULL == fw_v_pos) { DIY_LOG(LOG_ERROR, "no fw version number found.\n"); break; }
         fw_v_pos += 2; //skip the ", "
+        invalid_char_pos = strpbrk(fw_v_pos, "\r\n");
+        if(NULL != invalid_char_pos) *invalid_char_pos = '\0';
         w_len = snprintf(&ver_str[ver_str_len], cur_size, "%s.", fw_v_pos);
         if(w_len <= 0) break;
         ver_str_len += w_len; cur_size = buf_size - ver_str_len;
@@ -539,11 +541,13 @@ static void display_ver_str()
         const unsigned char* img = NULL;
         int img_w, img_h;
         int sum_w = 0;
+        bool known_char;
 
         idx = ver_str_len - 1;
         while(idx >= 0)
         {
             ch = ver_str[idx];
+            known_char = true;
             if('0' <= ch && ch <= '9')
             {
                 img_w = LCD_SMALL_DIGIT_IMG_W;
@@ -574,15 +578,22 @@ static void display_ver_str()
                 img_h = LCD_SMALL_V_3X5_IMG_H;
                 img = gs_lcd_small_v_3x5_res;
             }
-            else
-            {//assuming '.'
+            else if('.' == ch)
+            {
                 img_w = LCD_SMALL_DOT_3X5_IMG_W;
                 img_h = LCD_SMALL_DOT_3X5_IMG_H;
                 img = gs_lcd_small_dot_3x5_res;
             }
+            else
+            {//do not display unknown char.
+                known_char = false;
+            }
 
-            write_img_to_px_pos(img, img_w, img_h, LCD_VER_STR_RIGHT_ALIGN_POS_X - sum_w, LCD_VER_STR_RIGHT_ALIGN_POS_Y);
-            sum_w += img_w + 1;
+            if(known_char)
+            {
+                write_img_to_px_pos(img, img_w, img_h, LCD_VER_STR_RIGHT_ALIGN_POS_X - sum_w, LCD_VER_STR_RIGHT_ALIGN_POS_Y);
+                sum_w += img_w + 1;
+            }
 
             --idx;
         }
