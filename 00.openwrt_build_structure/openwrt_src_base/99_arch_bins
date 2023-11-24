@@ -1,0 +1,33 @@
+#!/bin/sh
+
+arch_dir=~/20.working/20.x-optical/01.mDR/91.gitee_rep/DR-MangerGroup/软件/00.bin/02.route_board/
+
+fw_bins_dir=bin/targets/ramips/mt7621
+
+app_name_str=dr_manager
+ipk_file_str=$(ls bin/packages/mipsel_24kc/mypackages/$app_name_str*)
+
+if [ -f $ipk_file_str ]; then
+    echo build result: $ipk_file_str
+    fw_ver_str=$(awk -F' ' '{ print $2 }' package/base-files/files/etc/openwrt_version)
+    tmp_str=${ipk_file_str##[[:ascii:]]*$app_name_str"_"}
+    app_ver_str=${tmp_str%%[^[:digit:]]*}
+    bin_dir_name="fw_"$fw_ver_str"-app_"$app_ver_str
+    tgt_dir=$arch_dir/$bin_dir_name
+    tgt_fw_dir=$tgt_dir/fw
+    tgt_app_dir=$tgt_dir/app
+    if [ ! -d $tgt_fw_dir ]; then
+        mkdir -p $tgt_fw_dir
+    fi
+    if [ ! -d $tgt_app_dir ]; then
+        mkdir -p $tgt_app_dir
+    fi
+
+    cp -rp $fw_bins_dir/* $tgt_fw_dir
+    cp -p $ipk_file_str $tgt_app_dir
+    echo fw version: $fw_ver_str
+    echo app version: $app_ver_str
+    echo bins are copied into $tgt_dir
+else
+    echo $app_name_str ipk dose not exist!
+fi

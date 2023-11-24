@@ -865,14 +865,7 @@ static const char* gs_LCD_DISPLAY_UNIT_STR_KV = "kV";
 static const char* gs_LCD_DISPLAY_UNIT_STR_AMT = "mA";
 static const char* gs_LCD_DISPLAY_UNIT_STR_SEC = "s";
 
-/*
-"v" dsp-sw_ver "-" dr_manger_v "." gpio_processor_v "." openwrt_ver
-v123.456-00.11.22.0.333.00.00.00 
-                  ^
-                  0 means release, other value means dbg.
- */
-/*add extra 2 to LCD_VER_STR_MAX_CHAR_CNT, because openwrt_version may contains extra \r or \r\n.*/
-#define LCD_VER_STR_MAX_CHAR_CNT 34
+#define LCD_VER_STR_MAX_CHAR_CNT 24
 /*"v" and "." and "-" are of the same width with small digit*/
 #define LCD_VER_STR_POS_W (LCD_VER_STR_MAX_CHAR_CNT * (LCD_SMALL_DIGIT_IMG_W + 1)) 
 #define LCD_VER_STR_POS_H (LCD_SMALL_DIGIT_IMG_H)

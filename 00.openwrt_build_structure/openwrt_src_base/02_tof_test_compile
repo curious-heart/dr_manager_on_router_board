@@ -1,0 +1,4 @@
+make package/tof_test/clean
+rm./staging_dir/target-mipsel_24kc_musl/root-ramips/usr/bin/tof_test
+make $1 $2 package/tof_test/compile
+

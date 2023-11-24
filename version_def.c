@@ -1,3 +1,14 @@
 const char* g_APP_NAME = "dr_manager";
-const char * g_APP_VER_STR = "0.2.13.0"; //the last digit: 0 means release, other value means dbg.
-                                        // refer to lcd_resource.h for the version number format displayed on screen.
+/*version format: 3 alpha-num chars
+ * abc
+ * for normal version, "a" and "b" and "c" are all single dec-digit, i.e. 0~9.
+ * for test/debug version, "a" should be single letter a~z, generally x; "b" and "c" can be any single alpha-num.
+ *
+ * example:
+ * A nomral released version: 033
+ * A debug version: x33
+ * 
+ * */
+const char * g_APP_VER_STR = "034"; 
+
+const unsigned char g_SW_VER_NUMBER = 1;

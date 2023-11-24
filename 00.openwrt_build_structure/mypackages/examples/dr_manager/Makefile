@@ -3,8 +3,10 @@ include $(TOPDIR)/rules.mk
 # Name, version and release number
 # The name and version of your package are used to define the variable to point to the build directory of your package: $(PKG_BUILD_DIR)
 PKG_NAME:=dr_manager
-PKG_VERSION:=0.2.13.0.021
-PKG_RELEASE:=1
+VER_STR_1:=$(shell grep -E "const[[:blank:]]+char[[:blank:]]*\*[[:blank:]]+g_APP_VER_STR[[:blank:]]*=" ../../../dr_manager/version_def.c | awk -F\" '{print $$2}')
+VER_STR_2:=$(shell grep -E "const[[:blank:]]+char[[:blank:]]*\*[[:blank:]]+g_gpio_processor_APP_VER_STR[[:blank:]]*=" ../../../dr_manager/gpio_key_processor/gpio_key_app_version_def.c | awk -F\" '{print $$2}')
+PKG_VERSION:=$(VER_STR_1)$(VER_STR_2)
+PKG_RELEASE:=
 
 # Source settings (i.e. where to find the source codes)
 # This is a custom variable, used below
