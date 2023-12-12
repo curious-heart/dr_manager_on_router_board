@@ -167,6 +167,9 @@ static const unsigned char gs_digits_font[][16 /* LCD_DIGIT_FONT_W * ceil(LCD_DI
     },
 };
 
+#define LCD_SMALL_3X5_RES_W 3
+#define LCD_SMALL_3X5_RES_H 5
+
 #define LCD_SMALL_DIGIT_NUM 10 //0~9
 #define LCD_SMALL_DIGIT_IMG_W 3
 #define LCD_SMALL_DIGIT_IMG_H 5
@@ -230,6 +233,11 @@ static unsigned char gs_lcd_small_minus_3x5_res[] =
 static unsigned char gs_lcd_small_v_3x5_res[] = 
 {
     0x06, 0x18, 0x06, 
+};
+
+static unsigned char gs_lcd_small_space_3x5_res[] = 
+{
+    0x00, 0x00, 0x00, 
 };
 
 #define LCD_ALPHA_LOW_FONT_W 8 
@@ -865,7 +873,7 @@ static const char* gs_LCD_DISPLAY_UNIT_STR_KV = "kV";
 static const char* gs_LCD_DISPLAY_UNIT_STR_AMT = "mA";
 static const char* gs_LCD_DISPLAY_UNIT_STR_SEC = "s";
 
-#define LCD_VER_STR_MAX_CHAR_CNT 24
+#define LCD_VER_STR_MAX_CHAR_CNT 29
 /*"v" and "." and "-" are of the same width with small digit*/
 #define LCD_VER_STR_POS_W (LCD_VER_STR_MAX_CHAR_CNT * (LCD_SMALL_DIGIT_IMG_W + 1)) 
 #define LCD_VER_STR_POS_H (LCD_SMALL_DIGIT_IMG_H)

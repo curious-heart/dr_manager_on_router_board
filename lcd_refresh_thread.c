@@ -483,8 +483,9 @@ static bool access_g_st_pool_from_lcd_refresh_th(void* buf)
 }
 
 /* version format:
- *     "v" + SW_V + "." + dsp_ver + "." + fw_ver + "." + app_ver
+ *     "v" + SW_V + " " + "v" + SW_V + "." + dsp_ver + "." + fw_ver + "." + app_ver
  * where
+ *     The beginning "v" + SW_V is the "release version"
  *     SW_V: 1~3 digits, "ss".
  *     dsp_ver: 6 digits, "hhhlll", where hhh is the high version and lll is low version, both are decima number.
  *     fw_ver: 3 digits, "fff", from openwrt_version file.
@@ -506,8 +507,8 @@ static void display_ver_str()
     cur_size = buf_size;
     do
     {
-        w_len = snprintf(&ver_str[ver_str_len], cur_size, "v%u.%03u%03u.",
-                            g_SW_VER_NUMBER, (dsp_sw_v & 0xFF00)>>8, (dsp_sw_v & 0x00FF));
+        w_len = snprintf(&ver_str[ver_str_len], cur_size, "v%u  v%u.%03u%03u.",
+                            g_SW_VER_NUMBER, g_SW_VER_NUMBER, (dsp_sw_v & 0xFF00)>>8, (dsp_sw_v & 0x00FF));
         if(w_len <= 0 || w_len >= cur_size) break;
         ver_str_len += w_len; cur_size = buf_size - ver_str_len;
 
@@ -583,6 +584,12 @@ static void display_ver_str()
                 img_w = LCD_SMALL_DOT_3X5_IMG_W;
                 img_h = LCD_SMALL_DOT_3X5_IMG_H;
                 img = gs_lcd_small_dot_3x5_res;
+            }
+            else if(' ' == ch)
+            {
+                img_w = LCD_SMALL_3X5_RES_W;
+                img_h = LCD_SMALL_3X5_RES_H;
+                img = gs_lcd_small_space_3x5_res;
             }
             else
             {//do not display unknown char.
