@@ -13,8 +13,8 @@ mb_rtu_debug_flag=0
 #modbus tcp server parameters
 mb_tcp_srvr_ip=0.0.0.0
 mb_tcp_srvr_port=502
-mb_tcp_srvr_long_wait_time=10
-mb_tcp_srvr_short_wait_time=0.5
+mb_tcp_srvr_long_wait_time=5
+mb_tcp_srvr_short_wait_time=1
 mb_tcp_srvr_debug_flag=0
 mb_tcp_srvr_allow_force_exposure=0
 mb_tcp_srvr_req_tof_dist_wait_time=1.5

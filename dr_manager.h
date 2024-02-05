@@ -55,13 +55,14 @@ typedef enum
 typedef enum
 {
     EXPOSURE_ST_INIT = -1,
-    /*空闲0、预警1（PROBEEP）、延迟2（STABY）预热3（WARMUP）、曝光4、 延时关闭5*/
+    /*空闲0、预警1（PROBEEP）、延迟2（STABY）预热3（WARMUP）、曝光4、 延时关闭5、cooloing 6*/
     EXPOSURE_ST_IDLE = 0,
     EXPOSURE_ST_ALARM,
     EXPOSURE_ST_STAND_BY,
     EXPOSURE_ST_WARM_UP,
     EXPOSURE_ST_X_RAY_NOW,
     EXPOSURE_ST_CLOSING,
+    EXPOSURE_ST_COOLING,
 }exposure_state_t;
 
 typedef enum

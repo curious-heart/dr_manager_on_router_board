@@ -397,6 +397,10 @@ static void refresh_expo_st_display(dr_device_st_enum_t st_id)
                 res = &gs_expo_st_idle_res;
                 break;
 
+            case EXPOSURE_ST_COOLING:
+                res = &gs_expo_st_cooling_res;
+                break;
+
             default:
                 res = &gs_expo_st_exposing_res;
                 break;
