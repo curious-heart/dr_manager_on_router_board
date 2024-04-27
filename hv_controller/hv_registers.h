@@ -36,6 +36,7 @@
     C(EXT_MB_REG_CHARGER = 102),                       /*charger plug in/pull out*/\
     C(EXT_MB_REG_DAP_HP = 103),                       /*High part of a float of DAP(Dose Area Product), big endian.*/\
     C(EXT_MB_REG_DAP_LP = 104),                       /*Low part of a float of DAP, big endian.*/\
+    C(EXT_MB_REG_DISTANCE = 105),                       /*distance: TOF test result.*/\
 \
     C(HV_MB_REG_END_FLAG), /*register end flag.*/\
 }

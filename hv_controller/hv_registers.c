@@ -46,8 +46,9 @@ static const char gs_hv_mb_reg_rw_attr[] =
     0, /*C(EXT_MB_REG_START_FLAG)*/
     HV_MB_REG_RW_ATTR_W, /*C(EXT_DOSE_ADJ),                       +/- key event*/
     HV_MB_REG_RW_ATTR_RW, /*C(EXT_MB_REG_CHARGER),             charger plug in/pull out*/
-    HV_MB_REG_RW_ATTR_R, /*(EXT_MB_REG_DAP_HP = 131*/
-    HV_MB_REG_RW_ATTR_R, /*EXT_MB_REG_DAP_LP = 132*/
+    HV_MB_REG_RW_ATTR_R, /*(EXT_MB_REG_DAP_HP = 103*/
+    HV_MB_REG_RW_ATTR_R, /*EXT_MB_REG_DAP_LP = 104*/
+    HV_MB_REG_RW_ATTR_R, /* EXT_MB_REG_DISTANCE = 105),distance: TOF test result.*/\
     /*C(HV_MB_REG_END_FLAG), */
 };
 

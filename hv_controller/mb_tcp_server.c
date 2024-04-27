@@ -702,6 +702,11 @@ static mb_rw_reg_ret_t mb_server_process_extend_reg(uint8_t * req_msg, int req_m
 }
 
 
+static void update_distance_in_mb_reg()
+{
+    gs_mb_mapping->tab_registers[EXT_MB_REG_DISTANCE] = ST_PARAM_GET(g_device_st_pool, tof_distance);
+}
+
 static mb_rw_reg_ret_t mb_server_process_req(uint8_t * req_msg, int req_msg_len, bool * comm_with_dsp,
                                              bool server_only)
 {
@@ -728,6 +733,8 @@ static mb_rw_reg_ret_t mb_server_process_req(uint8_t * req_msg, int req_msg_len,
         modbus_reply_exception(gs_mb_srvr_ctx, req_msg, exception_code);
         return MB_RW_REG_RET_ERROR;
     }
+
+    update_distance_in_mb_reg();
 
     if(server_only || (MB_REG_COMM_DSP(reg_addr_start, reg_cnt) && comm_with_dsp))
     {
