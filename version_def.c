@@ -9,6 +9,6 @@ const char* g_APP_NAME = "dr_manager";
  * A debug version: x33
  * 
  * */
-const char * g_APP_VER_STR = "036d"; 
+const char * g_APP_VER_STR = "037"; 
 
 const unsigned char g_SW_VER_NUMBER = 1;
