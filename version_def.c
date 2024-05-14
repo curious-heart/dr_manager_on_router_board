@@ -9,6 +9,15 @@ const char* g_APP_NAME = "dr_manager";
  * A debug version: x33
  * 
  * */
+/* the 1st version digit 0 and 1 means the version manage LCD and tof by itself, and 2 and 3 mean lcd and tof are managed
+ * by external entity.
+ *
+ * Note: when update version number, please update the definition in both case so that both version can be of the latest.
+ * */
+#ifdef MANAGE_LCD_AND_TOF_HERE
 const char * g_APP_VER_STR = "038"; 
+#else
+const char * g_APP_VER_STR = "238"; 
+#endif
 
 const unsigned char g_SW_VER_NUMBER = 1;

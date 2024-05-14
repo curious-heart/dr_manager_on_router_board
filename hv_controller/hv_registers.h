@@ -42,7 +42,7 @@
                                               /*其它值表示热点开启，数值指示热点上连接的Client数量*/\
     C(EXT_MB_REG_CELLUAR_ST = 107),              /*uint16，高字节表示蜂窝网的信号格数，有效值0~5；*/\
                                                          /*低字节表示蜂窝网状态：0-无服务；1-3G；2-4G；3-5G*/\
-    C(EXT_MB_REG_WIFI_WAN_SIG_AND_BAT_LVL = 108),\ /*uint16，高字节指示电池电量格数，有效值0~4；*/\
+    C(EXT_MB_REG_WIFI_WAN_SIG_AND_BAT_LVL = 108), /*uint16，高字节指示电池电量格数，有效值0~4；*/\
                                                            /*低字节指示WAN侧Wi-Fi信号格数，有效值0~4*/\
     C(EXT_MB_REG_DEV_INFO_BITS = 109), /*uint16的每个bit指示一个设备的二值状态信息：*/\
                                         /*第0位：0-没有连接充电器，1-连接充电器。*/\
@@ -57,6 +57,14 @@
 #undef C
 #define C(a) a
 typedef enum MB_REG_ENUM hv_mb_reg_e_t;
+
+#define MB_REG_EXPOSURE_START_CMD 2
+
+#define MB_REG_DEV_INFO_BITS_CHG_CONN ((uint16_t)0x0001)
+#define MB_REG_DEV_INFO_BITS_BAT_FULL ((uint16_t)0x0002)
+#define MB_REG_DEV_INFO_BITS_WIFI_WAN_CONN ((uint16_t)0x0004)
+#define MB_REG_DEV_INFO_BITS_CELL_WAN_CONN ((uint16_t)0x0008)
+#define MB_REG_DEV_INFO_BITS_SIM_READY ((uint16_t)0x0010)
 
 #define NORMAL_MB_REG_ADDR(addr) (HSV <= (addr) && (addr) < MAX_HV_NORMAL_MB_REG_NUM)
 #define EXTEND_MB_REG_ADDR(addr) (EXT_MB_REG_START_FLAG < (addr) && (addr) < HV_MB_REG_END_FLAG)

@@ -22,8 +22,8 @@ typedef enum
 {
     /*one bit means one type.*/
     WWAN_BEAR_NONE = 0,
-    WWAN_BEAR_CELLULAR = 0x1,
-    WWAN_BEAR_WIFI = 0x2,
+    WWAN_BEAR_WIFI = 0x1,
+    WWAN_BEAR_CELLULAR = 0x2,
 
     WWAN_BEAR_MAX = 0xFF,
 }wwan_bear_type_t;

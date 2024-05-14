@@ -205,6 +205,13 @@ static bool update_dev_st_pool_from_main_loop_th(void* d)
     ST_PARAM_SET_UPD(g_device_st_pool, expo_am_ua, hv_st->expo_am_ua);
     ST_PARAM_SET_UPD(g_device_st_pool, expo_st, hv_st->expo_st);
 
+#ifndef MANAGE_LCD_AND_TOF_HERE
+    /* TOF distance is written into mb register by external user, it has been written into local buffer, and now we 
+     * update it to global buffer. In fact, global buffer is not used now since LCD refresh thread does not exist now...
+     * */
+    ST_PARAM_SET_UPD(g_device_st_pool, tof_distance, hv_st->tof_distance);
+#endif
+
     return updated;
 }
 
@@ -262,30 +269,43 @@ battery_chg_st_t get_local_rec_bat_chg_state()
 static mb_rw_reg_ret_t mb_server_pre_check_write_reg(uint16_t reg_addr_start, uint16_t * data_arr, uint16_t reg_cnt)
 {
     mb_rw_reg_ret_t ret = MB_RW_REG_RET_NONE; 
-    uint16_t idx, data_v = 0;
-    bool exposure_start = false, exposure_range_led = false;
+    uint16_t idx;
+    bool exposure_start = false;
+    uint16_t exposure_start_cmd = 0;
+#ifdef MANAGE_LCD_AND_TOF_HERE
+    uint16_t  turn_on_exposure_range_led = 0;
+    bool exposure_range_led = false;
+#endif
 
     for(idx = 0; idx < reg_cnt; ++idx)
     {
-        data_v = data_arr[idx];
         if(ExposureStart == (reg_addr_start + idx))
         {
             exposure_start = true;
+            exposure_start_cmd = data_arr[idx];
         }
+#ifdef MANAGE_LCD_AND_TOF_HERE
         else if(RangeIndicationStart == (reg_addr_start + idx))
         {
             exposure_range_led = true;
+            turn_on_exposure_range_led = data_arr[idx];
         }
+#endif
     }
 
-    if(exposure_start)
+    if(exposure_start && (MB_REG_EXPOSURE_START_CMD == exposure_start_cmd))
     {
         int distance; //unit is mm.
 
         DIY_LOG(LOG_INFO, "%s pre-check exposure start command.\n", gp_mb_server_log_header);
 
+#ifdef MANAGE_LCD_AND_TOF_HERE
         distance = (int)request_tof_distance(TOF_REQUESTER_EXPOSURE, 
                 gs_mb_tcp_server_params->req_tof_dist_wait_time, gs_mb_tcp_server_params->expo_tof_measure_wait);
+#else
+        /*distance is set by external user to mb reg, and already updated to local buffer.*/
+        distance = gs_hv_st.tof_distance;
+#endif
         if(distance < MIN_ALLOWED_FSD_IN_CM * 10)
         {
             DIY_LOG(LOG_WARN, "%sdistance %d is too small to start exposure.\n", gp_mb_server_log_header, distance);
@@ -298,16 +318,19 @@ static mb_rw_reg_ret_t mb_server_pre_check_write_reg(uint16_t reg_addr_start, ui
                 DIY_LOG(LOG_WARN + LOG_ONLY_INFO_STR, "%sbut allow_force_exposure is enabled, so still start exposure.\n",
                         gp_mb_server_log_header);
             }
+#ifdef MANAGE_LCD_AND_TOF_HERE
             unset_tof_th_measure_flag(TOF_REQUESTER_EXPOSURE);
+#endif
         }
         else
         {
             DIY_LOG(LOG_WARN, "%sdistance %d is enough to start exposure\n", gp_mb_server_log_header, distance);
         }
     }
+#ifdef MANAGE_LCD_AND_TOF_HERE
     else if(exposure_range_led)
     {
-        if(data_v) //turn on range indicator command
+        if(turn_on_exposure_range_led) //turn on range indicator command
         {
             set_tof_th_measure_flag(TOF_REQUESTER_RANGE_LED);
             inform_tof_th_to_measure();
@@ -317,7 +340,7 @@ static mb_rw_reg_ret_t mb_server_pre_check_write_reg(uint16_t reg_addr_start, ui
             unset_tof_th_measure_flag(TOF_REQUESTER_RANGE_LED);
         }
     }
-
+#endif
 
     return ret;
 }
@@ -712,20 +735,42 @@ static mb_rw_reg_ret_t mb_server_process_extend_reg(uint8_t * req_msg, int req_m
 
 static void exchange_info_with_mb_reg()
 {
-    uint16_t info_word;
+    uint16_t info_word = 0;
 #ifdef MANAGE_LCD_AND_TOF_HERE
-    /*TOF distance is acquired by tof thread which updated it into g_device_st_pool*/
+    /*TOF distance is acquired by tof thread which updated it into g_device_st_pool, and here we update it into mb reg.*/
     gs_mb_mapping->tab_registers[EXT_MB_REG_DISTANCE] = ST_PARAM_GET(g_device_st_pool, tof_distance);
 #else
-    /*TOF distance is written into mb register by external user and we should update it into g_device_st_pool*/
-    /*TO BE FILLED*/
+    /*TOF distance is written into mb register by external user, we should update it into local buffer.*/
+    gs_hv_st.tof_distance = gs_mb_mapping->tab_registers[EXT_MB_REG_DISTANCE];
 #endif
     gs_mb_mapping->tab_registers[EXT_MB_REG_HOTSPOT_ST] = ST_PARAM_GET(g_device_st_pool, hot_spot_st); 
 
     gs_mb_mapping->tab_registers[EXT_MB_REG_CELLUAR_ST] 
-        = (ST_PARAM_GET(g_device_st_pool,cellular_signal_bars) << 8) & (ST_PARAM_GET(g_device_st_pool,cellular_signal_bars)); 
-    gs_mb_mapping->tab_registers[EXT_MB_REG_WIFI_WAN_SIG_AND_BAT_LVL] = ST_PARAM_GET(g_device_st_pool, hot_spot_st); 
-    gs_mb_mapping->tab_registers[EXT_MB_REG_DEV_INFO_BITS] = ST_PARAM_GET(g_device_st_pool, hot_spot_st); 
+        = (((uint16_t)(ST_PARAM_GET(g_device_st_pool,cellular_signal_bars))) << 8) 
+            | ((uint16_t)(ST_PARAM_GET(g_device_st_pool,cellular_mode)) & 0xFF); 
+
+    gs_mb_mapping->tab_registers[EXT_MB_REG_WIFI_WAN_SIG_AND_BAT_LVL] 
+        = (((uint16_t)(ST_PARAM_GET(g_device_st_pool, bat_lvl))) << 8) 
+            | ((uint16_t)(ST_PARAM_GET(g_device_st_pool, wifi_wan_st)) & 0xFF); 
+
+#define SET_DEV_INFO_BITS(info, set, mask) \
+    if((set) == (info))\
+    {                     \
+        info_word |= (mask);\
+    }                     \
+    else                  \
+    {                     \
+        info_word &= ~(mask);\
+    }
+    SET_DEV_INFO_BITS(ST_PARAM_GET(g_device_st_pool, bat_chg_st), CHARGER_CONNECTED, MB_REG_DEV_INFO_BITS_CHG_CONN)
+    SET_DEV_INFO_BITS(ST_PARAM_GET(g_device_st_pool, bat_chg_full), true, MB_REG_DEV_INFO_BITS_BAT_FULL)
+    SET_DEV_INFO_BITS(ST_PARAM_GET(g_device_st_pool, wan_bear) & WWAN_BEAR_WIFI, 
+                      WWAN_BEAR_WIFI, MB_REG_DEV_INFO_BITS_WIFI_WAN_CONN)
+    SET_DEV_INFO_BITS(ST_PARAM_GET(g_device_st_pool, wan_bear) & WWAN_BEAR_CELLULAR, 
+                      WWAN_BEAR_CELLULAR, MB_REG_DEV_INFO_BITS_CELL_WAN_CONN)
+    SET_DEV_INFO_BITS(ST_PARAM_GET(g_device_st_pool,sim_card_st), SIM_CARD_NORM, MB_REG_DEV_INFO_BITS_SIM_READY)
+#undef SET_DEV_INFO_BITS
+    gs_mb_mapping->tab_registers[EXT_MB_REG_DEV_INFO_BITS] = info_word;
 }
 
 static mb_rw_reg_ret_t mb_server_process_req(uint8_t * req_msg, int req_msg_len, bool * comm_with_dsp,

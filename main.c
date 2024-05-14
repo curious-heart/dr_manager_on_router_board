@@ -10,17 +10,28 @@
 #include "dr_manager.h"
 #include "get_opt_helper.h"
 #include "pthread_helper.h"
+
+#ifdef MANAGE_LCD_AND_TOF_HERE
 #include "tof_measure.h"
+#endif
+
 #include "option_configuration_process.h"
 #include "main_app_used_gpios.h"
 
+#ifdef MANAGE_LCD_AND_TOF_HERE
 extern const char* const g_def_lcd_dev_name;
 extern const unsigned char g_def_LCD_I2C_ADDR;
+#endif
 
 const char* g_main_thread_desc = "Main-thread";
 
-static pthread_t gs_dev_monitor_th_id, gs_lcd_refresh_th_id, gs_tof_th_id;
-static bool gs_dev_monitor_th_started = false, gs_lcd_refresh_th_started =false, gs_tof_th_started = false;
+static pthread_t gs_dev_monitor_th_id;
+static bool gs_dev_monitor_th_started = false;
+
+#ifdef MANAGE_LCD_AND_TOF_HERE
+static pthread_t gs_lcd_refresh_th_id, gs_tof_th_id;
+static bool gs_lcd_refresh_th_started =false, gs_tof_th_started = false;
+#endif
 
 #define MAX_USR_INPUT_LEN 16
 static void mb_reg_only_write(hv_mb_reg_e_t reg_addr)
@@ -248,8 +259,10 @@ static void close_sigint(int dummy)
 static void init_thread_syncs()
 {
     init_dev_st_pool_mutex();
+#ifdef MANAGE_LCD_AND_TOF_HERE
     init_lcd_upd_sync_mech();
     init_tof_th_measure_syncs();
+#endif
 }
 
 extern cmd_line_opt_collection_t g_cmd_line_opt_collection;
@@ -300,6 +313,7 @@ int main(int argc, char *argv[])
     }
     gs_dev_monitor_th_started = true;
 
+#ifdef MANAGE_LCD_AND_TOF_HERE
     if(!start_assit_thread(g_lcd_refresh_th_desc, &gs_lcd_refresh_th_id, true,
                 lcd_refresh_thread_func, &g_cmd_line_opt_collection.lcd_refresh_th_parm))
     {
@@ -313,6 +327,7 @@ int main(int argc, char *argv[])
         return -1;
     }
     gs_tof_th_started = true;
+#endif
     /*------------------------------*/
 
     if(!server_only)
