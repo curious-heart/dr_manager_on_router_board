@@ -36,7 +36,20 @@
     C(EXT_MB_REG_CHARGER = 102),                       /*charger plug in/pull out*/\
     C(EXT_MB_REG_DAP_HP = 103),                       /*High part of a float of DAP(Dose Area Product), big endian.*/\
     C(EXT_MB_REG_DAP_LP = 104),                       /*Low part of a float of DAP, big endian.*/\
-    C(EXT_MB_REG_DISTANCE = 105),                       /*distance: TOF test result.*/\
+    C(EXT_MB_REG_DISTANCE = 105),                       /* uint16，测距结果。单位mm*/\
+    C(EXT_MB_REG_HOTSPOT_ST = 106),           /*uint16，本机Wi-Fi热点状态。*/\
+                                              /*0xFFFF表示Wi-Fi热点未开启；*/\
+                                              /*其它值表示热点开启，数值指示热点上连接的Client数量*/\
+    C(EXT_MB_REG_CELLUAR_ST = 107),              /*uint16，高字节表示蜂窝网的信号格数，有效值0~5；*/\
+                                                         /*低字节表示蜂窝网状态：0-无服务；1-3G；2-4G；3-5G*/\
+    C(EXT_MB_REG_WIFI_WAN_SIG_AND_BAT_LVL = 108),\ /*uint16，高字节指示电池电量格数，有效值0~4；*/\
+                                                           /*低字节指示WAN侧Wi-Fi信号格数，有效值0~4*/\
+    C(EXT_MB_REG_DEV_INFO_BITS = 109), /*uint16的每个bit指示一个设备的二值状态信息：*/\
+                                        /*第0位：0-没有连接充电器，1-连接充电器。*/\
+                                        /*第1位：0-电池电量未充满，1-电池电量已充满。这一位目前无法使用，因为路由板的GPIO没办法读取到正确的状态。*/\
+                                        /*第2位：0-WAN侧Wi-Fi没有连接；1-WAN侧Wi-Fi已连接。*/\
+                                        /*第3位：0-WAN侧蜂窝网没有连接；1-WAN侧蜂窝网已连接。*/\
+                                        /*第4位：0-SIM卡异常（未插卡，或者卡锁定、卡不识别）；1-SIM卡正常识别。*/\
 \
     C(HV_MB_REG_END_FLAG), /*register end flag.*/\
 }

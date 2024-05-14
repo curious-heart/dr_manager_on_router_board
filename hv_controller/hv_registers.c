@@ -41,14 +41,18 @@ static const char gs_hv_mb_reg_rw_attr[] =
     HV_MB_REG_RW_ATTR_W, /*C(Fixpos = 18),                 18 校准定义*/
     HV_MB_REG_RW_ATTR_W, /*C(Fixval = 19),                 19 校准值**/
     HV_MB_REG_RW_ATTR_R, /*C(Workstatus = 20),             20充能状态*/
-    HV_MB_REG_RW_ATTR_W, /*C(exposureCount = 21),          曝光次数*/
+    HV_MB_REG_RW_ATTR_R, /*C(exposureCount = 21),          曝光次数*/
     0, /*C(MAX_HV_NORMAL_MB_REG_NUM) */
     0, /*C(EXT_MB_REG_START_FLAG)*/
     HV_MB_REG_RW_ATTR_W, /*C(EXT_DOSE_ADJ),                       +/- key event*/
     HV_MB_REG_RW_ATTR_RW, /*C(EXT_MB_REG_CHARGER),             charger plug in/pull out*/
     HV_MB_REG_RW_ATTR_R, /*(EXT_MB_REG_DAP_HP = 103*/
     HV_MB_REG_RW_ATTR_R, /*EXT_MB_REG_DAP_LP = 104*/
-    HV_MB_REG_RW_ATTR_R, /* EXT_MB_REG_DISTANCE = 105),distance: TOF test result.*/\
+    HV_MB_REG_RW_ATTR_RW, /* EXT_MB_REG_DISTANCE 105*/\
+    HV_MB_REG_RW_ATTR_R, /* EXT_MB_REG_HOTSPOT_ST 106*/\
+    HV_MB_REG_RW_ATTR_R, /* EXT_MB_REG_CELLUAR_ST 107*/\
+    HV_MB_REG_RW_ATTR_R, /* EXT_MB_REG_WIFI_WAN_SIG_AND_BAT_LVL 108*/\
+    HV_MB_REG_RW_ATTR_R, /* EXT_MB_REG_DEV_INFO_BITS 109*/\
     /*C(HV_MB_REG_END_FLAG), */
 };
 

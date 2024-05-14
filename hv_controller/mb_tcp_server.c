@@ -553,13 +553,20 @@ static mb_rw_reg_ret_t read_hv_st_from_internal(float timeout_sec)
     return process_ret;
 }
 
-static void mb_tcp_server_fill_mapping_tab_reg_from_msg(uint8_t *req_msg, int offset, uint16_t reg_addr_start, uint16_t cnt)
+static void mb_tcp_server_fill_mapping_tab_reg_from_msg(uint8_t *req_msg, int offset, uint16_t reg_addr_start, uint16_t cnt, bool check_rw)
 {
     uint16_t idx;
     for(idx = 0; idx < cnt; ++idx)
     {
         if(VALID_MB_REG_ADDR(reg_addr_start + idx))
         {
+            if(check_rw && (HV_MB_REG_RW_ATTR_R == get_hv_mb_reg_rw_attr(reg_addr_start + idx)))
+            {
+                DIY_LOG(LOG_ERROR, "%sthe register %d is read-only, can't be written.\n",
+                        gp_mb_server_log_header, (reg_addr_start + idx));
+                continue;
+            }
+
             gs_mb_mapping->tab_registers[(reg_addr_start + idx)]
                 = MODBUS_GET_INT16_FROM_INT8(req_msg, gs_mb_header_len + offset  + 2 * idx);
         }
@@ -604,7 +611,6 @@ static mb_rw_reg_ret_t mb_server_process_extend_reg(uint8_t * req_msg, int req_m
             {
                 offset = MB_REQ_MSG_MULTI_VALUE_OFFSET_AFTER_HDR;
             }
-            mb_tcp_server_fill_mapping_tab_reg_from_msg(req_msg, offset, reg_addr_start, reg_cnt);
 
             for(idx = 0; idx < reg_cnt; ++idx)
             {
@@ -612,13 +618,16 @@ static mb_rw_reg_ret_t mb_server_process_extend_reg(uint8_t * req_msg, int req_m
                 {
                     uint16_t write_data;
 
-                    if(HV_MB_REG_RW_ATTR_R == get_hv_mb_reg_rw_attr(reg_addr_start + idx))
+                    if((HV_MB_REG_RW_ATTR_R == get_hv_mb_reg_rw_attr(reg_addr_start + idx)))
                     {
                         DIY_LOG(LOG_ERROR, "%sthe register %d is read-only, can't be written.\n",
                                 gp_mb_server_log_header, (reg_addr_start + idx));
-                        ret =  MB_RW_REG_RET_ERROR ;
+                        ret = MB_RW_REG_RET_ERROR;
                         break;
                     }
+
+                    gs_mb_mapping->tab_registers[(reg_addr_start + idx)]
+                        = MODBUS_GET_INT16_FROM_INT8(req_msg, gs_mb_header_len + offset  + 2 * idx);
 
                     write_data = gs_mb_mapping->tab_registers[(reg_addr_start + idx)];
                     switch(reg_addr_start + idx)
@@ -701,10 +710,22 @@ static mb_rw_reg_ret_t mb_server_process_extend_reg(uint8_t * req_msg, int req_m
     return ret;
 }
 
-
-static void update_distance_in_mb_reg()
+static void exchange_info_with_mb_reg()
 {
+    uint16_t info_word;
+#ifdef MANAGE_LCD_AND_TOF_HERE
+    /*TOF distance is acquired by tof thread which updated it into g_device_st_pool*/
     gs_mb_mapping->tab_registers[EXT_MB_REG_DISTANCE] = ST_PARAM_GET(g_device_st_pool, tof_distance);
+#else
+    /*TOF distance is written into mb register by external user and we should update it into g_device_st_pool*/
+    /*TO BE FILLED*/
+#endif
+    gs_mb_mapping->tab_registers[EXT_MB_REG_HOTSPOT_ST] = ST_PARAM_GET(g_device_st_pool, hot_spot_st); 
+
+    gs_mb_mapping->tab_registers[EXT_MB_REG_CELLUAR_ST] 
+        = (ST_PARAM_GET(g_device_st_pool,cellular_signal_bars) << 8) & (ST_PARAM_GET(g_device_st_pool,cellular_signal_bars)); 
+    gs_mb_mapping->tab_registers[EXT_MB_REG_WIFI_WAN_SIG_AND_BAT_LVL] = ST_PARAM_GET(g_device_st_pool, hot_spot_st); 
+    gs_mb_mapping->tab_registers[EXT_MB_REG_DEV_INFO_BITS] = ST_PARAM_GET(g_device_st_pool, hot_spot_st); 
 }
 
 static mb_rw_reg_ret_t mb_server_process_req(uint8_t * req_msg, int req_msg_len, bool * comm_with_dsp,
@@ -734,7 +755,7 @@ static mb_rw_reg_ret_t mb_server_process_req(uint8_t * req_msg, int req_msg_len,
         return MB_RW_REG_RET_ERROR;
     }
 
-    update_distance_in_mb_reg();
+    exchange_info_with_mb_reg();
 
     if(server_only || (MB_REG_COMM_DSP(reg_addr_start, reg_cnt) && comm_with_dsp))
     {
@@ -797,7 +818,8 @@ static mb_rw_reg_ret_t mb_server_process_req(uint8_t * req_msg, int req_msg_len,
                 offset = MB_REQ_MSG_MULTI_VALUE_OFFSET_AFTER_HDR;
             }
 
-            mb_tcp_server_fill_mapping_tab_reg_from_msg(req_msg, offset, reg_addr_start, reg_cnt);
+            /*the operation is transfered to hv-dsp, so we does not control rw attritbute here.*/
+            mb_tcp_server_fill_mapping_tab_reg_from_msg(req_msg, offset, reg_addr_start, reg_cnt, false);
 
             process_ret = mb_server_pre_check_write_reg(reg_addr_start, 
                                         &gs_mb_mapping->tab_registers[(reg_addr_start)], reg_cnt);
