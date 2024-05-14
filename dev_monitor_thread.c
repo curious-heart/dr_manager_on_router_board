@@ -385,7 +385,9 @@ void* dev_monitor_thread_func(void* arg)
         if(access_device_st_pool(pthread_self(), g_dev_monitor_th_desc, update_dev_st_pool_from_monitor_th,
                                               &gs_main_dev_st))
         {
+#ifdef MANAGE_LCD_AND_TOF_HERE
             update_lcd_display(pthread_self(), g_dev_monitor_th_desc);
+#endif
         }
 
         usleep(parm->sch_period * 1000000);

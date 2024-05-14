@@ -103,7 +103,7 @@ mb_rw_reg_ret_t mb_tcp_srvr_ext_reg_dose_adj_handler(uint16_t adj_val, bool serv
 
 void set_bat_chg_state(battery_chg_st_t st);
 battery_chg_st_t get_local_rec_bat_chg_state();
-void refresh_lcd_from_main_th();
+void refresh_global_dev_st_info_from_main_th();
 mb_rw_reg_ret_t mb_tcp_srvr_ext_reg_charger_handler(uint16_t in_out)
 {
     mb_rw_reg_ret_t process_ret = MB_RW_REG_RET_NONE;
@@ -125,7 +125,7 @@ mb_rw_reg_ret_t mb_tcp_srvr_ext_reg_charger_handler(uint16_t in_out)
     if(chg_st != get_local_rec_bat_chg_state())
     {
         set_bat_chg_state(chg_st);
-        refresh_lcd_from_main_th();
+        refresh_global_dev_st_info_from_main_th();
     }
 
     return process_ret;

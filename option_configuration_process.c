@@ -5,7 +5,9 @@
 #include <string.h>
 
 #include "version_def.h"
+#ifdef MANAGE_LCD_AND_TOF_HERE
 #include "tof_measure.h"
+#endif
 
 #include "option_configuration_process.h"
 
@@ -381,12 +383,14 @@ option_process_ret_t process_cmd_options(int argc, char *argv[])
                         CONVERT_FUNC_ATOBOOL(g_cmd_line_opt_collection.srvr_params.expo_tof_measure_wait, optarg),
                         true, NULL, type_bool);
 
+#ifdef MANAGE_LCD_AND_TOF_HERE
                 OPT_CHECK_AND_DRAW(gs_long_opt_arr[longindex].name, gs_opt_tof_measure_period_str,
                         CONVERT_FUNC_ATOF(g_cmd_line_opt_collection.tof_th_parm.measure_period, optarg),
                         SHOULD_BE_IN_INCLUDED(g_cmd_line_opt_collection.tof_th_parm.measure_period,\
                             TOF_CONTI_MEAS_MIN_INTERVAL, TOF_CONTI_MEAS_MAX_INTERVAL),
                         SHOULD_BE_IN_INCLUDED_FLOAT_LOG(TOF_CONTI_MEAS_MIN_INTERVAL, TOF_CONTI_MEAS_MAX_INTERVAL),
                         type_float);
+#endif
                 OPT_CHECK_AND_DRAW(gs_long_opt_arr[longindex].name, gs_opt_tof_dev_name_str,
                         {CONVERT_FUNC_STRCPY(gs_tof_dev_name, optarg); \
                         g_cmd_line_opt_collection.tof_th_parm.dev_name = gs_tof_dev_name;},

@@ -218,13 +218,18 @@ static bool update_dev_st_pool_from_main_loop_th(void* d)
 extern cmd_line_opt_collection_t g_cmd_line_opt_collection;
 
 /*DO NOT call this function from outside of main thread. So DO NOT export it in .h file, but declare it as necessary.*/
-void refresh_lcd_from_main_th()
+void refresh_global_dev_st_info_from_main_th()
 {
-    bool upd = access_device_st_pool(pthread_self(),g_main_thread_desc, update_dev_st_pool_from_main_loop_th, &gs_hv_st);
+#ifdef MANAGE_LCD_AND_TOF_HERE
+    bool upd = 
+#endif
+    access_device_st_pool(pthread_self(),g_main_thread_desc, update_dev_st_pool_from_main_loop_th, &gs_hv_st);
+#ifdef MANAGE_LCD_AND_TOF_HERE
     if(upd)
     {
         update_lcd_display(pthread_self(), g_main_thread_desc);
     }
+#endif
 }
 
 /*Return true if the charge full st is updated.*/
@@ -409,7 +414,9 @@ mb_rw_reg_ret_t mb_server_write_reg_sniff(uint16_t reg_addr_start, uint16_t * da
                     ret = MB_RW_REG_RET_USE_SHORT_WAIT_TIME;
                 }
 
+#ifdef MANAGE_LCD_AND_TOF_HERE
                 unset_tof_th_measure_flag(TOF_REQUESTER_EXPOSURE);
+#endif
                 break;
 
             default:
@@ -418,7 +425,7 @@ mb_rw_reg_ret_t mb_server_write_reg_sniff(uint16_t reg_addr_start, uint16_t * da
     }
     if(becare)
     {
-        refresh_lcd_from_main_th();
+        refresh_global_dev_st_info_from_main_th();
     }
 
     gs_time_point_for_conn_check = time(NULL);
@@ -482,7 +489,7 @@ mb_rw_reg_ret_t mb_server_read_reg_sniff(uint16_t reg_addr_start, uint16_t * dat
     }
     if(becare)
     {
-        refresh_lcd_from_main_th();
+        refresh_global_dev_st_info_from_main_th();
     }
 
     gs_time_point_for_conn_check = time(NULL);
@@ -570,7 +577,7 @@ static mb_rw_reg_ret_t read_hv_st_from_internal(float timeout_sec)
 
     if(becare)
     {
-        refresh_lcd_from_main_th();
+        refresh_global_dev_st_info_from_main_th();
     }
 
     return process_ret;
@@ -931,7 +938,7 @@ static void init_reg_refresh()
         gs_hv_st.expo_am_ua = gs_mb_mapping->tab_registers[FilamentSet];
         gs_hv_st.expo_dura_ms = gs_mb_mapping->tab_registers[ExposureTime];
         gs_hv_st.bat_lvl = gs_mb_mapping->tab_registers[BatteryLevel];
-        refresh_lcd_from_main_th();
+        refresh_global_dev_st_info_from_main_th();
 
         gs_dsp_sw_ver = gs_mb_mapping->tab_registers[HSV];
     }
