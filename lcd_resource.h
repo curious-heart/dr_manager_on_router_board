@@ -886,7 +886,7 @@ static const char* gs_LCD_DISPLAY_UNIT_STR_KV = "kV";
 static const char* gs_LCD_DISPLAY_UNIT_STR_AMT = "mA";
 static const char* gs_LCD_DISPLAY_UNIT_STR_SEC = "s";
 
-#define LCD_VER_STR_MAX_CHAR_CNT 29
+#define LCD_VER_STR_MAX_CHAR_CNT 31
 /*"v" and "." and "-" are of the same width with small digit*/
 #define LCD_VER_STR_POS_W (LCD_VER_STR_MAX_CHAR_CNT * (LCD_SMALL_DIGIT_IMG_W + 1)) 
 #define LCD_VER_STR_POS_H (LCD_SMALL_DIGIT_IMG_H)

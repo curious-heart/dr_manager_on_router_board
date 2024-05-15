@@ -486,57 +486,10 @@ static bool access_g_st_pool_from_lcd_refresh_th(void* buf)
     return false;
 }
 
-/* version format:
- *     "v" + SW_V + " " + "v" + SW_V + "." + dsp_ver + "." + fw_ver + "." + app_ver
- * where
- *     The beginning "v" + SW_V is the "release version"
- *     SW_V: 1~3 digits, "ss".
- *     dsp_ver: 6 digits, "hhhlll", where hhh is the high version and lll is low version, both are decima number.
- *     fw_ver: 3 digits, "fff", from openwrt_version file.
- *     app_ver: 6 digits, "dddggg", the concatenation of the version str of dr_manager and gpio_processor app.
- * */
-#define MAX_FW_V_LINE_LEN 256
 static void display_ver_str()
 {
-    extern const char * g_APP_VER_STR;
-    extern const unsigned char g_SW_VER_NUMBER;
-    extern const char* g_gpio_processor_APP_VER_STR;
-    char ver_str[LCD_VER_STR_MAX_CHAR_CNT + 1] = {0};
-    int ver_str_len = 0, w_len = 0, buf_size = sizeof(ver_str), cur_size;
-    FILE* fw_v_file;
-    char fw_v_line_buf[MAX_FW_V_LINE_LEN + 1], *line_ptr, *fw_v_pos, *invalid_char_pos;
-    uint16_t dsp_sw_v = get_dsp_sw_ver();
-
-    /* generate the string.*/
-    cur_size = buf_size;
-    do
-    {
-        w_len = snprintf(&ver_str[ver_str_len], cur_size, "v%u  v%u.%03u%03u.",
-                            g_SW_VER_NUMBER, g_SW_VER_NUMBER, (dsp_sw_v & 0xFF00)>>8, (dsp_sw_v & 0x00FF));
-        if(w_len <= 0 || w_len >= cur_size) break;
-        ver_str_len += w_len; cur_size = buf_size - ver_str_len;
-
-        fw_v_file = fopen("/etc/openwrt_version", "r");
-        if(NULL == fw_v_file) { DIY_LOG(LOG_ERROR, "Open openwrt_version error.\n"); break; }
-        line_ptr = fgets(fw_v_line_buf, sizeof(fw_v_line_buf), fw_v_file);
-        if(NULL == line_ptr) { fclose(fw_v_file); DIY_LOG(LOG_ERROR, "read openwrt_version gets NULL.\n"); break; }
-        fclose(fw_v_file);
-        fw_v_pos = strstr(fw_v_line_buf, ", ");
-        if(NULL == fw_v_pos) { DIY_LOG(LOG_ERROR, "no fw version number found.\n"); break; }
-        fw_v_pos += 2; //skip the ", "
-        invalid_char_pos = strpbrk(fw_v_pos, "\r\n");
-        if(NULL != invalid_char_pos) *invalid_char_pos = '\0';
-        w_len = snprintf(&ver_str[ver_str_len], cur_size, "%s.", fw_v_pos);
-        if(w_len <= 0) break;
-        ver_str_len += w_len; cur_size = buf_size - ver_str_len;
-
-        w_len = snprintf(&ver_str[ver_str_len], cur_size, "%s%s", g_APP_VER_STR, g_gpio_processor_APP_VER_STR);
-        if(w_len <= 0 || w_len >= cur_size) break;
-        ver_str_len += w_len; cur_size = buf_size - ver_str_len;
-
-        break;
-    }while(true);
-    DIY_LOG(LOG_INFO, "The version string to be displayd:\n%s\n", ver_str);
+    int ver_str_len = 0;
+    const char* ver_str = get_whole_fw_version_string(&ver_str_len);
 
     /* display the string */
     if(ver_str_len  > 0)
@@ -548,6 +501,7 @@ static void display_ver_str()
         int sum_w = 0;
         bool known_char;
 
+        if(ver_str_len > LCD_VER_STR_MAX_CHAR_CNT) ver_str_len = LCD_VER_STR_MAX_CHAR_CNT;
         idx = ver_str_len - 1;
         while(idx >= 0)
         {

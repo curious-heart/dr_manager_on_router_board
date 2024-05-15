@@ -957,6 +957,10 @@ bool mb_server_is_ready()
     return gs_server_ready;
 }
 
+void write_version_str_to_file();
+#ifndef MANAGE_LCD_AND_TOF_HERE
+void send_dev_info_external();
+#endif
 mb_server_exit_code_t  mb_server_loop(mb_tcp_server_params_t * srvr_params, bool server_only)
 {
     uint8_t query[MODBUS_TCP_MAX_ADU_LENGTH];
@@ -1073,6 +1077,12 @@ mb_server_exit_code_t  mb_server_loop(mb_tcp_server_params_t * srvr_params, bool
 
     init_reg_refresh();
     gs_server_ready = true;
+
+    write_version_str_to_file();
+#ifndef MANAGE_LCD_AND_TOF_HERE
+    send_dev_info_external();
+#endif
+
     for (;;) 
     {
         rdset = refset;

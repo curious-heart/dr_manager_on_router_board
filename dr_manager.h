@@ -181,4 +181,6 @@ uint16_t get_dsp_sw_ver();
 bool mb_server_is_ready();
 
 const char* get_wifi_mac_tail6();
+#define MAX_FW_V_LINE_LEN 256
+const char* get_whole_fw_version_string(int * s_len);
 #endif

@@ -1,6 +1,7 @@
 #include <signal.h>
 #include <getopt.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include "version_def.h"
 #include "logger.h"
@@ -264,6 +265,87 @@ static void init_thread_syncs()
     init_tof_th_measure_syncs();
 #endif
 }
+
+/* version format:
+ *     "v" + SW_V + " " + "v" + SW_V + "." + dsp_ver + "." + fw_ver + "." + app_ver
+ * where
+ *     The beginning "v" + SW_V is the "release version"
+ *     SW_V: 1~3 digits, "ss".
+ *     dsp_ver: 6 digits, "hhhlll", where hhh is the high version and lll is low version, both are decima number.
+ *     fw_ver: 3 digits, "fff", from openwrt_version file.
+ *     app_ver: 6~8  digits, "ddd-ggg-", the concatenation of the version str of dr_manager and gpio_processor app.
+ *              "-" are optional, indicating this is a debugging version.
+ *
+ * Note: since dsp_sw_v needs read registers from hv-controlling-dsp, this function should be called after gs_server_ready
+ * getting true (check by mb_server_is_ready()), or dsp_sw_v is zero.
+ * */
+const char* get_whole_fw_version_string(int* s_len)
+{
+    extern const char * g_gpio_processor_APP_VER_STR;
+    static char ver_str[MAX_FW_V_LINE_LEN + 1] = {0};
+    static int buf_size = sizeof(ver_str);
+    int ver_str_len = 0, w_len = 0,  cur_size;
+    FILE* fw_v_file;
+    char fw_v_line_buf[MAX_FW_V_LINE_LEN + 1], *line_ptr, *fw_v_pos, *invalid_char_pos;
+    uint16_t dsp_sw_v = get_dsp_sw_ver();
+
+    /* generate the string.*/
+    cur_size = buf_size;
+    do
+    {
+        w_len = snprintf(&ver_str[ver_str_len], cur_size, "v%u  v%u.%03u%03u.",
+                            g_SW_VER_NUMBER, g_SW_VER_NUMBER, (dsp_sw_v & 0xFF00)>>8, (dsp_sw_v & 0x00FF));
+        if(w_len <= 0 || w_len >= cur_size) break;
+        ver_str_len += w_len; cur_size = buf_size - ver_str_len;
+
+        fw_v_file = fopen("/etc/openwrt_version", "r");
+        if(NULL == fw_v_file) { DIY_LOG(LOG_ERROR, "Open openwrt_version error.\n"); break; }
+        line_ptr = fgets(fw_v_line_buf, sizeof(fw_v_line_buf), fw_v_file);
+        if(NULL == line_ptr) { fclose(fw_v_file); DIY_LOG(LOG_ERROR, "read openwrt_version gets NULL.\n"); break; }
+        fclose(fw_v_file);
+        fw_v_pos = strstr(fw_v_line_buf, ", ");
+        if(NULL == fw_v_pos) { DIY_LOG(LOG_ERROR, "no fw version number found.\n"); break; }
+        fw_v_pos += 2; //skip the ", "
+        invalid_char_pos = strpbrk(fw_v_pos, "\r\n");
+        if(NULL != invalid_char_pos) *invalid_char_pos = '\0';
+        w_len = snprintf(&ver_str[ver_str_len], cur_size, "%s.", fw_v_pos);
+        if(w_len <= 0) break;
+        ver_str_len += w_len; cur_size = buf_size - ver_str_len;
+        if(cur_size <= 0) break;
+
+        w_len = snprintf(&ver_str[ver_str_len], cur_size, "%s%s", g_APP_VER_STR, g_gpio_processor_APP_VER_STR);
+        if(w_len <= 0 || w_len >= cur_size) break;
+        ver_str_len += w_len; cur_size = buf_size - ver_str_len;
+
+        break;
+    }while(true);
+    DIY_LOG(LOG_INFO, "The version string to be displayd:\n%s\n", ver_str);
+
+    if(s_len) *s_len = ver_str_len;
+    return ver_str;
+}
+
+/*
+ * Note: since get_whole_fw_version_string needs read registers from hv-controlling-dsp, this function should be called 
+ * after gs_server_ready getting true (check by mb_server_is_ready()), or dsp version is zero.
+ * */
+void write_version_str_to_file()
+{
+#define MAX_CMD_LINE 64
+    const char* tmp_file = "/tmp/.dr_manager_version";
+    const char* ver_str = get_whole_fw_version_string(NULL);
+    char cmd_line[MAX_CMD_LINE + MAX_FW_V_LINE_LEN + 1];
+    snprintf(cmd_line, sizeof(cmd_line), "echo \"%s\" > %s", ver_str, tmp_file);
+    system(cmd_line);
+}
+
+#ifndef MANAGE_LCD_AND_TOF_HERE
+void send_dev_info_external()
+{
+    const char* scpt = "/usr/bin/send_dev_info_external.sh";
+    system(scpt);
+}
+#endif
 
 extern cmd_line_opt_collection_t g_cmd_line_opt_collection;
 int main(int argc, char *argv[])
