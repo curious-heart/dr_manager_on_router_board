@@ -124,6 +124,28 @@ static uint16_t mb_reg_read_write(hv_mb_reg_e_t reg_addr)
     return read_data;
 }
 
+static void print_register_tips()
+{
+    hv_mb_reg_e_t idx;
+    const char* reg_str;
+    char attr_char;
+    for(idx = HSV; idx < HV_MB_REG_END_FLAG; ++idx)
+    {
+        if(!VALID_MB_REG_ADDR(idx))
+        {
+            continue;
+        }
+
+        reg_str = get_hv_mb_reg_str(idx);
+        if(reg_str) printf("%s", reg_str);
+
+        attr_char = get_hv_mb_reg_rw_attr(idx);
+        if(attr_char) printf("\t\t\trw:\"%c\"", attr_char);
+
+        printf("\n");
+    }
+}
+
 static void mb_tcp_server_test()
 {
     bool end = false;
@@ -135,35 +157,7 @@ static void mb_tcp_server_test()
     while(!end)
     {
         printf("\n");
-        printf("HSV = 0,                   //软硬件版本\n");
-        printf("OTA = 1,                   //OTA升级\n");
-        printf("BaudRate = 2,              //波特率\n");
-        printf("ServerAddress = 3,         //设备地址\n");
-        printf("State = 4,                 //状态\n");
-        printf("VoltSet = 5,               //管电压设置值\n");
-        printf("FilamentSet = 6,           //管设置值电流 （决定灯丝电流决定管电流）\n");
-        printf("ExposureTime = 7,          //曝光时间\n");
-        printf("Voltmeter = 8,             //管电压读出值\n");
-        printf("Ammeter = 9,               //管电流读出值\n");
-        printf("RangeIndicationStatus = 10,//范围指示状态\n");
-        printf("ExposureStatus = 11,       //曝光状态\n");
-        printf("RangeIndicationStart = 12, //范围指示启动\n");
-        printf("ExposureStart = 13,        //曝光启动\n");
-        printf("BatteryLevel = 14,         //电池电量\n");
-        printf("BatteryVoltmeter = 15,\n");
-        printf("OilBoxTemperature = 16,    //电池电压高位\n");
-        printf("Poweroff = 17,             //关机请求\n");
-        printf("Fixpos = 18,               //校准定义\n");
-        printf("Fixval = 19,               //校准值\n");
-        printf("Workstatus = 20,           //充能状态\n");
-        printf("exposureCount = 21,        //曝光次数\n");
-        printf("--------belowing are extend registers.\n");
-
-        printf("EXT_MB_REG_DOSE_ADJ = 101),     /*+/- key event*/\n");
-        printf("EXT_MB_REG_CHARGER = 102),     /*charger plug in/pull out*/\n");
-        printf("EXT_MB_REG_DAP_HP = 103),     /*High part of a float of DAP(Dose Area Product), big endian.*/\n");
-        printf("EXT_MB_REG_DAP_LP = 104),     /*Low part of a float of DAP, big endian.*/\n");
-
+        print_register_tips();
         printf("-1: exit.\n");
 
         fgets(r_buf, sizeof(r_buf), stdin);

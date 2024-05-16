@@ -217,19 +217,47 @@ static bool update_dev_st_pool_from_main_loop_th(void* d)
 
 extern cmd_line_opt_collection_t g_cmd_line_opt_collection;
 
+#ifndef MANAGE_LCD_AND_TOF_HERE
+void send_dev_info_external();
+static void send_mb_regs_external()
+{
+#define MAX_OP_CMD_LINE 64
+    /*write regs to tmp file.*/
+    static const char* mb_reg_content_file_name = "/tmp/.dr_mb_reg_content";
+    static const char* send_mb_reg_external_sh = "/usr/bin/send_mb_reg_external.sh";
+    hv_mb_reg_e_t reg_addr;
+    char cmd_line[MAX_OP_CMD_LINE+ 1];
+
+    snprintf(cmd_line, sizeof(cmd_line), "rm -f %s", mb_reg_content_file_name);
+    for(reg_addr = HSV; reg_addr < HV_MB_REG_END_FLAG; ++reg_addr)
+    {
+        if(VALID_MB_REG_ADDR(reg_addr))
+        {
+            snprintf(cmd_line, sizeof(cmd_line), 
+                    "echo %u,%u >> %s", reg_addr, gs_mb_mapping->tab_registers[reg_addr], mb_reg_content_file_name);
+        }
+    }
+    system(cmd_line);
+
+    /*call shell script to send regs external.*/
+    system(send_mb_reg_external_sh);
+#undef MAX_OP_CMD_LINE
+}
+#endif
+
 /*DO NOT call this function from outside of main thread. So DO NOT export it in .h file, but declare it as necessary.*/
 void refresh_global_dev_st_info_from_main_th()
 {
-#ifdef MANAGE_LCD_AND_TOF_HERE
-    bool upd = 
-#endif
-    access_device_st_pool(pthread_self(),g_main_thread_desc, update_dev_st_pool_from_main_loop_th, &gs_hv_st);
-#ifdef MANAGE_LCD_AND_TOF_HERE
+    bool upd = access_device_st_pool(pthread_self(),g_main_thread_desc, update_dev_st_pool_from_main_loop_th, &gs_hv_st);
     if(upd)
     {
+#ifdef MANAGE_LCD_AND_TOF_HERE
         update_lcd_display(pthread_self(), g_main_thread_desc);
-    }
+#else
+        send_mb_regs_external();
+        send_dev_info_external();
 #endif
+    }
 }
 
 /*Return true if the charge full st is updated.*/
@@ -501,8 +529,8 @@ static mb_rw_reg_ret_t read_hv_st_from_internal(float timeout_sec)
     mb_rw_reg_ret_t process_ret = MB_RW_REG_RET_ERROR; 
     bool becare = false;
 
-    if(hv_controller_read_uint16s(ExposureStatus,
-                &gs_mb_mapping->tab_registers[ExposureStatus], 1))
+    if(hv_controller_read_uint16s(HSV,
+                &gs_mb_mapping->tab_registers[HSV], (OilBoxTemperature - HSV + 1)))
     {
         if(gs_hv_st.hv_dsp_conn_st != HV_DSP_CONNECTED)
         {
@@ -527,6 +555,18 @@ static mb_rw_reg_ret_t read_hv_st_from_internal(float timeout_sec)
         {
             process_ret = MB_RW_REG_RET_NONE;
         }
+
+        if(gs_hv_st.bat_lvl != gs_mb_mapping->tab_registers[BatteryLevel])
+        {
+            becare = true;
+            gs_hv_st.bat_lvl = gs_mb_mapping->tab_registers[BatteryLevel];
+        }
+
+        if(check_bat_chg_full_pin())
+        {
+            becare = true;
+        }
+
         gs_time_point_for_conn_check = time(NULL);
     }
     else
@@ -534,35 +574,6 @@ static mb_rw_reg_ret_t read_hv_st_from_internal(float timeout_sec)
         DIY_LOG(LOG_ERROR, "%sread hv state from internall error.\n", gp_mb_server_log_header);
     }
 
-    if(process_ret != MB_RW_REG_RET_ERROR)
-    {
-        if(hv_controller_read_uint16s(BatteryLevel,
-                &gs_mb_mapping->tab_registers[BatteryLevel], 1))
-        {
-            /*Begin: for test*/
-            /*
-            gs_mb_mapping->tab_registers[BatteryLevel] = 30;
-            gs_hv_st.bat_chg_st = CHARGER_CONNECTED;
-            */
-            /*End: for test*/
-
-            if(gs_hv_st.bat_lvl != gs_mb_mapping->tab_registers[BatteryLevel])
-            {
-                becare = true;
-                gs_hv_st.bat_lvl = gs_mb_mapping->tab_registers[BatteryLevel];
-            }
-
-        }
-        else
-        {
-            DIY_LOG(LOG_ERROR, "%sread battery level from internall error.\n",
-                    gp_mb_server_log_header);
-        }
-        if(check_bat_chg_full_pin())
-        {
-            becare = true;
-        }
-    }
 
     if(process_ret == MB_RW_REG_RET_ERROR)
     {
@@ -958,9 +969,6 @@ bool mb_server_is_ready()
 }
 
 void write_version_str_to_file();
-#ifndef MANAGE_LCD_AND_TOF_HERE
-void send_dev_info_external();
-#endif
 mb_server_exit_code_t  mb_server_loop(mb_tcp_server_params_t * srvr_params, bool server_only)
 {
     uint8_t query[MODBUS_TCP_MAX_ADU_LENGTH];

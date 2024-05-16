@@ -2,7 +2,7 @@
 
 . /usr/share/libubox/jshn.sh
 
-external_dev="/dev/ttyS0"
+external_dev="/dev/ttyS2"
 get_wifi_d_info_script="/usr/bin/get_wifi_dynamic_info.sh"
 
 ssid_infos=$($get_wifi_d_info_script)
@@ -11,7 +11,7 @@ master_ssid1=$(echo $ssid_infos | awk -F, '{print $6}')
 master_ssid2=$(echo $ssid_infos | awk -F, '{print $7}')
 
 hwaddr_title="HWaddr "
-mac_addr_str=$(ifconfig wlan0 | grep "$hwaddr_title" | sed "s/$hwaddr_title//")
+mac_addr_str=$(ifconfig wlan0 | grep -o "$hwaddr_title.*" | sed "s/$hwaddr_title//")
 
 version_file="/tmp/.dr_manager_version"
 version_str=$(cat $version_file)
