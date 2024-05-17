@@ -5,7 +5,7 @@
 
 get_wifi_d_info_script="/usr/bin/get_wifi_dynamic_info.sh"
 
-mcu_exchg_json_val_data="data"
+mcu_exchg_json_val_data="info"
 
 ssid_infos=$($get_wifi_d_info_script)
 client_ssid=$(echo $ssid_infos | awk -F, '{print $5}')
@@ -34,7 +34,7 @@ json_init
 json_add_string "$mcu_exchg_json_key_type" "$mcu_exchg_json_val_data"
 json_add_string "$mac_addr_key" "$mac_addr_str"
 json_add_string "$version_key" "$version_str"
-json_add_string "$client_ssid_key" "$client_ssid"
-json_add_string "$master_ssid1_key" "$master_ssid1"
-json_add_string "$master_ssid2_key" "$master_ssid2"
+#json_add_string "$client_ssid_key" "$client_ssid"
+#json_add_string "$master_ssid1_key" "$master_ssid1"
+#json_add_string "$master_ssid2_key" "$master_ssid2"
 json_dump > $mcu_exchg_device

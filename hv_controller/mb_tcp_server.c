@@ -219,18 +219,42 @@ extern cmd_line_opt_collection_t g_cmd_line_opt_collection;
 
 #ifndef MANAGE_LCD_AND_TOF_HERE
 void send_dev_info_external();
+static hv_mb_reg_e_t gs_mb_regs_to_send_external[] =
+{
+    State/* = 4*/,                          /*状态*/
+    VoltSet/* = 5*/,                        /*5管电压设置值*/
+    FilamentSet/* = 6*/,                    /*6 管设置值电流 （决定灯丝电流决定管电流）*/
+    ExposureTime/* = 7*/,                   /*曝光时间*/
+    Voltmeter/* = 8*/,                      /*管电压读出值*/
+    Ammeter/* = 9*/,                        /*管电流读出值*/
+    ExposureStatus/* = 11*/,                /*曝光状态*/
+    BatteryLevel/* = 14*/,                  /*电池电量*/
+    BatteryVoltmeter/* = 15*/,
+
+    EXT_MB_REG_DISTANCE/* = 105*/,                       /* uint16，测距结果。单位mm*/
+    EXT_MB_REG_HOTSPOT_ST/* = 106*/,           /*uint16，本机Wi-Fi热点状态。*/
+    EXT_MB_REG_CELLUAR_ST/* = 107*/,              /*uint16，高字节表示蜂窝网的信号格数，有效值0~5；*/
+                                                         /*低字节表示蜂窝网状态：0-无服务；1-3G；2-4G；3-5G*/
+    EXT_MB_REG_WIFI_WAN_SIG_AND_BAT_LVL/* = 108*/, /*uint16，高字节指示电池电量格数，有效值0~4；*/
+                                                           /*低字节指示WAN侧Wi-Fi信号格数，有效值0~4*/
+    EXT_MB_REG_DEV_INFO_BITS/* = 109*/, /*uint16的每个bit指示一个设备的二值状态信息：*/
+
+};
 static void send_mb_regs_external()
 {
 #define MAX_OP_CMD_LINE 64
     /*write regs to tmp file.*/
     static const char* mb_reg_content_file_name = "/tmp/.dr_mb_reg_content";
     static const char* send_mb_reg_external_sh = "/usr/bin/send_mb_reg_external.sh";
+    int idx;
     hv_mb_reg_e_t reg_addr;
     char cmd_line[MAX_OP_CMD_LINE+ 1];
 
     snprintf(cmd_line, sizeof(cmd_line), "rm -f %s", mb_reg_content_file_name);
-    for(reg_addr = HSV; reg_addr < HV_MB_REG_END_FLAG; ++reg_addr)
+    system(cmd_line);
+    for(idx = 0; idx < ARRAY_ITEM_CNT(gs_mb_regs_to_send_external); ++idx)
     {
+        reg_addr = gs_mb_regs_to_send_external[idx];
         if(VALID_MB_REG_ADDR(reg_addr))
         {
             snprintf(cmd_line, sizeof(cmd_line), 
