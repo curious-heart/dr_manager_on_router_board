@@ -11,6 +11,8 @@ echo "1" > /sys/class/gpio/gpio480/value
 sleep 1
 echo "0" > /sys/class/gpio/gpio480/value
 
+stty -F /dev/ttyS2 raw speed 115200
+
 /usr/bin/dr_manager.sh &
 
 exit 0

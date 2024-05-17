@@ -235,9 +235,9 @@ static void send_mb_regs_external()
         {
             snprintf(cmd_line, sizeof(cmd_line), 
                     "echo %u,%u >> %s", reg_addr, gs_mb_mapping->tab_registers[reg_addr], mb_reg_content_file_name);
+            system(cmd_line);
         }
     }
-    system(cmd_line);
 
     /*call shell script to send regs external.*/
     system(send_mb_reg_external_sh);

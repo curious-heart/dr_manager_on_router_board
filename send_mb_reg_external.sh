@@ -1,16 +1,15 @@
 #!/bin/sh
 
 . /usr/share/libubox/jshn.sh
+. dr_manager_configuration.sh
 
-external_dev="/dev/ttyS2"
 mb_ref_content_file="/tmp/.dr_mb_reg_content"
 
-type_key="json_type"
-type_key_val="register"
+mcu_exchg_json_val_reg="register"
 
 json_init
 
-json_add_string "$type_key" "$type_key_val"
+json_add_string "$mcu_exchg_json_key_type" "$mcu_exchg_json_val_reg"
 
 while read -t 1 line
 do
@@ -19,4 +18,4 @@ do
     json_add_string "$reg" "$val"
 done < $mb_ref_content_file
 
-json_dump > $external_dev
+json_dump > $mcu_exchg_device

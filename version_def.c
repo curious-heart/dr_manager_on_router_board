@@ -16,9 +16,9 @@ const char* g_APP_NAME = "dr_manager";
  * Note 2: when update version number, please update the definition in both case so that both version can be of the latest.
  * */
 #ifdef MANAGE_LCD_AND_TOF_HERE
-const char * g_APP_VER_STR = "038b"; 
+const char * g_APP_VER_STR = "038c"; 
 #else
-const char * g_APP_VER_STR = "238b"; 
+const char * g_APP_VER_STR = "238c"; 
 #endif
 
 const unsigned char g_SW_VER_NUMBER = 1;

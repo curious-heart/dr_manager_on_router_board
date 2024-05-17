@@ -45,3 +45,7 @@ key_app_log_level=1
 key_mb_tcp_srvr_debug_flag=0
 key_exp_start_disabled=0
 mb_tcp_client_wait_res_timeout_sec=1.5
+
+#used by exchange info with external mcu
+mcu_exchg_device="/dev/ttyS2"
+mcu_exchg_json_key_type="json_type"
