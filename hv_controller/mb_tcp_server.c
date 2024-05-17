@@ -58,6 +58,10 @@ static mb_tcp_server_params_t * gs_mb_tcp_server_params = NULL;
 static uint16_t gs_dsp_sw_ver;
 static bool gs_server_ready = false;
 
+#ifndef MANAGE_LCD_AND_TOF_HERE
+static bool gs_dev_info_already_sent = false;
+#endif
+
 void mb_server_exit()
 {
     if (gs_mb_server_socket != -1)
@@ -218,15 +222,13 @@ static bool update_dev_st_pool_from_main_loop_th(void* d)
 extern cmd_line_opt_collection_t g_cmd_line_opt_collection;
 
 #ifndef MANAGE_LCD_AND_TOF_HERE
-void send_dev_info_external();
+bool send_dev_info_external();
 static hv_mb_reg_e_t gs_mb_regs_to_send_external[] =
 {
     State/* = 4*/,                          /*状态*/
     VoltSet/* = 5*/,                        /*5管电压设置值*/
     FilamentSet/* = 6*/,                    /*6 管设置值电流 （决定灯丝电流决定管电流）*/
     ExposureTime/* = 7*/,                   /*曝光时间*/
-    Voltmeter/* = 8*/,                      /*管电压读出值*/
-    Ammeter/* = 9*/,                        /*管电流读出值*/
     ExposureStatus/* = 11*/,                /*曝光状态*/
     BatteryLevel/* = 14*/,                  /*电池电量*/
     BatteryVoltmeter/* = 15*/,
@@ -278,7 +280,7 @@ void refresh_global_dev_st_info_from_main_th()
 #ifdef MANAGE_LCD_AND_TOF_HERE
         update_lcd_display(pthread_self(), g_main_thread_desc);
 #else
-        send_mb_regs_external();
+        if(gs_dev_info_already_sent) send_mb_regs_external();
 #endif
     }
 }
@@ -1110,12 +1112,16 @@ mb_server_exit_code_t  mb_server_loop(mb_tcp_server_params_t * srvr_params, bool
     gs_server_ready = true;
 
     write_version_str_to_file();
-#ifndef MANAGE_LCD_AND_TOF_HERE
-    send_dev_info_external();
-#endif
 
     for (;;) 
     {
+#ifndef MANAGE_LCD_AND_TOF_HERE
+        if(!gs_dev_info_already_sent)
+        {
+            gs_dev_info_already_sent = send_dev_info_external();
+            if(gs_dev_info_already_sent) send_mb_regs_external();
+        }
+#endif
         rdset = refset;
         if (select(fdmax + 1, &rdset, NULL, NULL, &timeout) == -1)
         {

@@ -15,6 +15,11 @@ master_ssid2=$(echo $ssid_infos | awk -F, '{print $7}')
 hwaddr_title="HWaddr "
 mac_addr_str=$(ifconfig wlan0 | grep -o "$hwaddr_title[a-f0-9A-F]\\([a-f0-9A-F]\\:[a-f0-9A-F]\\)\\{5\\}[a-f0-9A-F]" | sed "s/$hwaddr_title//")
 
+if [ "$mac_addr_str" == "" ]; then
+    echo 0
+    exit
+fi
+
 version_file="/tmp/.dr_manager_version"
 version_str=$(cat $version_file)
 
@@ -38,3 +43,4 @@ json_add_string "$version_key" "$version_str"
 #json_add_string "$master_ssid1_key" "$master_ssid1"
 #json_add_string "$master_ssid2_key" "$master_ssid2"
 json_dump > $mcu_exchg_device
+echo 1

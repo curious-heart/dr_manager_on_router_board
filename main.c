@@ -340,10 +340,31 @@ void write_version_str_to_file()
 }
 
 #ifndef MANAGE_LCD_AND_TOF_HERE
-void send_dev_info_external()
+bool send_dev_info_external()
 {
-    const char* scpt = "/usr/bin/send_dev_info_external.sh";
-    system(scpt);
+    static const char* curr_sh = "/usr/bin/send_dev_info_external.sh";
+    FILE* r_stream = NULL;
+    char* line = NULL;
+    size_t len = 0;
+    bool ret = false;
+    char true_char = '1';
+
+    r_stream = popen(curr_sh, "r");
+    if(NULL == r_stream)
+    {
+        DIY_LOG(LOG_ERROR, "popen %s error.\n", curr_sh);
+        return ret;
+    }
+
+    if(getline(&line, &len, r_stream) > 0)
+    {
+        ret = (line[0] == true_char) ? true : false;
+    }
+
+    free(line);
+    pclose(r_stream);
+
+    return ret;
 }
 #endif
 

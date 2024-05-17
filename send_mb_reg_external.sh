@@ -13,7 +13,7 @@ json_add_string "$mcu_exchg_json_key_type" "$mcu_exchg_json_val_reg"
 
 while read -t 1 line
 do
-    eval $(echo $line | awk -F, '{printf("reg=%s,var=%s",$1,$2)}')
+    eval $(echo $line | awk -F, '{printf("reg=%s;val=%s",$1,$2)}')
     json_add_string "$reg" "$val"
 done < $mb_ref_content_file
 
