@@ -11,7 +11,7 @@ if [ -f $ipk_file_str ]; then
     echo build result: $ipk_file_str
     fw_ver_str=$(awk -F' ' '{ print $2 }' package/base-files/files/etc/openwrt_version)
     tmp_str=${ipk_file_str##[[:ascii:]]*$app_name_str"_"}
-    app_ver_str=${tmp_str%%[^[:digit:]]*}
+    app_ver_str=${tmp_str%%"_"[^[:digit:]]*}
     bin_dir_name="fw_"$fw_ver_str"-app_"$app_ver_str
     tgt_dir=$arch_dir/$bin_dir_name
     tgt_fw_dir=$tgt_dir/fw
