@@ -8,7 +8,7 @@ OBJ = ./obj
 INC = . ./common_tools ./hv_controller ./mb_tcp_server_test ./gpio_key_processor ./op_gpio_thu_reg ./dap_calc
 SRC = . ./common_tools ./hv_controller ./dap_calc
 
-ifdef CONFIG_manage_lcd_and_tof_here
+ifeq ($(CONFIG_manage_lcd_and_tof_here),y)
 INC += ./lcd_display ./tof_measure ./tof_measure/core/inc ./tof_measure/platform/inc
 SRC += ./lcd_display ./tof_measure ./tof_measure/core/src ./tof_measure/platform/src
 endif
@@ -26,7 +26,7 @@ prepare:
 INCLUDES = $(wildcard $(addsuffix /*.h, $(INC)))
 SOURCES = $(wildcard $(addsuffix /*.c, $(SRC)))
 
-ifndef CONFIG_manage_lcd_and_tof_here
+ifeq ($(CONFIG_manage_lcd_and_tof_here),n)
 SOURCES := $(filter-out ./lcd_refresh_thread.c ./tof_thread.c, $(SOURCES))
 INCLUDES := $(filter-out ./lcd_resource.h, $(INCLUDES))
 endif
@@ -41,8 +41,8 @@ override CFLAGS += -Wall $(addprefix -I, $(INC)) -pthread -DBUILD_DATE_STR="\"$(
 	-DBUILD_TYPE_STR="\"$(BUILD_TYPE)\"" -DUSE_I2C_2V8
 override LDLIBS += -lm -lmodbus -pthread -lsqlite3
 
-ifdef CONFIG_manage_lcd_and_tof_here
-CFLAGS += -DMANAGE_LCD_AND_TOF_HERE
+ifeq ($(CONFIG_manage_lcd_and_tof_here),y)
+override CFLAGS += -DMANAGE_LCD_AND_TOF_HERE
 endif
 
 DEPS = $(INCLUDES)
@@ -61,7 +61,7 @@ $(OBJ)/%.o: ./common_tools/%.c $(DEPS)
 $(OBJ)/%.o: ./hv_controller/%.c $(DEPS)
 	#$(CC) -E -C -o $@ $< $(CFLAGS)
 	$(CC) -c -o $@ $< $(CFLAGS)
-ifdef CONFIG_manage_lcd_and_tof_here
+ifeq ($(CONFIG_manage_lcd_and_tof_here),y)
 $(OBJ)/%.o: ./lcd_display/%.c $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)
 $(OBJ)/%.o: ./tof_measure/%.c $(DEPS)

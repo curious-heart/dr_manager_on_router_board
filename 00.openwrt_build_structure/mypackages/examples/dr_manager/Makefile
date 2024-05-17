@@ -50,9 +50,16 @@ define Build/Prepare
 	$(Build/Patch)
 endef
 
+ifdef CONFIG_manage_lcd_and_tof_here
+CUST_MAKE_FLAGS:=CONFIG_manage_lcd_and_tof_here=y
+else
+CUST_MAKE_FLAGS:=CONFIG_manage_lcd_and_tof_here=n
+endif
+
 # Package build instructions; invoke the target-specific compiler to first compile the source file, and then to link the file into the final executable
 define Build/Compile
-	$(MAKE) -C $(PKG_BUILD_DIR) CC="$(TARGET_CC)" CFLAGS="$(TARGET_CFLAGS) " LDFLAGS="$(TARGET_LDFLAGS)"
+	#$(MAKE) -C $(PKG_BUILD_DIR) CC="$(TARGET_CC)" CFLAGS="$(TARGET_CFLAGS) " LDFLAGS="$(TARGET_LDFLAGS)"
+	$(MAKE) -C $(PKG_BUILD_DIR) CC="$(TARGET_CC)" CFLAGS="$(TARGET_CFLAGS) " LDFLAGS="$(TARGET_LDFLAGS)" $(CUST_MAKE_FLAGS)
 endef
 
 # Package install instructions; create a directory inside the package to hold our executable, and then copy the executable we built previously into the folder
