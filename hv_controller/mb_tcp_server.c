@@ -279,7 +279,6 @@ void refresh_global_dev_st_info_from_main_th()
         update_lcd_display(pthread_self(), g_main_thread_desc);
 #else
         send_mb_regs_external();
-        send_dev_info_external();
 #endif
     }
 }
