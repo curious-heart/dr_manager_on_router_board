@@ -1,6 +1,7 @@
 #ifndef COMMON_TOOL_FUNC_H
 #define COMMON_TOOL_FUNC_H
 
+#include <stdint.h>
 #include <unistd.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -28,4 +29,14 @@ char choose_read_or_write();
 
 bool check_time_out_of_curr_time(time_t last_point, time_t time_out);
 int fill_timespec_struc(struct timespec * ts, float seconds);
+
+#define MAX_JSON_MESSAGE_LEN 512
+typedef void json_msg_handler_func_t(char* msg, int msg_len);
+typedef enum
+{
+    JSON_PROC_RET_OK = 0,
+    JSON_PROC_RET_MSG_TOO_LONG = 0x01,
+    JSON_PROC_RET_INVALID_MSG = 0x02,
+}json_process_result_e_t;
+
 #endif // COMMON_TOOL_FUNC_H
