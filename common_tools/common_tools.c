@@ -141,172 +141,144 @@ json_process_result_e_t process_json_packets(char* pkt, int pkt_len, json_msg_ha
     static int ls_buffer_len = 0, ls_buffer_layer = 0;
 
     json_process_result_e_t ret = 0;
-    int pkt_ch_idx, a_msg_start_idx = -1, a_msg_endp1_idx = -1;
-    int last_msg_start_idx = -1, last_msg_endp1_idx = -1;
-    int layer, a_msg_len;
-    char* a_msg, *last_msg;
+    char* a_msg = NULL, *last_msg = NULL;
+    int pkt_ch_idx = 0, a_msg_len = 0, last_msg_len = 0;
+    int layer = -1;
 
     if(!pkt || pkt_len <= 0) return JSON_PROC_RET_INVALID_MSG;
 
+#define CLEAR_PROCESS_BUFFER {ls_buffer_len = 0; ls_buffer_layer = -1; ls_buffer_holding = false; }
+
     if(!ls_buffer_holding)
     {
-        pkt_ch_idx = 0;
-        while(pkt_ch_idx < pkt_len && pkt[pkt_ch_idx] != '{') ++pkt_ch_idx;
-        if(pkt_ch_idx >= pkt_len)
-        {
-            return JSON_PROC_RET_INVALID_MSG;
-        }
-        a_msg_start_idx = pkt_ch_idx; a_msg_endp1_idx = -1;
-        layer = 0;
+        layer = ls_buffer_layer;
         while(pkt_ch_idx < pkt_len)
         {
             if('{' == pkt[pkt_ch_idx])
             {
                 ++layer;
-                if(0 == layer)
-                {
-                    a_msg_start_idx = pkt_ch_idx; a_msg_endp1_idx = -1;
-                }
             }
             else if('}' == pkt[pkt_ch_idx])
             {
                 if(0 == layer)
                 {
-                    a_msg_endp1_idx = pkt_ch_idx + 1;
-                    a_msg_len = a_msg_endp1_idx - a_msg_start_idx;
-                    if(a_msg_len > MAX_JSON_MESSAGE_LEN)
+                    if(pkt_ch_idx + 1 + ls_buffer_len > MAX_JSON_MESSAGE_LEN)
                     {
+                        DIY_LOG(LOG_WARN, "The (jointed) json message is too long and it is discarded.");
                         ret |= JSON_PROC_RET_MSG_TOO_LONG;
-                        DIY_LOG(LOG_WARN, "The json message is too long and it is discarded.");
+                        CLEAR_PROCESS_BUFFER;
                     }
-                    else if(!override && msg_handler)
+                    else
                     {
-                        memcpy(ls_a_message, &pkt[a_msg_start_idx], a_msg_len);
-                        ls_a_message[a_msg_len] = 0;
-                        a_msg = ls_a_message;
-                        msg_handler(a_msg, a_msg_len);
+                        /*join the two parts.*/
+                        memcpy(&ls_process_buffer[ls_buffer_len], pkt, pkt_ch_idx + 1);
+                        ls_buffer_len += pkt_ch_idx + 1;
+                        ls_process_buffer[ls_buffer_len] = 0;
+                        last_msg = a_msg = ls_process_buffer;
+                        last_msg_len = a_msg_len = ls_buffer_len;
+                        if(!override && msg_handler)
+                        {
+                            msg_handler(a_msg, a_msg_len);
+                        }
                     }
-
-                    last_msg_start_idx = a_msg_start_idx;
-                    last_msg_endp1_idx = a_msg_endp1_idx;
+                    --layer;
+                    ++pkt_ch_idx;
+                    break;
                 }
-                --layer;
+                else
+                {
+                    --layer;
+                }
             }
 
             ++pkt_ch_idx;
         }
-        if(override && msg_handler && (last_msg_start_idx >= 0 && last_msg_endp1_idx > 0))
+        if(layer != -1)
         {
-            /*only process the last complete message in this packet.*/
-            a_msg_len = last_msg_endp1_idx - last_msg_start_idx;
-            if(a_msg_len > MAX_JSON_MESSAGE_LEN)
+            DIY_LOG(LOG_WARN, "the (joint) msg is too long, discard its part.");
+            ret |= JSON_PROC_RET_MSG_TOO_LONG;
+            CLEAR_PROCESS_BUFFER;
+            return ret;
+        }
+    }
+
+    while(pkt_ch_idx < pkt_len)
+    {
+        if('{' == pkt[pkt_ch_idx])
+        {
+            ++layer;
+            if(0 == layer)
             {
-                ret |= JSON_PROC_RET_MSG_TOO_LONG;
-                DIY_LOG(LOG_WARN, "The json message is too long and it is discarded.");
-            }
-            else
-            {
-                memcpy(ls_a_message, &pkt[last_msg_start_idx], a_msg_len);
-                ls_a_message[a_msg_len] = 0;
-                msg_handler(ls_a_message, a_msg_len);
+                a_msg= &pkt[pkt_ch_idx]; 
             }
         }
-
-        if(layer >= 0)
+        else if('}' == pkt[pkt_ch_idx])
         {
-            /*there is incomplete msg.*/
-            if(pkt_ch_idx - a_msg_start_idx > MAX_JSON_MESSAGE_LEN)
+            if(0 == layer)
             {
-                DIY_LOG(LOG_WARN, "The (incomplete) json message is too long and it is discarded.");
+                a_msg_len = &pkt[pkt_ch_idx] - a_msg + 1;
+                if(a_msg_len > MAX_JSON_MESSAGE_LEN)
+                {
+                    ret |= JSON_PROC_RET_MSG_TOO_LONG;
+                    DIY_LOG(LOG_WARN, "The json message is too long and it is discarded.");
+                }
+                else
+                {
+                    last_msg = a_msg;
+                    last_msg_len = a_msg_len;
+
+                    if(!override && msg_handler)
+                    {
+                        memcpy(ls_a_message, a_msg,  a_msg_len);
+                        ls_a_message[a_msg_len] = 0;
+                        msg_handler(ls_a_message, a_msg_len);
+                    }
+                }
             }
-            else
-            {
-                ls_buffer_layer = layer;
-                ls_buffer_len = pkt_ch_idx = a_msg_start_idx;
-                memcpy(ls_process_buffer, &pkt[a_msg_start_idx], ls_buffer_len);
-                ls_process_buffer[ls_buffer_len] = 0;
-                ls_buffer_holding = true;
-            }
+            --layer;
+        }
+
+        ++pkt_ch_idx;
+    }
+    if(override && msg_handler && (last_msg_len > 0) && last_msg)
+    {
+        /*only process the last complete message in this packet.*/
+        a_msg = last_msg;
+        a_msg_len = last_msg_len;;
+        if(a_msg_len > MAX_JSON_MESSAGE_LEN)
+        {
+            ret |= JSON_PROC_RET_MSG_TOO_LONG;
+            DIY_LOG(LOG_WARN, "The json message is too long and it is discarded.");
         }
         else
         {
-            ret |= JSON_PROC_RET_INVALID_MSG;
+            memcpy(ls_a_message, a_msg, a_msg_len);
+            ls_a_message[a_msg_len] = 0;
+            msg_handler(ls_a_message, a_msg_len);
+        }
+    }
+
+    if(layer >= 0)
+    {
+        /*there is incomplete msg.*/
+        if(pkt_len - (a_msg - pkt) > MAX_JSON_MESSAGE_LEN)
+        {
+            DIY_LOG(LOG_WARN, "The (incomplete) json message is too long and it is discarded.");
+        }
+        else
+        {
+            ls_buffer_layer = layer;
+            ls_buffer_len = pkt_len - (a_msg - pkt);
+            memcpy(ls_process_buffer, a_msg, ls_buffer_len);
+            ls_process_buffer[ls_buffer_len] = 0;
+            ls_buffer_holding = true;
         }
     }
     else
     {
-        bool buffer_complete = false;
-        layer = ls_buffer_layer;
-        a_msg_start_idx = -1; a_msg_endp1_idx = -1;
-        pkt_ch_idx = 0;
-        while(pkt_ch_idx < pkt_len)
-        {
-            if('{' == pkt[pkt_ch_idx])
-            {
-                ++layer;
-                if(0 == layer)
-                {
-                    a_msg_start_idx = pkt_ch_idx; a_msg_endp1_idx = -1;
-                }
-            }
-            else if('}' == pkt[pkt_ch_idx])
-            {
-                if(0 == layer)
-                {
-                    if(!buffer_complete)
-                    {
-                        if(pkt_ch_idx + 1 + ls_buffer_len > MAX_JSON_MESSAGE_LEN)
-                        {
-                            DIY_LOG(LOG_WARN, "The (jointed) json message is too long and it is discarded.");
-                            ret |= JSON_PROC_RET_MSG_TOO_LONG;
-                            /*clear buffer*/
-                            ls_buffer_len = 0;
-                            ls_buffer_layer = -1;
-                            ls_buffer_holding = false;
-                        }
-                        else
-                        {
-                            /*join the two parts.*/
-                            memcpy(&ls_process_buffer[ls_buffer_len], pkt, pkt_ch_idx + 1);
-                            ls_buffer_len += pkt_ch_idx + 1;
-                            ls_process_buffer[ls_buffer_len] = 0;
-                            a_msg = ls_process_buffer;
-                            a_msg_len = ls_buffer_len;
-                            if(!override && msg_handler)
-                            {
-                                msg_handler(a_msg, a_msg_len);
-                            }
-
-                            last_msg = ls_process_buffer;
-                            last_msg_start_idx = 0; last_msg_endp1_idx = ls_buffer_len;
-                        }
-                    }
-                    else
-                    {
-                        a_msg_endp1_idx = pkt_ch_idx + 1;
-                        a_msg_len = a_msg_endp1_idx - a_msg_start_idx;
-                        if(a_msg_len > MAX_JSON_MESSAGE_LEN)
-                        {
-                            ret |= JSON_PROC_RET_MSG_TOO_LONG;
-                            DIY_LOG(LOG_WARN, "The json message is too long and it is discarded.");
-                        }
-                        else if(msg_handler && !override)
-                        {
-                            memcpy(ls_a_message, &pkt[a_msg_start_idx], a_msg_len);
-                            ls_a_message[a_msg_len] = 0;
-                            msg_handler(ls_a_message, a_msg_len);
-                        }
-
-                        last_msg_start_idx = a_msg_start_idx;
-                        last_msg_endp1_idx = a_msg_endp1_idx;
-                    }
-                }
-                --layer;
-            }
-
-            ++pkt_ch_idx;
-        }
+        ret |= JSON_PROC_RET_INVALID_MSG;
     }
 
     return ret;
+#undef CLEAR_PROCESS_BUFFER
 }
