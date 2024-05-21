@@ -58,5 +58,5 @@ void exp_start_key_handler(converted_gbh_uevt_s_t* evt);
 void dose_adjust_key_handler(converted_gbh_uevt_s_t* evt);
 void reset_key_handler(converted_gbh_uevt_s_t* evt);
 void charger_gpio_handler(converted_gbh_uevt_s_t* evt);
-
+void update_tof_distance(uint16_t dist);
 #endif

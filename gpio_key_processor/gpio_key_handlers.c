@@ -324,3 +324,11 @@ void charger_gpio_handler(converted_gbh_uevt_s_t* evt)
     }
 }
 
+void update_tof_distance(uint16_t dist)
+{
+    const char* reg_str = get_hv_mb_reg_str(EXT_MB_REG_DISTANCE);
+    if(modbus_write_register(gs_mb_tcp_client_ctx, EXT_MB_REG_DISTANCE, dist) <= 0)
+    {
+        DIY_LOG(LOG_ERROR, "modbus write register %s error:%d, %s\n", reg_str, errno, modbus_strerror(errno));
+    }
+}

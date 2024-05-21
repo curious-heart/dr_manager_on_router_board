@@ -7,6 +7,7 @@
 #include <linux/netlink.h>
 #include <errno.h>
 #include <signal.h>
+#include <fcntl.h>
 
 #include "logger.h"
 #include "get_opt_helper.h"
@@ -243,6 +244,11 @@ static void process_gbh_uevent(converted_gbh_uevt_s_t * evt)
 }
 
 static int gs_gbh_uevent_recv_sock = -1;
+
+#ifndef MANAGE_LCD_AND_TOF_HERE
+static int gs_mcu_dev_fd = -1;
+#endif
+
 static void clear_for_exit()
 {
     static bool already_called = false;
@@ -257,6 +263,14 @@ static void clear_for_exit()
             gs_gbh_uevent_recv_sock = -1;
         }
         end_key_event_handle();
+
+#ifndef MANAGE_LCD_AND_TOF_HERE
+        if(gs_mcu_dev_fd > 0)
+        {
+            close(gs_mcu_dev_fd);
+            gs_mcu_dev_fd = -1;
+        }
+#endif
     }
     else
     {
@@ -270,6 +284,65 @@ static void close_sigint(int dummy)
     clear_for_exit();
     exit(dummy);
 }
+
+#ifndef MANAGE_LCD_AND_TOF_HERE
+extern const char* g_mcu_exchg_device;
+extern bool g_tof_json_override;
+static char gs_mcu_json_packet[MAX_JSON_MESSAGE_LEN + 1];
+static void process_tof_json_msg(char* msg, int msg_len)
+{
+    static const char* tmp_json_file="/tmp/.tof_json_msg";
+    static const char* get_tof_distance_sh = "get_tof_distance_from_json.sh";
+    FILE * msg_file, *d_stream;
+    int written_len;
+    char *tof_dist_str;
+    size_t tof_dist_len;
+    bool goon = true;
+    uint16_t dist;
+
+    msg_file = fopen(tmp_json_file, "w");
+    if(!msg_file)
+    {
+        DIY_LOG(LOG_ERROR, "create file %s error!\n", tmp_json_file);
+        return;
+    }
+    written_len = fwrite(msg, msg_len, 1, msg_file);
+    if(written_len != msg_len)
+    {
+        DIY_LOG(LOG_ERROR, "write to file %s abnormal: %d chars to be written, but actual %d chars.\n",
+                tmp_json_file, msg_len, written_len);
+        goon = false;
+    }
+    fflush(msg_file);
+    fclose(msg_file);
+
+    if(!goon) return;
+
+    d_stream = popen(get_tof_distance_sh, "r");
+    if(!d_stream)
+    {
+        DIY_LOG(LOG_ERROR, "open %s error: %s\n", get_tof_distance_sh, strerror(errno));
+        return;
+    }
+    tof_dist_str = NULL;
+    tof_dist_len = 0;
+    getline(&tof_dist_str, &tof_dist_len, d_stream);
+    if(tof_dist_len <= 0)
+    {
+        DIY_LOG(LOG_ERROR, "read from %s error, %d chars read.\n", get_tof_distance_sh, (int)tof_dist_len);
+    }
+    if(tof_dist_str)
+    {
+        tof_dist_str[strcspn(tof_dist_str, "\r\n")] = '\0';
+        DIY_LOG(LOG_INFO, "tof distance read from json: %s\n", tof_dist_str);
+        CONVERT_FUNC_ATOUINT16(dist, tof_dist_str);
+        update_tof_distance(dist);
+    }
+    free(tof_dist_str);
+    pclose(d_stream);
+}
+#endif
+extern int g_gpio_clock_tick_sec;
 
 option_process_ret_t process_cmd_line(int argc, char* argv[]);
 int main(int argc, char* argv[])
@@ -285,6 +358,9 @@ int main(int argc, char* argv[])
     char msg[UEVENT_MSG_LEN+2];
     int n;
     option_process_ret_t arg_parse_result;
+    fd_set fds, ref_fds;
+    int fd_max;
+    struct timeval timeout;
 
     arg_parse_result = process_cmd_line(argc, argv);
     switch(arg_parse_result)
@@ -308,6 +384,10 @@ int main(int argc, char* argv[])
         return -1;
     }
     gs_gbh_uevent_recv_sock  = device_fd;
+
+    FD_ZERO(&ref_fds);
+    FD_SET(gs_gbh_uevent_recv_sock, &ref_fds);
+    fd_max = gs_gbh_uevent_recv_sock;
 
     if(!begin_key_event_handle())
     {
@@ -336,26 +416,73 @@ int main(int argc, char* argv[])
         gpio_munmap_for_read();
     }
 
+
+#ifndef MANAGE_LCD_AND_TOF_HERE
+    /*prepare for mcu msg read.*/
+    gs_mcu_dev_fd = open(g_mcu_exchg_device, O_RDONLY | O_NOCTTY | O_NDELAY);
+    if(gs_mcu_dev_fd < 0)
+    {
+        DIY_LOG(LOG_WARN, "open %s error:%s. tof distance is fixed at -1.\n", g_mcu_exchg_device, strerror(errno));
+        update_tof_distance((uint16_t)-1);
+    }
+    else
+    {
+        FD_SET(gs_mcu_dev_fd, &ref_fds);
+        if(gs_mcu_dev_fd > fd_max) fd_max = gs_mcu_dev_fd;
+    }
+#endif
+
     do 
     {
-        while((n = recv(device_fd, msg, UEVENT_MSG_LEN, 0)) > 0)
+        fds = ref_fds;
+        timeout.tv_sec = g_gpio_clock_tick_sec;
+        timeout.tv_usec = 0;
+
+        if(select(fd_max + 1, &fds, NULL, NULL, &timeout) < 0)
         {
-            DIY_LOG(LOG_DEBUG, "recv %d bytes.\n", n);
+            DIY_LOG(LOG_ERROR, "select error: %s.\n", strerror(errno));
+            continue;
+        }
 
-            if(n == UEVENT_MSG_LEN)
-                continue;
-
-            msg[n] = '\0';
-            msg[n+1] = '\0';
-
-            memset(&parsed_gbh_uevt, 0, sizeof(parsed_gbh_uevt));
-            parse_gbh_uevent(msg, n, parse_helper);
-
-            converted_gbh_uevt.valid = false;
-            convert_gbh_string_uevent(&parsed_gbh_uevt, &converted_gbh_uevt);
-            if(converted_gbh_uevt.valid)
+#ifndef MANAGE_LCD_AND_TOF_HERE
+        if(FD_ISSET(gs_mcu_dev_fd, &fds))
+        {
+            int pkt_len = read(gs_mcu_dev_fd, gs_mcu_json_packet, MAX_JSON_MESSAGE_LEN);
+            if(pkt_len < 0)
             {
-                process_gbh_uevent(&converted_gbh_uevt);
+                DIY_LOG(LOG_ERROR, "read json packet error:%s\n", strerror(errno));
+            }
+            else
+            {
+                process_json_packets(gs_mcu_json_packet, pkt_len, process_tof_json_msg, g_tof_json_override);
+            }
+        }
+#endif
+
+        if(FD_ISSET(gs_gbh_uevent_recv_sock, &fds))
+        {
+            if((n = recv(device_fd, msg, UEVENT_MSG_LEN, 0)) > 0)
+            {
+                DIY_LOG(LOG_DEBUG, "recv %d bytes.\n", n);
+
+                /*
+                if(n == UEVENT_MSG_LEN)
+                    continue;
+                */
+                if(n > UEVENT_MSG_LEN) n = UEVENT_MSG_LEN;
+
+                msg[n] = '\0';
+                msg[n+1] = '\0';
+
+                memset(&parsed_gbh_uevt, 0, sizeof(parsed_gbh_uevt));
+                parse_gbh_uevent(msg, n, parse_helper);
+
+                converted_gbh_uevt.valid = false;
+                convert_gbh_string_uevent(&parsed_gbh_uevt, &converted_gbh_uevt);
+                if(converted_gbh_uevt.valid)
+                {
+                    process_gbh_uevent(&converted_gbh_uevt);
+                }
             }
         }
     } while(true);

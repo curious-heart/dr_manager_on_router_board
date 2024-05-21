@@ -77,12 +77,21 @@ else
     key_exp_start_disable_flag=
 fi
 
+if [ $tof_json_override_flag = "1" ]; then
+    tof_json_override_opt=--tof_json_override
+else
+    tof_json_override_opt=
+fi
+
 key_cmd_args=" --exp_start_key_hold $exp_start_key_hold_time"\
 " --mb_tcp_srvr_ip_addr $mb_tcp_srvr_ip"\
 " --mb_tcp_srvr_port $mb_tcp_srvr_port"\
 " --mb_tcp_client_wait_res_timeout_sec $mb_tcp_client_wait_res_timeout_sec"\
 " $key_mb_tcp_debug"\
 " --app_log_level $key_app_log_level"\
-" $key_exp_start_disable_flag"
+" $key_exp_start_disable_flag"\
+" --mcu_exchg_device $mcu_exchg_device"\
+" --gpio_clock_tick_sec $gpio_clock_tick_sec"\
+" $tof_json_override_opt"
 
 $KEY_APP_NAME $key_cmd_args $* &

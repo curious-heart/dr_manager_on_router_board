@@ -5,11 +5,12 @@ include $(TOPDIR)/rules.mk
 PKG_NAME:=dr_manager
 ifdef CONFIG_manage_lcd_and_tof_here
 VER_STR_1:=$(shell grep -E "const[[:blank:]]+char[[:blank:]]*\*[[:blank:]]+g_APP_VER_STR[[:blank:]]*=" ../../../dr_manager/version_def.c | grep -n "" | grep ^1 | awk -F\" '{print $$2}')
+VER_STR_2:=$(shell grep -E "const[[:blank:]]+char[[:blank:]]*\*[[:blank:]]+g_gpio_processor_APP_VER_STR[[:blank:]]*=" ../../../dr_manager/gpio_key_processor/gpio_key_app_version_def.c | grep -n "" | grep ^1 | awk -F\" '{print $$2}')
 else
 VER_STR_1:=$(shell grep -E "const[[:blank:]]+char[[:blank:]]*\*[[:blank:]]+g_APP_VER_STR[[:blank:]]*=" ../../../dr_manager/version_def.c | grep -n "" | grep ^2 | awk -F\" '{print $$2}')
+VER_STR_2:=$(shell grep -E "const[[:blank:]]+char[[:blank:]]*\*[[:blank:]]+g_gpio_processor_APP_VER_STR[[:blank:]]*=" ../../../dr_manager/gpio_key_processor/gpio_key_app_version_def.c | grep -n "" | grep ^2 | awk -F\" '{print $$2}')
 endif
 
-VER_STR_2:=$(shell grep -E "const[[:blank:]]+char[[:blank:]]*\*[[:blank:]]+g_gpio_processor_APP_VER_STR[[:blank:]]*=" ../../../dr_manager/gpio_key_processor/gpio_key_app_version_def.c | awk -F\" '{print $$2}')
 PKG_VERSION:=$(VER_STR_1)$(VER_STR_2)
 PKG_RELEASE:=
 

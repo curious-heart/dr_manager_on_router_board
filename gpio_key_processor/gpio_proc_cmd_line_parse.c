@@ -23,6 +23,11 @@ static const uint32_t gs_def_exp_start_key_hold_time = 3; //in seconds.
  * to avoid unexpected exposure.*/                                                          
 static const bool gs_def_exp_start_key_disabled = false;
 
+static const char* const gs_def_mcu_exchg_device = "/dev/ttyS2";
+static char gs_mcu_device_str[MAX_OPT_STR_SIZE];
+static const int gs_def_gpio_clock_tick_sec = 1;
+static const bool gs_def_tof_json_override = true;
+
 mb_tcp_client_params_t g_mb_tcp_client_params =
 {
     .srvr_ip = gs_def_mb_tcp_srvr_ip,
@@ -36,6 +41,10 @@ key_gpio_cfg_params_s_t g_key_gpio_cfg_params =
     .exposure_disabled = gs_def_exp_start_key_disabled,
 };
 
+const char* g_mcu_exchg_device = gs_def_mcu_exchg_device;
+int g_gpio_clock_tick_sec = gs_def_gpio_clock_tick_sec;
+bool g_tof_json_override = gs_def_tof_json_override;
+
 static const char* const gs_opt_mb_tcp_srvr_ip_addr_str = "mb_tcp_srvr_ip_addr";
 static const char* const gs_opt_mb_tcp_srvr_port_str = "mb_tcp_srvr_port";
 static const char* const gs_opt_mb_tcp_client_wait_res_timeout_sec_str = "mb_tcp_client_wait_res_timeout_sec";
@@ -48,6 +57,10 @@ static const char* const gs_opt_version_str = "version";
 
 static const char* const gs_opt_exp_start_key_hold_time_str = "exp_start_key_hold";
 static const char* const gs_opt_exp_start_key_disabled_str = "exp_start_disabled";
+
+static const char* const gs_opt_mcu_exchg_device_str = "mcu_exchg_device";
+static const char* const gs_opt_gpio_clock_tick_sec_str = "gpio_clock_tick_sec";
+static const char* const gs_opt_tof_json_override_str = "tof_json_override";
 
 #undef APP_CMD_OPT_ITEM
 #define APP_CMD_OPT_ITEM(long_o_s, has_arg, flag, val) {long_o_s, has_arg, flag, val},
@@ -88,6 +101,18 @@ static const char* const gs_opt_exp_start_key_disabled_str = "exp_start_disabled
     APP_CMD_OPT_ITEM(gs_opt_exp_start_key_disabled_str, no_argument, 0, 0)\
     APP_CMD_OPT_VALUE("disable exposure key", \
            &gs_def_exp_start_key_disabled, &g_key_gpio_cfg_params.exposure_disabled, bool) \
+\
+    APP_CMD_OPT_ITEM(gs_opt_mcu_exchg_device_str, required_argument, 0, 0)\
+    APP_CMD_OPT_VALUE("tty device for mcu comm", \
+           &gs_def_mcu_exchg_device, &g_mcu_exchg_device, c_charp) \
+\
+    APP_CMD_OPT_ITEM(gs_opt_gpio_clock_tick_sec_str, required_argument, 0, 0)\
+    APP_CMD_OPT_VALUE("tick interval for internal clock(in sec)", \
+           &gs_def_gpio_clock_tick_sec, &g_gpio_clock_tick_sec, int) \
+\
+    APP_CMD_OPT_ITEM(gs_opt_tof_json_override_str, no_argument, 0, 0)\
+    APP_CMD_OPT_VALUE("for a seq of msg, the last override the formers", \
+           &gs_def_tof_json_override, &g_tof_json_override, bool) \
 \
     APP_CMD_OPT_ITEM(0, 0, 0, 0)\
 }
@@ -134,6 +159,12 @@ option_process_ret_t process_cmd_line(int argc, char* argv[])
                     DIY_LOG(LOG_INFO, "Exposure key disabled.\n");
                     break;
                 }
+
+                {
+                    g_tof_json_override = (!strcmp(gs_long_opt_arr[longindex].name, gs_opt_tof_json_override_str));
+                    break;
+                }
+
                 {
                     uint8_t p_lvl;
                     OPT_CHECK_AND_DRAW(gs_long_opt_arr[longindex].name, gs_opt_app_log_level_str,
@@ -160,6 +191,14 @@ option_process_ret_t process_cmd_line(int argc, char* argv[])
                         CONVERT_FUNC_ATOUINT32(g_key_gpio_cfg_params.exp_start_key_hold_time, optarg),
                         SHOULD_BE_GE_0(g_key_gpio_cfg_params.exp_start_key_hold_time), SHOULD_BE_GE_0_LOG,
                         type_uint32_t);
+                OPT_CHECK_AND_DRAW(gs_long_opt_arr[longindex].name, gs_opt_mcu_exchg_device_str,
+                        {CONVERT_FUNC_STRCPY(gs_mcu_device_str, optarg); g_mcu_exchg_device = gs_mcu_device_str;},
+                        SHOULD_BE_NON_NULL_STR(g_mcu_exchg_device), SHOULD_BE_NON_NULL_STR_LOG,
+                        type_c_charp);
+                OPT_CHECK_AND_DRAW(gs_long_opt_arr[longindex].name, gs_opt_gpio_clock_tick_sec_str,
+                        CONVERT_FUNC_ATOI(g_gpio_clock_tick_sec, optarg),
+                        SHOULD_BE_GT_0(g_gpio_clock_tick_sec), SHOULD_BE_GT_0_LOG,
+                        type_int);
                 break;
 
             default:
