@@ -39,4 +39,7 @@ typedef enum
     JSON_PROC_RET_INVALID_MSG = 0x02,
 }json_process_result_e_t;
 
+/*This function supports only single thread app; in multi thread app, it can only be called from one fixed thread.*/
+json_process_result_e_t process_json_packets(char* pkt, int pkt_len, json_msg_handler_func_t msg_handler, bool override);
+
 #endif // COMMON_TOOL_FUNC_H

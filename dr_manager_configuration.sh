@@ -34,7 +34,7 @@ tof_internal_cali=-40
 #app work mode
 app_work_mode_flag=0
 #app log level
-app_log_level=1
+app_log_level=3
 mb_rtu_debug_flag=0
 mb_tcp_debug_flag=0
 

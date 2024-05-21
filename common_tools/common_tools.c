@@ -133,23 +133,23 @@ int fill_timespec_struc(struct timespec * ts, float seconds)
     return 0;
 }
 
-/*This function support only single thread app; in multi thread app, it can only be called from one fixed thread.*/
+/*This function supports only single thread app; in multi thread app, it can only be called from one fixed thread.*/
 json_process_result_e_t process_json_packets(char* pkt, int pkt_len, json_msg_handler_func_t msg_handler, bool override)
 {
     static char ls_process_buffer[MAX_JSON_MESSAGE_LEN + 1], ls_a_message[MAX_JSON_MESSAGE_LEN + 1];
     static bool ls_buffer_holding = false;
     static int ls_buffer_len = 0, ls_buffer_layer = 0;
 
-    json_process_result_e_t ret = 0;
+    json_process_result_e_t ret = JSON_PROC_RET_OK;
     char* a_msg = NULL, *last_msg = NULL;
     int pkt_ch_idx = 0, a_msg_len = 0, last_msg_len = 0;
     int layer = -1;
 
     if(!pkt || pkt_len <= 0) return JSON_PROC_RET_INVALID_MSG;
 
-#define CLEAR_PROCESS_BUFFER {ls_buffer_len = 0; ls_buffer_layer = -1; ls_buffer_holding = false; }
+#define CLEAR_PROCESS_BUFFER {ls_buffer_holding = false; ls_buffer_len = 0; ls_buffer_layer = -1;}
 
-    if(!ls_buffer_holding)
+    if(ls_buffer_holding)
     {
         layer = ls_buffer_layer;
         while(pkt_ch_idx < pkt_len)
@@ -164,7 +164,7 @@ json_process_result_e_t process_json_packets(char* pkt, int pkt_len, json_msg_ha
                 {
                     if(pkt_ch_idx + 1 + ls_buffer_len > MAX_JSON_MESSAGE_LEN)
                     {
-                        DIY_LOG(LOG_WARN, "The (jointed) json message is too long and it is discarded.");
+                        DIY_LOG(LOG_WARN, "The (jointed) json message is too long and it is discarded.\n");
                         ret |= JSON_PROC_RET_MSG_TOO_LONG;
                         CLEAR_PROCESS_BUFFER;
                     }
@@ -176,9 +176,10 @@ json_process_result_e_t process_json_packets(char* pkt, int pkt_len, json_msg_ha
                         ls_process_buffer[ls_buffer_len] = 0;
                         last_msg = a_msg = ls_process_buffer;
                         last_msg_len = a_msg_len = ls_buffer_len;
-                        if(!override && msg_handler)
+                        if(!override)
                         {
-                            msg_handler(a_msg, a_msg_len);
+                            if(msg_handler) msg_handler(a_msg, a_msg_len);
+                            CLEAR_PROCESS_BUFFER;
                         }
                     }
                     --layer;
@@ -192,13 +193,6 @@ json_process_result_e_t process_json_packets(char* pkt, int pkt_len, json_msg_ha
             }
 
             ++pkt_ch_idx;
-        }
-        if(layer != -1)
-        {
-            DIY_LOG(LOG_WARN, "the (joint) msg is too long, discard its part.");
-            ret |= JSON_PROC_RET_MSG_TOO_LONG;
-            CLEAR_PROCESS_BUFFER;
-            return ret;
         }
     }
 
@@ -214,13 +208,20 @@ json_process_result_e_t process_json_packets(char* pkt, int pkt_len, json_msg_ha
         }
         else if('}' == pkt[pkt_ch_idx])
         {
-            if(0 == layer)
+            if(layer < 0)
+            {
+                DIY_LOG(LOG_WARN, "part of incomplete msg, discard it.\n");
+                ++pkt_ch_idx;
+                layer = -1;
+                continue;
+            }
+            else if(0 == layer)
             {
                 a_msg_len = &pkt[pkt_ch_idx] - a_msg + 1;
                 if(a_msg_len > MAX_JSON_MESSAGE_LEN)
                 {
                     ret |= JSON_PROC_RET_MSG_TOO_LONG;
-                    DIY_LOG(LOG_WARN, "The json message is too long and it is discarded.");
+                    DIY_LOG(LOG_WARN, "The json message is too long and it is discarded.\n");
                 }
                 else
                 {
@@ -240,41 +241,45 @@ json_process_result_e_t process_json_packets(char* pkt, int pkt_len, json_msg_ha
 
         ++pkt_ch_idx;
     }
+
     if(override && msg_handler && (last_msg_len > 0) && last_msg)
     {
         /*only process the last complete message in this packet.*/
-        a_msg = last_msg;
-        a_msg_len = last_msg_len;;
-        if(a_msg_len > MAX_JSON_MESSAGE_LEN)
+        if(last_msg_len > MAX_JSON_MESSAGE_LEN)
         {
             ret |= JSON_PROC_RET_MSG_TOO_LONG;
-            DIY_LOG(LOG_WARN, "The json message is too long and it is discarded.");
+            DIY_LOG(LOG_WARN, "The json message is too long and it is discarded.\n");
         }
         else
         {
-            memcpy(ls_a_message, a_msg, a_msg_len);
-            ls_a_message[a_msg_len] = 0;
-            msg_handler(ls_a_message, a_msg_len);
+            memcpy(ls_a_message, last_msg, last_msg_len);
+            ls_a_message[last_msg_len] = 0;
+            msg_handler(ls_a_message, last_msg_len);
         }
+        CLEAR_PROCESS_BUFFER;
     }
 
     if(layer >= 0)
     {
         /*there is incomplete msg.*/
-        if(pkt_len - (a_msg - pkt) > MAX_JSON_MESSAGE_LEN)
+        char* part_msg = (a_msg ? a_msg : pkt);
+        int part_msg_len = (a_msg ? (pkt_len - (a_msg - pkt)) : pkt_len);
+        if(ls_buffer_len + part_msg_len > MAX_JSON_MESSAGE_LEN)
         {
+            ret |= JSON_PROC_RET_MSG_TOO_LONG;
+            CLEAR_PROCESS_BUFFER;
             DIY_LOG(LOG_WARN, "The (incomplete) json message is too long and it is discarded.");
         }
         else
         {
             ls_buffer_layer = layer;
-            ls_buffer_len = pkt_len - (a_msg - pkt);
-            memcpy(ls_process_buffer, a_msg, ls_buffer_len);
+            memcpy(&ls_process_buffer[ls_buffer_len], part_msg, part_msg_len);
+            ls_buffer_len += part_msg_len;
             ls_process_buffer[ls_buffer_len] = 0;
             ls_buffer_holding = true;
         }
     }
-    else
+    else if(pkt[pkt_ch_idx - 1] != '}')
     {
         ret |= JSON_PROC_RET_INVALID_MSG;
     }
