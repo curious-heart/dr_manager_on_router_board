@@ -13,7 +13,7 @@ static const char* const gs_def_mb_tcp_srvr_ip = "0.0.0.0";
 static char gs_mb_tcp_srvr_ip[MAX_OPT_STR_SIZE];
 static const uint16_t gs_def_mb_tcp_srvr_port = 502;
 static const bool gs_def_mb_tcp_srvr_debug_flag= false;
-static const float gs_def_mb_tcp_client_wait_res_timout_sec = 1.5;
+static const float gs_def_mb_tcp_client_wait_res_timout_sec = 3;
 /*app log level*/
 static const uint8_t gs_def_app_log_level = LOG_INFO; //refer to logger.h.
 
@@ -26,7 +26,7 @@ static const bool gs_def_exp_start_key_disabled = false;
 static const char* const gs_def_mcu_exchg_device = "/dev/ttyS2";
 static char gs_mcu_device_str[MAX_OPT_STR_SIZE];
 static const int gs_def_gpio_clock_tick_sec = 1;
-static const bool gs_def_tof_json_override = true;
+static const bool gs_def_tof_json_override = false;
 
 mb_tcp_client_params_t g_mb_tcp_client_params =
 {
@@ -160,8 +160,9 @@ option_process_ret_t process_cmd_line(int argc, char* argv[])
                     break;
                 }
 
+                if(!strcmp(gs_long_opt_arr[longindex].name, gs_opt_tof_json_override_str))
                 {
-                    g_tof_json_override = (!strcmp(gs_long_opt_arr[longindex].name, gs_opt_tof_json_override_str));
+                    g_tof_json_override = true;
                     break;
                 }
 

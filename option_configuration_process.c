@@ -27,7 +27,7 @@ static const bool gs_def_mb_rtu_debug_flag = false;
 static const char* const gs_def_mb_tcp_srvr_ip = "0.0.0.0";
 static char gs_mb_tcp_srvr_ip[MAX_OPT_STR_SIZE];
 static const uint16_t gs_def_mb_tcp_srvr_port = 502;
-static const float gs_def_mb_tcp_srvr_long_wait_time = 10, gs_def_mb_tcp_srvr_short_wait_time = 0.5;
+static const float gs_def_mb_tcp_srvr_long_wait_time = 10, gs_def_mb_tcp_srvr_short_wait_time = 1;
 static const bool gs_def_mb_tcp_srvr_debug_flag= false;
 static const bool gs_def_mb_tcp_srvr_allow_force_exposure = false;
 static const float gs_def_mb_tcp_srvr_req_tof_dist_wait_time = 1.5; //in seconds

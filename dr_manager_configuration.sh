@@ -13,7 +13,7 @@ mb_rtu_debug_flag=0
 #modbus tcp server parameters
 mb_tcp_srvr_ip=0.0.0.0
 mb_tcp_srvr_port=502
-mb_tcp_srvr_long_wait_time=5
+mb_tcp_srvr_long_wait_time=10
 mb_tcp_srvr_short_wait_time=1
 mb_tcp_srvr_debug_flag=0
 mb_tcp_srvr_allow_force_exposure=0
@@ -41,10 +41,10 @@ mb_tcp_debug_flag=0
 
 #the fowllowing are key app configuration.
 exp_start_key_hold_time=3
-key_app_log_level=1
+key_app_log_level=3
 key_mb_tcp_srvr_debug_flag=0
 key_exp_start_disabled=0
-mb_tcp_client_wait_res_timeout_sec=1.5
+mb_tcp_client_wait_res_timeout_sec=3
 
 #used by exchange info with external mcu
 mcu_exchg_device="/dev/ttyS2"

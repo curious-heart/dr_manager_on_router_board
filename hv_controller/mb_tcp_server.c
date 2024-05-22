@@ -776,44 +776,53 @@ static mb_rw_reg_ret_t mb_server_process_extend_reg(uint8_t * req_msg, int req_m
     return ret;
 }
 
-static void exchange_info_with_mb_reg()
+static void exchange_info_with_mb_reg(bool read_reg)
 {
     uint16_t info_word = 0;
 #ifdef MANAGE_LCD_AND_TOF_HERE
-    /*TOF distance is acquired by tof thread which updated it into g_device_st_pool, and here we update it into mb reg.*/
-    gs_mb_mapping->tab_registers[EXT_MB_REG_DISTANCE] = ST_PARAM_GET(g_device_st_pool, tof_distance);
+    if(!read_reg)
+    {
+        /*TOF distance is acquired by tof thread which updated it into g_device_st_pool, and here we update it into mb reg.*/
+        gs_mb_mapping->tab_registers[EXT_MB_REG_DISTANCE] = ST_PARAM_GET(g_device_st_pool, tof_distance);
+    }
 #else
-    /*TOF distance is written into mb register by external user, we should update it into local buffer.*/
-    gs_hv_st.tof_distance = gs_mb_mapping->tab_registers[EXT_MB_REG_DISTANCE];
+    if(read_reg)
+    {
+        /*TOF distance is written into mb register by external user, we should update it into local buffer.*/
+        gs_hv_st.tof_distance = gs_mb_mapping->tab_registers[EXT_MB_REG_DISTANCE];
+    }
 #endif
-    gs_mb_mapping->tab_registers[EXT_MB_REG_HOTSPOT_ST] = ST_PARAM_GET(g_device_st_pool, hot_spot_st); 
+    if(!read_reg)
+    {
+        gs_mb_mapping->tab_registers[EXT_MB_REG_HOTSPOT_ST] = ST_PARAM_GET(g_device_st_pool, hot_spot_st); 
 
-    gs_mb_mapping->tab_registers[EXT_MB_REG_CELLUAR_ST] 
-        = (((uint16_t)(ST_PARAM_GET(g_device_st_pool,cellular_signal_bars))) << 8) 
-            | ((uint16_t)(ST_PARAM_GET(g_device_st_pool,cellular_mode)) & 0xFF); 
+        gs_mb_mapping->tab_registers[EXT_MB_REG_CELLUAR_ST] 
+            = (((uint16_t)(ST_PARAM_GET(g_device_st_pool,cellular_signal_bars))) << 8) 
+                | ((uint16_t)(ST_PARAM_GET(g_device_st_pool,cellular_mode)) & 0xFF); 
 
-    gs_mb_mapping->tab_registers[EXT_MB_REG_WIFI_WAN_SIG_AND_BAT_LVL] 
-        = (((uint16_t)(ST_PARAM_GET(g_device_st_pool, bat_lvl))) << 8) 
-            | ((uint16_t)(ST_PARAM_GET(g_device_st_pool, wifi_wan_st)) & 0xFF); 
+        gs_mb_mapping->tab_registers[EXT_MB_REG_WIFI_WAN_SIG_AND_BAT_LVL] 
+            = (((uint16_t)(ST_PARAM_GET(g_device_st_pool, bat_lvl))) << 8) 
+                | ((uint16_t)(ST_PARAM_GET(g_device_st_pool, wifi_wan_st)) & 0xFF); 
 
 #define SET_DEV_INFO_BITS(info, set, mask) \
-    if((set) == (info))\
-    {                     \
-        info_word |= (mask);\
-    }                     \
-    else                  \
-    {                     \
-        info_word &= ~(mask);\
-    }
-    SET_DEV_INFO_BITS(ST_PARAM_GET(g_device_st_pool, bat_chg_st), CHARGER_CONNECTED, MB_REG_DEV_INFO_BITS_CHG_CONN)
-    SET_DEV_INFO_BITS(ST_PARAM_GET(g_device_st_pool, bat_chg_full), true, MB_REG_DEV_INFO_BITS_BAT_FULL)
-    SET_DEV_INFO_BITS(ST_PARAM_GET(g_device_st_pool, wan_bear) & WWAN_BEAR_WIFI, 
-                      WWAN_BEAR_WIFI, MB_REG_DEV_INFO_BITS_WIFI_WAN_CONN)
-    SET_DEV_INFO_BITS(ST_PARAM_GET(g_device_st_pool, wan_bear) & WWAN_BEAR_CELLULAR, 
-                      WWAN_BEAR_CELLULAR, MB_REG_DEV_INFO_BITS_CELL_WAN_CONN)
-    SET_DEV_INFO_BITS(ST_PARAM_GET(g_device_st_pool,sim_card_st), SIM_CARD_NORM, MB_REG_DEV_INFO_BITS_SIM_READY)
+        if((set) == (info))\
+        {                     \
+            info_word |= (mask);\
+        }                     \
+        else                  \
+        {                     \
+            info_word &= ~(mask);\
+        }
+        SET_DEV_INFO_BITS(ST_PARAM_GET(g_device_st_pool, bat_chg_st), CHARGER_CONNECTED, MB_REG_DEV_INFO_BITS_CHG_CONN)
+        SET_DEV_INFO_BITS(ST_PARAM_GET(g_device_st_pool, bat_chg_full), true, MB_REG_DEV_INFO_BITS_BAT_FULL)
+        SET_DEV_INFO_BITS(ST_PARAM_GET(g_device_st_pool, wan_bear) & WWAN_BEAR_WIFI, 
+                          WWAN_BEAR_WIFI, MB_REG_DEV_INFO_BITS_WIFI_WAN_CONN)
+        SET_DEV_INFO_BITS(ST_PARAM_GET(g_device_st_pool, wan_bear) & WWAN_BEAR_CELLULAR, 
+                          WWAN_BEAR_CELLULAR, MB_REG_DEV_INFO_BITS_CELL_WAN_CONN)
+        SET_DEV_INFO_BITS(ST_PARAM_GET(g_device_st_pool,sim_card_st), SIM_CARD_NORM, MB_REG_DEV_INFO_BITS_SIM_READY)
 #undef SET_DEV_INFO_BITS
-    gs_mb_mapping->tab_registers[EXT_MB_REG_DEV_INFO_BITS] = info_word;
+        gs_mb_mapping->tab_registers[EXT_MB_REG_DEV_INFO_BITS] = info_word;
+    }
 }
 
 static mb_rw_reg_ret_t mb_server_process_req(uint8_t * req_msg, int req_msg_len, bool * comm_with_dsp,
@@ -843,7 +852,7 @@ static mb_rw_reg_ret_t mb_server_process_req(uint8_t * req_msg, int req_msg_len,
         return MB_RW_REG_RET_ERROR;
     }
 
-    exchange_info_with_mb_reg();
+    exchange_info_with_mb_reg(false);
 
     if(server_only || (MB_REG_COMM_DSP(reg_addr_start, reg_cnt) && comm_with_dsp))
     {
@@ -853,7 +862,9 @@ static mb_rw_reg_ret_t mb_server_process_req(uint8_t * req_msg, int req_msg_len,
     if(MB_EXTEND_REG == check_ret)
     {
         /*extend register process.*/
-        return mb_server_process_extend_reg(req_msg, req_msg_len, func_code, reg_addr_start, reg_cnt, server_only);
+        process_ret = mb_server_process_extend_reg(req_msg, req_msg_len, func_code, reg_addr_start, reg_cnt, server_only);
+        exchange_info_with_mb_reg(true);
+        return process_ret;
     }
 
     /*normal register process.*/
@@ -886,7 +897,7 @@ static mb_rw_reg_ret_t mb_server_process_req(uint8_t * req_msg, int req_msg_len,
                                         gp_mb_server_log_header);
                     modbus_reply_exception(gs_mb_srvr_ctx, req_msg, 
                                             MODBUS_EXCEPTION_NOT_DEFINED);
-                    return MB_RW_REG_RET_ERROR;
+                    process_ret = MB_RW_REG_RET_ERROR;
                 }
             }
         }
@@ -915,7 +926,7 @@ static mb_rw_reg_ret_t mb_server_process_req(uint8_t * req_msg, int req_msg_len,
             {
                 DIY_LOG(LOG_ERROR, "%spre check write reg error.\n",gp_mb_server_log_header);
                 modbus_reply_exception(gs_mb_srvr_ctx, req_msg, MODBUS_EXCEPTION_NOT_DEFINED);
-                return process_ret;
+                break;
             }
             
             if(server_only)
@@ -939,20 +950,20 @@ static mb_rw_reg_ret_t mb_server_process_req(uint8_t * req_msg, int req_msg_len,
                     DIY_LOG(LOG_ERROR, "%swrite register(s) to hv_controller error.\n", gp_mb_server_log_header);
                     modbus_reply_exception(gs_mb_srvr_ctx, req_msg, 
                                             MODBUS_EXCEPTION_NOT_DEFINED);
-                    return MB_RW_REG_RET_ERROR;
+                    process_ret = MB_RW_REG_RET_ERROR;
                 }
             }
         }
         break;
 
         default:
-            DIY_LOG(LOG_WARN, "%sthe function %d is not supported.\n", 
-                    gp_mb_server_log_header, func_code);
-            modbus_reply_exception(gs_mb_srvr_ctx, req_msg, 
-                    MODBUS_EXCEPTION_ILLEGAL_FUNCTION);
-            return MB_RW_REG_RET_ERROR;
+            DIY_LOG(LOG_WARN, "%sthe function %d is not supported.\n", gp_mb_server_log_header, func_code);
+            modbus_reply_exception(gs_mb_srvr_ctx, req_msg, MODBUS_EXCEPTION_ILLEGAL_FUNCTION);
+            process_ret = MB_RW_REG_RET_ERROR;
+            break;
     }
 
+    exchange_info_with_mb_reg(true);
     return process_ret;
 }
 

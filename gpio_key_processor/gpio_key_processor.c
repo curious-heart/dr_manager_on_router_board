@@ -57,6 +57,8 @@ static const char* gs_gbh_uevent_ele_names_arr[] = GBH_UEVENT_LIST;
 #define GBH_UEVENT_ELE_END_FLAG gbh_uevent_ele_end_flag,
 typedef enum GBH_UEVENT_LIST gbh_uevent_list_e_t;
 
+long gs_gpio_tick_count = 0;
+
 static int open_gbh_uevent_recv_socket(void)
 {
     struct sockaddr_nl addr;
@@ -307,10 +309,10 @@ static void process_tof_json_msg(char* msg, int msg_len)
         return;
     }
     written_len = fwrite(msg, msg_len, 1, msg_file);
-    if(written_len != msg_len)
+    if(written_len != 1)
     {
         DIY_LOG(LOG_ERROR, "write to file %s abnormal: %d chars to be written, but actual %d chars.\n",
-                tmp_json_file, msg_len, written_len);
+                tmp_json_file, msg_len, written_len * msg_len);
         goon = false;
     }
     fflush(msg_file);
@@ -434,20 +436,32 @@ int main(int argc, char* argv[])
 
     do 
     {
+        int select_ret;
+
         fds = ref_fds;
         timeout.tv_sec = g_gpio_clock_tick_sec;
         timeout.tv_usec = 0;
 
-        if(select(fd_max + 1, &fds, NULL, NULL, &timeout) < 0)
+        select_ret = select(fd_max + 1, &fds, NULL, NULL, &timeout);
+        if(select_ret < 0)
         {
             DIY_LOG(LOG_ERROR, "select error: %s.\n", strerror(errno));
+            continue;
+        }
+        else if(0 == select_ret)
+        {
+            ++gs_gpio_tick_count;
+            DIY_LOG(LOG_INFO, "gpio tick timeout: %ld\n", gs_gpio_tick_count);
             continue;
         }
 
 #ifndef MANAGE_LCD_AND_TOF_HERE
         if(FD_ISSET(gs_mcu_dev_fd, &fds))
         {
-            int pkt_len = read(gs_mcu_dev_fd, gs_mcu_json_packet, MAX_JSON_MESSAGE_LEN);
+            int pkt_len;
+
+            DIY_LOG(LOG_INFO, "mcu msg received...\n");
+            pkt_len = read(gs_mcu_dev_fd, gs_mcu_json_packet, MAX_JSON_MESSAGE_LEN);
             if(pkt_len < 0)
             {
                 DIY_LOG(LOG_ERROR, "read json packet error:%s\n", strerror(errno));
