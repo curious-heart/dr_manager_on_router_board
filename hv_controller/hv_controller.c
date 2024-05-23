@@ -13,7 +13,7 @@ static const char* gs_mb_master_log_header = "modbus master: ";
 bool hv_controller_open(mb_rtu_params_t* rtu_params)
 {
     const char* rtu_dev;
-    uint32_t resp_timeout_s = rtu_params->timeout_ms % 1000;
+    uint32_t resp_timeout_s = rtu_params->timeout_ms / 1000;
     uint32_t resp_timeout_us = (rtu_params->timeout_ms - resp_timeout_s * 1000) * 1000;
 
     if(!rtu_params || !rtu_params->serialPortName)
