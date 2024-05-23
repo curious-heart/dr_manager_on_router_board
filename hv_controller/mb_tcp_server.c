@@ -706,6 +706,10 @@ static mb_rw_reg_ret_t mb_server_process_extend_reg(uint8_t * req_msg, int req_m
                             ret = mb_tcp_srvr_ext_reg_charger_handler(write_data);
                             break;
 
+                        case EXT_MB_REG_DISTANCE:
+                            gs_hv_st.tof_distance = write_data;
+                            break;
+
                         default:
                             DIY_LOG(LOG_WARN + LOG_ONLY_INFO_STR_COMP, "But nothing to do now...\n");
                             break;

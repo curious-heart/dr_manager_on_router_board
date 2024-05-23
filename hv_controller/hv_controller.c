@@ -13,7 +13,8 @@ static const char* gs_mb_master_log_header = "modbus master: ";
 bool hv_controller_open(mb_rtu_params_t* rtu_params)
 {
     const char* rtu_dev;
-    uint32_t resp_timeout_ms = rtu_params->timeout_ms;
+    uint32_t resp_timeout_s = rtu_params->timeout_ms % 1000;
+    uint32_t resp_timeout_us = (rtu_params->timeout_ms - resp_timeout_s * 1000) * 1000;
 
     if(!rtu_params || !rtu_params->serialPortName)
     {
@@ -51,12 +52,12 @@ bool hv_controller_open(mb_rtu_params_t* rtu_params)
         DIY_LOG(LOG_WARN, "%sbut we continue going ahead.\n\n", gs_mb_master_log_header);
     }
 
-    if(0 != modbus_set_response_timeout(gs_mb_master_ctx, 0, resp_timeout_ms * 1000))
+    if(0 != modbus_set_response_timeout(gs_mb_master_ctx, resp_timeout_s, resp_timeout_us))
     {
         modbus_free(gs_mb_master_ctx);
         gs_mb_master_ctx = NULL;
-        DIY_LOG(LOG_ERROR, "%smodbus set response time out (%d s, %d ms) fail:%d: %s\n",
-                gs_mb_master_log_header ,0, resp_timeout_ms, errno, modbus_strerror(errno));
+        DIY_LOG(LOG_ERROR, "%smodbus set response time out (%d s, %d us) fail:%d: %s\n",
+                gs_mb_master_log_header , resp_timeout_s, resp_timeout_us, errno, modbus_strerror(errno));
         return false;
     }
 

@@ -11,12 +11,15 @@
 #include "hv_registers.h"
 
 static const char* gs_APP_NAME = "mb_tcp_test_client";
-static const char * gs_APP_VER_STR = "1.0.1";
+static const char * gs_APP_VER_STR = "1.0.2";
 
 #define MAX_CHAR_NUM_READ 16
 static const char* gs_local_loop_ip = "127.0.0.1";
 static const uint16_t gs_def_mb_srvr_port = 502;
 static modbus_t * gs_mb_tcp_client_ctx = NULL;
+
+static const float gs_def_mb_resp_timeout_s = 3;
+static float gs_mb_resp_timeout_s = gs_def_mb_resp_timeout_s;
 
 static void mb_reg_only_write(hv_mb_reg_e_t reg_addr)
 {
@@ -196,12 +199,15 @@ static void mb_tcp_server_test()
     }
 }
 
+static const char* const gs_opt_resp_timeout_str = "mb_resp_timeout_s";
 static void print_modbus_params(const char* ip_addr, uint16_t tcp_port)
 {
     printf("====================\nTCP server info:\n"
-            "ip address: %s\ntcp port: %u\n--------------------\n",
-            ip_addr, tcp_port
-            );
+            "ip address: %s\ntcp port: %u\n\n"
+            "modbus client info:\n"
+            "modbus respone timeout:%f\n"
+            "--------------------\n",
+            ip_addr, tcp_port, gs_mb_resp_timeout_s);
 }
 
 static void print_usage()
@@ -209,10 +215,12 @@ static void print_usage()
     /*should be consistent with options defined in main function.*/
     printf("mb_tcp_test_client  [--ip_addr|-a modbus_server_ip]"
            "[--port|-p modbus_server_port] [--tcp_debug|-t]"
-           "[--help|-h] [--version]\n");
+           "[--%s mb_resp_timeout]"
+           "[--help|-h] [--version]\n", gs_opt_resp_timeout_str);
     printf("The defaul arguments:\n");
     printf("--ip_addr %s\n", gs_local_loop_ip);
     printf("--port %u\n", gs_def_mb_srvr_port);
+    printf("--%s %f\n", gs_opt_resp_timeout_str, gs_def_mb_resp_timeout_s);
 }
 
 static const char* const gs_opt_version_str = "version";
@@ -239,6 +247,7 @@ int main(int argc, char *argv[])
         {gs_opt_tcp_debug_str, no_argument, 0, gs_opt_tcp_debug_c}, 
         {gs_opt_help_str, no_argument, 0, gs_opt_help_c}, 
         {gs_opt_version_str, no_argument, 0, 0}, 
+        {gs_opt_resp_timeout_str, required_argument, 0, 0}, 
         {0, 0, 0, 0},
     };
     int opt_c;
@@ -249,6 +258,7 @@ int main(int argc, char *argv[])
     uint16_t srvr_port = gs_def_mb_srvr_port;
     bool mb_tcp_debug_flag = false;
     struct in_addr srvr_ip_in_addr;
+    uint32_t resp_timeout_s, resp_timeout_us;
 
     arg_parse_result = true;
     while((opt_c = getopt_long(argc, argv, s_opt_chars, l_opt_arr, &longindex)) >= 0)
@@ -311,6 +321,24 @@ int main(int argc, char *argv[])
                     printf("%s-%s.%s-%s\n", gs_APP_NAME, gs_APP_VER_STR, BUILD_DATE_STR, BUILD_TYPE_STR);
                     return 0;
                 }
+                if(!strcmp(l_opt_arr[longindex].name, gs_opt_resp_timeout_str))
+                {
+                    if(optarg && optarg[0] != ':' && optarg[0] != '?')
+                    {
+                        gs_mb_resp_timeout_s = (float)atof(optarg);
+                        if(gs_mb_resp_timeout_s < 0)
+                        {
+                            DIY_LOG(LOG_ERROR, "mb_resp_timeout should be > 0 number, but it is:%s\n", optarg);
+                            arg_parse_result = false;
+                        }
+                    }
+                    else
+                    {
+                        arg_parse_result = false;
+                    }
+                    break;
+                }
+
                 break;
 
             default:
@@ -337,11 +365,30 @@ int main(int argc, char *argv[])
         printf("but weago ahead.\n");
     }
 
+
+    if(0!= modbus_set_error_recovery(gs_mb_tcp_client_ctx, MODBUS_ERROR_RECOVERY_LINK | MODBUS_ERROR_RECOVERY_PROTOCOL))
+    {
+        DIY_LOG(LOG_WARN, "set error recovery mode fail:%d: %s, ", errno, modbus_strerror(errno));
+        DIY_LOG(LOG_WARN + LOG_ONLY_INFO_STR_COMP, "but we continue going ahead.\n\n");
+    }
+
+    resp_timeout_s = (uint32_t)gs_mb_resp_timeout_s;
+    resp_timeout_us = (uint32_t)((gs_mb_resp_timeout_s - resp_timeout_s) * 1000000);
+    if(0 != modbus_set_response_timeout(gs_mb_tcp_client_ctx, resp_timeout_s, resp_timeout_us))
+    {
+        modbus_free(gs_mb_tcp_client_ctx);
+        gs_mb_tcp_client_ctx = NULL;
+        DIY_LOG(LOG_ERROR, "modbus set response time out (%d s, %d us) fail:%d: %s\n",
+                 resp_timeout_s, resp_timeout_us, errno, modbus_strerror(errno));
+        return -1;
+    }
+
     if(modbus_connect(gs_mb_tcp_client_ctx) == -1)
     {
-         printf("Connection failed, %d:%s\n", errno, modbus_strerror(errno));
-         modbus_free(gs_mb_tcp_client_ctx);
-         return -1;
+        printf("Connection failed, %d:%s\n", errno, modbus_strerror(errno));
+        modbus_free(gs_mb_tcp_client_ctx);
+        gs_mb_tcp_client_ctx = NULL;
+        return -1;
      }
     mb_tcp_server_test();
 

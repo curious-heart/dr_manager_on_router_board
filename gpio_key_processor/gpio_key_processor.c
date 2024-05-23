@@ -302,6 +302,8 @@ static void process_tof_json_msg(char* msg, int msg_len)
     bool goon = true;
     uint16_t dist;
 
+    DIY_LOG(LOG_INFO, "json msg: %s\n", msg);
+
     msg_file = fopen(tmp_json_file, "w");
     if(!msg_file)
     {
@@ -451,7 +453,7 @@ int main(int argc, char* argv[])
         else if(0 == select_ret)
         {
             ++gs_gpio_tick_count;
-            DIY_LOG(LOG_INFO, "gpio tick timeout: %ld\n", gs_gpio_tick_count);
+            DIY_LOG(LOG_DEBUG, "gpio tick timeout: %ld\n", gs_gpio_tick_count);
             continue;
         }
 
@@ -460,7 +462,6 @@ int main(int argc, char* argv[])
         {
             int pkt_len;
 
-            DIY_LOG(LOG_INFO, "mcu msg received...\n");
             pkt_len = read(gs_mcu_dev_fd, gs_mcu_json_packet, MAX_JSON_MESSAGE_LEN);
             if(pkt_len < 0)
             {

@@ -44,6 +44,7 @@ exp_start_key_hold_time=3
 key_app_log_level=3
 key_mb_tcp_srvr_debug_flag=0
 key_exp_start_disabled=0
+#this timeout should not be too short or there may be sequence of rw errors following one "invalid data" error (due to timeout)
 mb_tcp_client_wait_res_timeout_sec=3
 
 #used by exchange info with external mcu
