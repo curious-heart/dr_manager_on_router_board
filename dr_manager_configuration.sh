@@ -40,7 +40,7 @@ mb_tcp_debug_flag=0
 
 
 #the fowllowing are key app configuration.
-exp_start_key_hold_time=3
+exp_start_key_hold_time=5
 key_app_log_level=3
 key_mb_tcp_srvr_debug_flag=0
 key_exp_start_disabled=0
@@ -54,3 +54,9 @@ tof_json_override_flag=1
 
 #gpio clock tick. should be int.
 gpio_clock_tick_sec=1
+
+#should be uint
+range_light_auto_off_sec=20
+
+#should be uint
+restore_factory_key_hold_sec=10

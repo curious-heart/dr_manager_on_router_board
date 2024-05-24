@@ -353,28 +353,27 @@ static mb_rw_reg_ret_t mb_server_pre_check_write_reg(uint16_t reg_addr_start, ui
 
     if(exposure_start && (MB_REG_EXPOSURE_START_CMD == exposure_start_cmd))
     {
-        int distance; //unit is mm.
+        if(!gs_mb_tcp_server_params->allow_force_exposure)
+        {
+            int distance; //unit is mm.
 
-        DIY_LOG(LOG_INFO, "%s pre-check exposure start command.\n", gp_mb_server_log_header);
+            DIY_LOG(LOG_INFO, "%s pre-check exposure start command.\n", gp_mb_server_log_header);
 
 #ifdef MANAGE_LCD_AND_TOF_HERE
-        distance = (int)request_tof_distance(TOF_REQUESTER_EXPOSURE, 
-                gs_mb_tcp_server_params->req_tof_dist_wait_time, gs_mb_tcp_server_params->expo_tof_measure_wait);
+            distance = (int)request_tof_distance(TOF_REQUESTER_EXPOSURE, 
+                    gs_mb_tcp_server_params->req_tof_dist_wait_time, gs_mb_tcp_server_params->expo_tof_measure_wait);
 #else
-        /*distance is set by external user to mb reg, and already updated to local buffer.*/
-        distance = gs_hv_st.tof_distance;
+            /*distance is set by external user to mb reg, and already updated to local buffer.*/
+            distance = gs_hv_st.tof_distance;
 #endif
-        if(distance < MIN_ALLOWED_FSD_IN_CM * 10)
-        {
-            DIY_LOG(LOG_WARN, "%sdistance %d is too small to start exposure.\n", gp_mb_server_log_header, distance);
-            if(!gs_mb_tcp_server_params->allow_force_exposure)
+            if(distance < MIN_ALLOWED_FSD_IN_CM * 10)
             {
+                DIY_LOG(LOG_WARN, "%sdistance %d is too small to start exposure.\n", gp_mb_server_log_header, distance);
                 ret = MB_RW_REG_RET_REJ_TOO_CLOSE;
             }
             else
             {
-                DIY_LOG(LOG_WARN + LOG_ONLY_INFO_STR, "%sbut allow_force_exposure is enabled, so still start exposure.\n",
-                        gp_mb_server_log_header);
+                DIY_LOG(LOG_WARN, "%sdistance %d is enough to start exposure\n", gp_mb_server_log_header, distance);
             }
 #ifdef MANAGE_LCD_AND_TOF_HERE
             unset_tof_th_measure_flag(TOF_REQUESTER_EXPOSURE);
@@ -382,7 +381,7 @@ static mb_rw_reg_ret_t mb_server_pre_check_write_reg(uint16_t reg_addr_start, ui
         }
         else
         {
-            DIY_LOG(LOG_WARN, "%sdistance %d is enough to start exposure\n", gp_mb_server_log_header, distance);
+            DIY_LOG(LOG_INFO, "allow_force_exposure is enabled, go exposuring.\n");
         }
     }
 #ifdef MANAGE_LCD_AND_TOF_HERE

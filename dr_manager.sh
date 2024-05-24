@@ -92,6 +92,8 @@ key_cmd_args=" --exp_start_key_hold $exp_start_key_hold_time"\
 " $key_exp_start_disable_flag"\
 " --mcu_exchg_device $mcu_exchg_device"\
 " --gpio_clock_tick_sec $gpio_clock_tick_sec"\
-" $tof_json_override_opt"
+" $tof_json_override_opt"\
+" --range_light_auto_off_time $range_light_auto_off_sec"\
+" --restore_factory_key_hold_time $restore_factory_key_hold_sec"
 
 $KEY_APP_NAME $key_cmd_args $* &

@@ -57,8 +57,6 @@ static const char* gs_gbh_uevent_ele_names_arr[] = GBH_UEVENT_LIST;
 #define GBH_UEVENT_ELE_END_FLAG gbh_uevent_ele_end_flag,
 typedef enum GBH_UEVENT_LIST gbh_uevent_list_e_t;
 
-long gs_gpio_tick_count = 0;
-
 static int open_gbh_uevent_recv_socket(void)
 {
     struct sockaddr_nl addr;
@@ -273,6 +271,9 @@ static void clear_for_exit()
             gs_mcu_dev_fd = -1;
         }
 #endif
+        clear_app_timer_list();
+
+        DIY_LOG(LOG_INFO, "clear_for_exit!\n");
     }
     else
     {
@@ -452,8 +453,7 @@ int main(int argc, char* argv[])
         }
         else if(0 == select_ret)
         {
-            ++gs_gpio_tick_count;
-            DIY_LOG(LOG_DEBUG, "gpio tick timeout: %ld\n", gs_gpio_tick_count);
+            check_and_process_app_timers();
             continue;
         }
 
@@ -500,6 +500,8 @@ int main(int argc, char* argv[])
                 }
             }
         }
+
+        check_and_process_app_timers();
     } while(true);
 
     return 0;

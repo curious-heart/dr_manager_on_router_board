@@ -13,6 +13,10 @@
 extern mb_tcp_client_params_t g_mb_tcp_client_params;
 extern key_gpio_cfg_params_s_t g_key_gpio_cfg_params;
 
+static bool gs_restory_factory_key1_pressed = false, gs_restory_factory_key2_pressed = false;
+static app_timer_node_s_t* gs_restore_factory_key_timer = NULL;
+extern uint32_t g_restore_factory_time_hold_key_s;
+
 static modbus_t * gs_mb_tcp_client_ctx = NULL;
 #define CONNECT_FAIL_WAIT_TIME 3 //s
 bool begin_key_event_handle()
@@ -84,13 +88,29 @@ void end_key_event_handle()
         }\
     }
 
+static void range_light_timeout_handler(void* to_param)
+{
+    if(gs_mb_tcp_client_ctx)
+    {
+        /*turn off range light*/
+        modbus_write_register(gs_mb_tcp_client_ctx, RangeIndicationStart, 0);
+    }
+    /*to_param should point to the ls_range_light_timer in function exp_range_led_key_handler*/
+    if(to_param) *(app_timer_node_s_t**)to_param = NULL;
+}
 void exp_range_led_key_handler(converted_gbh_uevt_s_t* evt)
 {
-    uint16_t write_data = true;
+    extern uint32_t g_range_light_auto_off_time_s;
+    uint16_t write_data = 1;
     static const char* ls_on_off_str[] = {"OFF", "ON"};
+    static bool ls_light_switch = false;
+    static app_timer_node_s_t* ls_range_light_timer = NULL;
 
     hv_mb_reg_e_t reg_addr = RangeIndicationStart;
     const char* reg_str;
+
+
+    IGNORE_NON_PRESSED_EVT(evt);
 
     DIY_LOG(LOG_INFO, "exp_range_led key handler!");
 
@@ -104,17 +124,43 @@ void exp_range_led_key_handler(converted_gbh_uevt_s_t* evt)
     reg_str = get_hv_mb_reg_str(reg_addr);
     if(gs_mb_tcp_client_ctx)
     {
-        write_data = (key_pressed == evt->action);
+        if(key_pressed == evt->action)
+        {
+            ls_light_switch = !ls_light_switch;
+            write_data = (uint16_t)ls_light_switch;
 
-        if(modbus_write_register(gs_mb_tcp_client_ctx, reg_addr, write_data) <= 0)
-        {
-            DIY_LOG(LOG_ERROR, "modbus write register %s error:%d, %s\n",
-                   reg_str, errno, modbus_strerror(errno));
-        }
-        else
-        {
-            DIY_LOG(LOG_INFO, "Turn %s exposure range light.\n", ls_on_off_str[write_data ? 1 : 0]); 
-            write_data = !write_data;
+            if(modbus_write_register(gs_mb_tcp_client_ctx, reg_addr, write_data) <= 0)
+            {
+                DIY_LOG(LOG_ERROR, "modbus write register %s error:%d, %s\n",
+                       reg_str, errno, modbus_strerror(errno));
+            }
+            else
+            {
+                DIY_LOG(LOG_INFO, "Turn %s exposure range light.\n", ls_on_off_str[write_data ? 1 : 0]); 
+                write_data = !write_data;
+            }
+
+            if(ls_light_switch)
+            {
+                /*light is turned on, start timer count.*/
+                ls_range_light_timer = add_a_new_app_timer(g_range_light_auto_off_time_s * 1000,
+                        true, range_light_timeout_handler, &ls_range_light_timer, NULL, NULL);
+                if(ls_range_light_timer)
+                {
+                    DIY_LOG(LOG_INFO, "start range light timer (%u sec) success.\n", g_range_light_auto_off_time_s);
+                }
+                else
+                {
+                    DIY_LOG(LOG_ERROR, "start range light timer (%u sec) fail!\n", g_range_light_auto_off_time_s);
+                }
+            }
+            else
+            {
+                /*light is turned off, stop timer count.*/
+                delete_an_app_timer(ls_range_light_timer, true);
+                ls_range_light_timer = NULL;
+                DIY_LOG(LOG_INFO, "stop range light timer on key press.\n");
+            }
         }
     }
     else
@@ -230,13 +276,24 @@ void exp_start_key_handler(converted_gbh_uevt_s_t* evt)
 
 }
 
+static void restore_factory_settings(void* param)
+{
+    /*to_param should point to gs_restore_factory_key_timer */
+    if(param) *(app_timer_node_s_t**)param = NULL;
+    DIY_LOG(LOG_INFO, "restore factor settings now...but this is not implemented yet.\n");
+}
+static bool restore_factory_setting_check_keys(void* param)
+{
+    return (gs_restory_factory_key1_pressed && gs_restory_factory_key2_pressed);
+}
+
 void dose_adjust_key_handler(converted_gbh_uevt_s_t* evt)
 {
     const char* reg_str;
     hv_mb_reg_e_t reg_addr = EXT_MB_REG_DOSE_ADJ;
     uint16_t write_data;
 
-    IGNORE_NON_PRESSED_EVT(evt);
+    //IGNORE_NON_PRESSED_EVT(evt);
 
     DIY_LOG(LOG_INFO, "dose adjust key handler!");
 
@@ -249,30 +306,55 @@ void dose_adjust_key_handler(converted_gbh_uevt_s_t* evt)
     DIY_LOG(LOG_INFO + LOG_ONLY_INFO_STR_COMP, 
             "%s, action: %s\n", g_key_gpio_name_list[evt->key_gpio], g_key_gpio_act_name_list[evt->action]);
 
-    if(key_dose_add == evt->key_gpio)
-    {
-        write_data = MB_REG_V_DOSE_ADJ_ADD;
-    }
-    else
-    {
-        write_data = MB_REG_V_DOSE_ADJ_SUB;
-    }
 
-    reg_str = get_hv_mb_reg_str(reg_addr);
-    if(gs_mb_tcp_client_ctx)
+    if(key_pressed == evt->action)
     {
-        if(modbus_write_register(gs_mb_tcp_client_ctx, reg_addr, write_data) <= 0)
+        write_data = (key_dose_add == evt->key_gpio) ? MB_REG_V_DOSE_ADJ_ADD : MB_REG_V_DOSE_ADJ_SUB;
+
+        reg_str = get_hv_mb_reg_str(reg_addr);
+        if(gs_mb_tcp_client_ctx)
         {
-            DIY_LOG(LOG_ERROR, "modbus write register %s error:%d, %s\n", reg_str, errno, modbus_strerror(errno));
+            if(modbus_write_register(gs_mb_tcp_client_ctx, reg_addr, write_data) <= 0)
+            {
+                DIY_LOG(LOG_ERROR, "modbus write register %s error:%d, %s\n", reg_str, errno, modbus_strerror(errno));
+            }
+            else
+            {
+                DIY_LOG(LOG_INFO, "%s: adjust dose ok.\n", g_key_gpio_name_list[evt->key_gpio]); 
+            }
         }
         else
         {
-            DIY_LOG(LOG_INFO, "%s: adjust dose ok.\n", g_key_gpio_name_list[evt->key_gpio]); 
+            DIY_LOG(LOG_ERROR, "modbus ctx is NULL.\n");
+        }
+
+        if(key_dose_add == evt->key_gpio)
+        {
+            gs_restory_factory_key1_pressed = true;
+            gs_restore_factory_key_timer = add_a_new_app_timer(g_restore_factory_time_hold_key_s * 1000, true,
+                    restore_factory_settings, &gs_restore_factory_key_timer,
+                    restore_factory_setting_check_keys, NULL);
+            DIY_LOG(LOG_INFO, "start restore factory setting timer on key press, %u sec.\n",
+                    g_restore_factory_time_hold_key_s);
+        }
+        else
+        {
+            gs_restory_factory_key2_pressed = true;
         }
     }
     else
     {
-        DIY_LOG(LOG_ERROR, "modbus ctx is NULL.\n");
+        if(key_dose_add == evt->key_gpio)
+        {
+            gs_restory_factory_key1_pressed = false;
+            delete_an_app_timer(gs_restore_factory_key_timer, true);
+            gs_restore_factory_key_timer = NULL;
+            DIY_LOG(LOG_INFO, "stop restore factory setting timer on key press.\n");
+        }
+        else
+        {
+            gs_restory_factory_key2_pressed = false;
+        }
     }
 }
 
