@@ -74,6 +74,10 @@ typedef enum
 
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 /*Define device status related macros, for state record and display.*/
+/* Note:**************************
+ * when modify ST_PARAMS_COLLECTION, remeber to modify write_info_to_lcd_funcs_t, gs_lcd_areas definitin in lcd_refresh.c
+ ********************************
+ * */
 #undef COLLECTION_END_FLAG
 #define COLLECTION_END_FLAG
 #undef ST_PARAM_DEF
@@ -94,8 +98,8 @@ typedef enum
     ST_PARAM_DEF(uint32_t, expo_am_ua) /*unit: uA*/\
     ST_PARAM_DEF(uint16_t, expo_dura_ms) /*uint: ms*/\
     ST_PARAM_DEF(exposure_state_t, expo_st)\
-    ST_PARAM_DEF(bool, range_light_on)\
     ST_PARAM_DEF(uint16_t, tof_distance)\
+    ST_PARAM_DEF(bool, range_light_on)\
 \
     COLLECTION_END_FLAG /*this is for enum type end flag.*/\
 }

@@ -56,7 +56,8 @@ cmd_args=" --com_dev $mb_rtu_serialPortName"\
 " --tof_mech_cali $tof_mech_cali"\
 " --tof_internal_cali $tof_internal_cali"\
 " $app_work_mode"\
-" --app_log_level $app_log_level"
+" --app_log_level $app_log_level"\
+" --range_light_auto_off_time $range_light_auto_off_sec"
 
 APP_NAME=dr_manager
 echo $APP_NAME $cmd_args $*
@@ -93,7 +94,6 @@ key_cmd_args=" --exp_start_key_hold $exp_start_key_hold_time"\
 " --mcu_exchg_device $mcu_exchg_device"\
 " --gpio_clock_tick_sec $gpio_clock_tick_sec"\
 " $tof_json_override_opt"\
-" --range_light_auto_off_time $range_light_auto_off_sec"\
 " --restore_factory_key_hold_time $restore_factory_key_hold_sec"
 
 $KEY_APP_NAME $key_cmd_args $* &

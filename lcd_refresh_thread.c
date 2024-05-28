@@ -83,6 +83,7 @@ static const lcd_area_info_t gs_lcd_areas[] =
     {LCD_DURA_POS_X, LCD_DURA_POS_Y, LCD_DURA_POS_W, LCD_DURA_POS_H, NULL},
     {LCD_EXPO_ST_POS_X, LCD_EXPO_ST_POS_Y, LCD_EXPO_ST_POS_W, LCD_EXPO_ST_POS_H, NULL},
     {LCD_DISTANCE_POS_X, LCD_DISTANCE_POS_Y, LCD_DISTANCE_POS_W, LCD_DISTANCE_POS_H, NULL},
+    {0, 0, 0, 0, NULL}, //range light on/off
 
     {0, 0, 0, 0, NULL}, //enum_st_end_flag
                               //
@@ -461,6 +462,7 @@ static const write_info_to_lcd_funcs_t gs_write_info_to_lcd_func_list =
     refresh_dura_display,
     refresh_expo_st_display,
     refresh_tof_distance_display,
+    NULL,
 };
 
 /*----------------------------------------*/

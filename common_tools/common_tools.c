@@ -480,8 +480,8 @@ void check_and_process_app_timers()
         if(TIME_A_IS_EARLIER_THAN_B(&(timer->t), &curr_time))
         {
             bool extra_check = true;
-            if(timer->extra_check_func) extra_check = timer->extra_check_func(timer->to_param);
-            if(extra_check && timer->timeout_func) timer->timeout_func(timer->extra_check_func);
+            if(timer->extra_check_func) extra_check = timer->extra_check_func(timer->ec_param);
+            if(extra_check && timer->timeout_func) timer->timeout_func(timer->to_param);
 
             next = p->next;
             if(0 == timer->interval_ms)
