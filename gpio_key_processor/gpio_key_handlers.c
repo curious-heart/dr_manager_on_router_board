@@ -117,7 +117,11 @@ void exp_range_led_key_handler(converted_gbh_uevt_s_t* evt)
             ls_light_switch = !ls_light_switch;
             write_data = (uint16_t)ls_light_switch;
         }
-        ls_light_switch = (bool)write_data;
+        else
+        {
+            write_data = write_data ? 0 : 1;
+            ls_light_switch = (bool)write_data;
+        }
 
 
         if(modbus_write_register(gs_mb_tcp_client_ctx, reg_addr, write_data) <= 0)
