@@ -42,7 +42,7 @@
                                               /*其它值表示热点开启，数值指示热点上连接的Client数量*/\
     C(EXT_MB_REG_CELLUAR_ST = 107),              /*uint16，高字节表示蜂窝网的信号格数，有效值0~5；*/\
                                                          /*低字节表示蜂窝网状态：0-无服务；1-3G；2-4G；3-5G*/\
-    C(EXT_MB_REG_WIFI_WAN_SIG_AND_BAT_LVL = 108), /*uint16，高字节指示电池电量格数，有效值0~4；*/\
+    C(EXT_MB_REG_WIFI_WAN_SIG_AND_BAT_LVL = 108), /*uint16，高字节指示电池电量(BatteryLevel)；*/\
                                                            /*低字节指示WAN侧Wi-Fi信号格数，有效值0~4*/\
     C(EXT_MB_REG_DEV_INFO_BITS = 109), /*uint16的每个bit指示一个设备的二值状态信息：*/\
                                         /*第0位：0-没有连接充电器，1-连接充电器。*/\
