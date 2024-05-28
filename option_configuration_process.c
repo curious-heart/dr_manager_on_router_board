@@ -50,6 +50,7 @@ static const app_work_mode_t gs_def_app_work_mode = WORK_MODE_NORMAL;
 /*app log level*/
 static const uint8_t gs_def_app_log_level = LOG_INFO; //refer to logger.h.
 /*------------------------------*/
+static const uint32_t gs_def_range_light_auto_off_time_s = 20;
 
 cmd_line_opt_collection_t g_cmd_line_opt_collection =
 {
@@ -100,6 +101,7 @@ cmd_line_opt_collection_t g_cmd_line_opt_collection =
     },
 
     .work_mode = gs_def_app_work_mode,
+    .range_light_auto_off_time_s = gs_def_range_light_auto_off_time_s,
 };
 
 static const char* const gs_opt_mb_rtu_com_str = "com_dev";
@@ -142,6 +144,7 @@ static const char* const gs_opt_app_log_level_str = "app_log_level";
 static const char* const gs_opt_help_str = "help";
 #define gs_opt_help_c 'h'
 static const char* const gs_opt_version_str = "version";
+static const char* const gs_opt_range_light_auto_off_time_str = "range_light_auto_off_time";
 
 #undef APP_CMD_OPT_ITEM
 #define APP_CMD_OPT_ITEM(long_o_s, has_arg, flag, val) {long_o_s, has_arg, flag, val},
@@ -269,6 +272,10 @@ static const char* const gs_opt_version_str = "version";
 \
     APP_CMD_OPT_ITEM(gs_opt_version_str, no_argument, 0, 0) \
     APP_CMD_OPT_VALUE("version", NULL, NULL, int) \
+\
+    APP_CMD_OPT_ITEM(gs_opt_range_light_auto_off_time_str, required_argument, 0, 0)\
+    APP_CMD_OPT_VALUE("range light auto off(in sec)", \
+           &gs_def_range_light_auto_off_time_s, &g_cmd_line_opt_collection.range_light_auto_off_time_s, uint32_t) \
 \
     APP_CMD_OPT_ITEM(0, 0, 0, 0)\
 }
@@ -452,6 +459,10 @@ option_process_ret_t process_cmd_options(int argc, char *argv[])
                         CONVERT_FUNC_ATOUINT8(g_cmd_line_opt_collection.lcd_refresh_th_parm.dev_addr, optarg),
                         true, NULL,
                         type_uint8_t);
+                OPT_CHECK_AND_DRAW(gs_long_opt_arr[longindex].name, gs_opt_range_light_auto_off_time_str,
+                        CONVERT_FUNC_ATOUINT32(g_cmd_line_opt_collection.range_light_auto_off_time_s, optarg),
+                        SHOULD_BE_GT_0(g_cmd_line_opt_collection.range_light_auto_off_time_s), SHOULD_BE_GT_0_LOG,
+                        type_uint32_t);
                 break;
 
             default:

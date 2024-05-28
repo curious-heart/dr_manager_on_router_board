@@ -94,6 +94,7 @@ typedef enum
     ST_PARAM_DEF(uint32_t, expo_am_ua) /*unit: uA*/\
     ST_PARAM_DEF(uint16_t, expo_dura_ms) /*uint: ms*/\
     ST_PARAM_DEF(exposure_state_t, expo_st)\
+    ST_PARAM_DEF(bool, range_light_on)\
     ST_PARAM_DEF(uint16_t, tof_distance)\
 \
     COLLECTION_END_FLAG /*this is for enum type end flag.*/\

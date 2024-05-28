@@ -88,27 +88,14 @@ void end_key_event_handle()
         }\
     }
 
-static void range_light_timeout_handler(void* to_param)
-{
-    if(gs_mb_tcp_client_ctx)
-    {
-        /*turn off range light*/
-        modbus_write_register(gs_mb_tcp_client_ctx, RangeIndicationStart, 0);
-    }
-    /*to_param should point to the ls_range_light_timer in function exp_range_led_key_handler*/
-    if(to_param) *(app_timer_node_s_t**)to_param = NULL;
-}
 void exp_range_led_key_handler(converted_gbh_uevt_s_t* evt)
 {
-    extern uint32_t g_range_light_auto_off_time_s;
     uint16_t write_data = 1;
     static const char* ls_on_off_str[] = {"OFF", "ON"};
     static bool ls_light_switch = false;
-    static app_timer_node_s_t* ls_range_light_timer = NULL;
 
     hv_mb_reg_e_t reg_addr = RangeIndicationStart;
     const char* reg_str;
-
 
     IGNORE_NON_PRESSED_EVT(evt);
 
@@ -124,43 +111,17 @@ void exp_range_led_key_handler(converted_gbh_uevt_s_t* evt)
     reg_str = get_hv_mb_reg_str(reg_addr);
     if(gs_mb_tcp_client_ctx)
     {
-        if(key_pressed == evt->action)
+        ls_light_switch = !ls_light_switch;
+        write_data = (uint16_t)ls_light_switch;
+
+        if(modbus_write_register(gs_mb_tcp_client_ctx, reg_addr, write_data) <= 0)
         {
-            ls_light_switch = !ls_light_switch;
-            write_data = (uint16_t)ls_light_switch;
-
-            if(modbus_write_register(gs_mb_tcp_client_ctx, reg_addr, write_data) <= 0)
-            {
-                DIY_LOG(LOG_ERROR, "modbus write register %s error:%d, %s\n",
-                       reg_str, errno, modbus_strerror(errno));
-            }
-            else
-            {
-                DIY_LOG(LOG_INFO, "Turn %s exposure range light.\n", ls_on_off_str[write_data ? 1 : 0]); 
-                write_data = !write_data;
-            }
-
-            if(ls_light_switch)
-            {
-                /*light is turned on, start timer count.*/
-                ls_range_light_timer = add_a_new_app_timer(g_range_light_auto_off_time_s * 1000,
-                        true, range_light_timeout_handler, &ls_range_light_timer, NULL, NULL);
-                if(ls_range_light_timer)
-                {
-                    DIY_LOG(LOG_INFO, "start range light timer (%u sec) success.\n", g_range_light_auto_off_time_s);
-                }
-                else
-                {
-                    DIY_LOG(LOG_ERROR, "start range light timer (%u sec) fail!\n", g_range_light_auto_off_time_s);
-                }
-            }
-            else
-            {
-                /*light is turned off, stop timer count.*/
-                delete_an_app_timer(ls_range_light_timer, true);
-                ls_range_light_timer = NULL;
-                DIY_LOG(LOG_INFO, "stop range light timer on key press.\n");
-            }
+            DIY_LOG(LOG_ERROR, "modbus write register %s error:%d, %s\n",
+                   reg_str, errno, modbus_strerror(errno));
+        }
+        else
+        {
+            DIY_LOG(LOG_INFO, "Turn %s exposure range light.\n", ls_on_off_str[write_data ? 1 : 0]); 
         }
     }
     else

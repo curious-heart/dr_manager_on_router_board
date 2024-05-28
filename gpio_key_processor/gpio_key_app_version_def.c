@@ -9,7 +9,7 @@ const char* g_gpio_processor_APP_NAME = "gpio_key_monitor";
  * Note 2: when update version number, please update the definition in both case so that both version can be of the latest.
 */
 #ifdef MANAGE_LCD_AND_TOF_HERE
-const char * g_gpio_processor_APP_VER_STR = "022f";
+const char * g_gpio_processor_APP_VER_STR = "022g";
 #else
-const char * g_gpio_processor_APP_VER_STR = "222f";
+const char * g_gpio_processor_APP_VER_STR = "222g";
 #endif

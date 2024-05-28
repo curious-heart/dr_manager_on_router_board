@@ -25,6 +25,7 @@ typedef struct
     tof_thread_parm_t tof_th_parm;
 
     app_work_mode_t work_mode;
+    uint32_t range_light_auto_off_time_s;
 }cmd_line_opt_collection_t;
 
 

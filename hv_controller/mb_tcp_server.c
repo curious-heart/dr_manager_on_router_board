@@ -208,6 +208,7 @@ static bool update_dev_st_pool_from_main_loop_th(void* d)
     ST_PARAM_SET_UPD(g_device_st_pool, expo_dura_ms, hv_st->expo_dura_ms);
     ST_PARAM_SET_UPD(g_device_st_pool, expo_am_ua, hv_st->expo_am_ua);
     ST_PARAM_SET_UPD(g_device_st_pool, expo_st, hv_st->expo_st);
+    ST_PARAM_SET_UPD(g_device_st_pool, range_light_on, hv_st->range_light_on);
 
 #ifndef MANAGE_LCD_AND_TOF_HERE
     /* TOF distance is written into mb register by external user, it has been written into local buffer, and now we 
@@ -230,6 +231,7 @@ static hv_mb_reg_e_t gs_mb_regs_to_send_external[] =
     FilamentSet/* = 6*/,                    /*6 管设置值电流 （决定灯丝电流决定管电流）*/
     ExposureTime/* = 7*/,                   /*曝光时间*/
     ExposureStatus/* = 11*/,                /*曝光状态*/
+    RangeIndicationStart/* = 12*/,          /*范围指示启动*/
     BatteryLevel/* = 14*/,                  /*电池电量*/
     BatteryVoltmeter/* = 15*/,
 
@@ -417,12 +419,22 @@ static void set_float_DAP_to_mapping_reg(float DAP_v)
     }
 }
 
+static void range_light_timeout_handler(void* to_param)
+{
+    /*turn off range light*/
+    hv_controller_write_single_uint16(RangeIndicationStart, 0);
+
+    /*to_param should point to the ls_range_light_timer in function mb_server_write_reg_sniff*/
+    if(to_param) *(app_timer_node_s_t**)to_param = NULL;
+}
+
 mb_rw_reg_ret_t mb_server_write_reg_sniff(uint16_t reg_addr_start, uint16_t * data_arr, uint16_t reg_cnt, bool server_only)
 {
     bool becare = false;
     uint16_t idx = 0;
     mb_rw_reg_ret_t ret = MB_RW_REG_RET_NONE; 
     float DAP_v;
+    static app_timer_node_s_t* ls_range_light_timer = NULL;
 
     if(gs_hv_st.hv_dsp_conn_st != HV_DSP_CONNECTED)
     {
@@ -456,6 +468,35 @@ mb_rw_reg_ret_t mb_server_write_reg_sniff(uint16_t reg_addr_start, uint16_t * da
 
                 DAP_v = calculate_DAP_value(gs_hv_st.expo_volt_kv, gs_hv_st.expo_am_ua, gs_hv_st.expo_dura_ms);
                 set_float_DAP_to_mapping_reg(DAP_v);
+                break;
+
+            case RangeIndicationStart:
+                gs_hv_st.range_light_on = data_arr[idx];
+                becare = true;
+
+                if(gs_hv_st.range_light_on && !ls_range_light_timer)
+                {
+                    /*light is turned on, start timer count.*/
+                    ls_range_light_timer = add_a_new_app_timer(g_cmd_line_opt_collection.range_light_auto_off_time_s * 1000,
+                            true, range_light_timeout_handler, &ls_range_light_timer, NULL, NULL);
+                    if(ls_range_light_timer)
+                    {
+                        DIY_LOG(LOG_INFO, "start range light timer (%u sec) success.\n",
+                                g_cmd_line_opt_collection.range_light_auto_off_time_s);
+                    }
+                    else
+                    {
+                        DIY_LOG(LOG_ERROR, "start range light timer (%u sec) fail!\n", 
+                                    g_cmd_line_opt_collection.range_light_auto_off_time_s);
+                    }
+                }
+                else if(!gs_hv_st.range_light_on && ls_range_light_timer)
+                {
+                    /*light is turned off, stop timer count.*/
+                    delete_an_app_timer(ls_range_light_timer, true);
+                    ls_range_light_timer = NULL;
+                    DIY_LOG(LOG_INFO, "stop range light timer on key press.\n");
+                }
                 break;
 
             case ExposureStart:     // 13,   /*曝光启动*/
@@ -1129,6 +1170,8 @@ mb_server_exit_code_t  mb_server_loop(mb_tcp_server_params_t * srvr_params, bool
 
     for (;;) 
     {
+        int select_ret;
+
 #ifndef MANAGE_LCD_AND_TOF_HERE
         if(!gs_dev_info_already_sent)
         {
@@ -1137,12 +1180,19 @@ mb_server_exit_code_t  mb_server_loop(mb_tcp_server_params_t * srvr_params, bool
         }
 #endif
         rdset = refset;
-        if (select(fdmax + 1, &rdset, NULL, NULL, &timeout) == -1)
+        select_ret = select(fdmax + 1, &rdset, NULL, NULL, &timeout);
+        if (-1 == select_ret)
         {
             DIY_LOG(LOG_ERROR, "%sServer select() failure.\n", gp_mb_server_log_header);
             /*leaving for caller to release resource.*/
             return MB_SERVER_EXIT_COMM_FATAL_ERROR;
         }
+        if(0 == select_ret)
+        {
+            check_and_process_app_timers();
+            continue;
+        }
+
         timeout_updated = false;
         ex_client_active = false;
 
@@ -1298,6 +1348,8 @@ mb_server_exit_code_t  mb_server_loop(mb_tcp_server_params_t * srvr_params, bool
             timeout.tv_sec = 0;
             timeout.tv_usec = (suseconds_t)(srvr_params->long_select_wait_time * 1000000);
         }
+
+        check_and_process_app_timers();
     }
 
     return MB_SERVER_EXIT_UNKNOWN;

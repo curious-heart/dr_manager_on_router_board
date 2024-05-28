@@ -27,7 +27,6 @@ static const char* const gs_def_mcu_exchg_device = "/dev/ttyS2";
 static char gs_mcu_device_str[MAX_OPT_STR_SIZE];
 static const int gs_def_gpio_clock_tick_sec = 1;
 static const bool gs_def_tof_json_override = false;
-static const uint32_t gs_def_range_light_auto_off_time_s = 20;
 static const uint32_t gs_def_restore_factory_time_hold_key_s = 10;
 
 mb_tcp_client_params_t g_mb_tcp_client_params =
@@ -46,7 +45,6 @@ key_gpio_cfg_params_s_t g_key_gpio_cfg_params =
 const char* g_mcu_exchg_device = gs_def_mcu_exchg_device;
 int g_gpio_clock_tick_sec = gs_def_gpio_clock_tick_sec;
 bool g_tof_json_override = gs_def_tof_json_override;
-uint32_t g_range_light_auto_off_time_s = gs_def_range_light_auto_off_time_s;
 uint32_t g_restore_factory_time_hold_key_s = gs_def_restore_factory_time_hold_key_s;
 
 static const char* const gs_opt_mb_tcp_srvr_ip_addr_str = "mb_tcp_srvr_ip_addr";
@@ -65,7 +63,6 @@ static const char* const gs_opt_exp_start_key_disabled_str = "exp_start_disabled
 static const char* const gs_opt_mcu_exchg_device_str = "mcu_exchg_device";
 static const char* const gs_opt_gpio_clock_tick_sec_str = "gpio_clock_tick_sec";
 static const char* const gs_opt_tof_json_override_str = "tof_json_override";
-static const char* const gs_opt_range_light_auto_off_time_str = "range_light_auto_off_time";
 static const char* const gs_opt_restore_factory_key_hold_str = "restore_factory_key_hold_time";
 
 #undef APP_CMD_OPT_ITEM
@@ -119,10 +116,6 @@ static const char* const gs_opt_restore_factory_key_hold_str = "restore_factory_
     APP_CMD_OPT_ITEM(gs_opt_tof_json_override_str, no_argument, 0, 0)\
     APP_CMD_OPT_VALUE("for a seq of msg, the last override the formers", \
            &gs_def_tof_json_override, &g_tof_json_override, bool) \
-\
-    APP_CMD_OPT_ITEM(gs_opt_range_light_auto_off_time_str, required_argument, 0, 0)\
-    APP_CMD_OPT_VALUE("range light auto off(in sec)", \
-           &gs_def_range_light_auto_off_time_s, &g_range_light_auto_off_time_s, uint32_t) \
 \
     APP_CMD_OPT_ITEM(gs_opt_restore_factory_key_hold_str, required_argument, 0, 0)\
     APP_CMD_OPT_VALUE("restore factory key hold time(in sec)", \
@@ -214,10 +207,6 @@ option_process_ret_t process_cmd_line(int argc, char* argv[])
                         CONVERT_FUNC_ATOI(g_gpio_clock_tick_sec, optarg),
                         SHOULD_BE_GT_0(g_gpio_clock_tick_sec), SHOULD_BE_GT_0_LOG,
                         type_int);
-                OPT_CHECK_AND_DRAW(gs_long_opt_arr[longindex].name, gs_opt_range_light_auto_off_time_str,
-                        CONVERT_FUNC_ATOUINT32(g_range_light_auto_off_time_s, optarg),
-                        SHOULD_BE_GT_0(g_range_light_auto_off_time_s), SHOULD_BE_GT_0_LOG,
-                        type_uint32_t);
                 OPT_CHECK_AND_DRAW(gs_long_opt_arr[longindex].name, gs_opt_restore_factory_key_hold_str,
                         CONVERT_FUNC_ATOUINT32(g_restore_factory_time_hold_key_s, optarg),
                         SHOULD_BE_GT_0(g_restore_factory_time_hold_key_s), SHOULD_BE_GT_0_LOG,

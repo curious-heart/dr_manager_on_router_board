@@ -242,6 +242,8 @@ static void clear_for_exit()
 
         clear_threads();
 
+        clear_app_timer_list();
+
         exited = true;
     }
     else
@@ -293,7 +295,7 @@ const char* get_whole_fw_version_string(int* s_len)
     cur_size = buf_size;
     do
     {
-        w_len = snprintf(&ver_str[ver_str_len], cur_size, "v%u  v%u.%03u%03u.",
+        w_len = snprintf(&ver_str[ver_str_len], cur_size, "v%u v%u.%03u%03u.",
                             g_SW_VER_NUMBER, g_SW_VER_NUMBER, (dsp_sw_v & 0xFF00)>>8, (dsp_sw_v & 0x00FF));
         if(w_len <= 0 || w_len >= cur_size) break;
         ver_str_len += w_len; cur_size = buf_size - ver_str_len;
