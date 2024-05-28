@@ -111,8 +111,14 @@ void exp_range_led_key_handler(converted_gbh_uevt_s_t* evt)
     reg_str = get_hv_mb_reg_str(reg_addr);
     if(gs_mb_tcp_client_ctx)
     {
-        ls_light_switch = !ls_light_switch;
-        write_data = (uint16_t)ls_light_switch;
+        if(modbus_read_registers(gs_mb_tcp_client_ctx, RangeIndicationStatus, 1, &write_data) <= 0)
+        {
+            DIY_LOG(LOG_ERROR, "read RangeIndicationStatus error, use local recorded status for range light cmd.");
+            ls_light_switch = !ls_light_switch;
+            write_data = (uint16_t)ls_light_switch;
+        }
+        ls_light_switch = (bool)write_data;
+
 
         if(modbus_write_register(gs_mb_tcp_client_ctx, reg_addr, write_data) <= 0)
         {

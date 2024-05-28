@@ -421,8 +421,15 @@ static void set_float_DAP_to_mapping_reg(float DAP_v)
 
 static void range_light_timeout_handler(void* to_param)
 {
+    DIY_LOG(LOG_INFO, "range light timer times out.\n");
+
     /*turn off range light*/
     hv_controller_write_single_uint16(RangeIndicationStart, 0);
+
+#ifdef MANAGE_LCD_AND_TOF_HERE
+    /*stop tof measure.*/
+    unset_tof_th_measure_flag(TOF_REQUESTER_RANGE_LED);
+#endif
 
     /*to_param should point to the ls_range_light_timer in function mb_server_write_reg_sniff*/
     if(to_param) *(app_timer_node_s_t**)to_param = NULL;
