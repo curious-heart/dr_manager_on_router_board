@@ -230,6 +230,7 @@ static hv_mb_reg_e_t gs_mb_regs_to_send_external[] =
     VoltSet/* = 5*/,                        /*5管电压设置值*/
     FilamentSet/* = 6*/,                    /*6 管设置值电流 （决定灯丝电流决定管电流）*/
     ExposureTime/* = 7*/,                   /*曝光时间*/
+    RangeIndicationStatus/* = 10*/,         /*范围指示状态*/\
     ExposureStatus/* = 11*/,                /*曝光状态*/
     RangeIndicationStart/* = 12*/,          /*范围指示启动*/
     BatteryLevel/* = 14*/,                  /*电池电量*/
@@ -503,6 +504,13 @@ mb_rw_reg_ret_t mb_server_write_reg_sniff(uint16_t reg_addr_start, uint16_t * da
                     delete_an_app_timer(ls_range_light_timer, true);
                     ls_range_light_timer = NULL;
                     DIY_LOG(LOG_INFO, "stop range light timer on key press.\n");
+                }
+
+                /*update RangeIndicationStatus in local buffer.*/
+                if(!hv_controller_read_uint16s(RangeIndicationStatus,
+                            &gs_mb_mapping->tab_registers[RangeIndicationStatus], 1))
+                {
+                    gs_mb_mapping->tab_registers[RangeIndicationStatus] = gs_hv_st.range_light_on;
                 }
                 break;
 
