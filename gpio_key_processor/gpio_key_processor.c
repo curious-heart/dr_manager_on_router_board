@@ -294,28 +294,36 @@ extern bool g_tof_json_override;
 static char gs_mcu_json_packet[MAX_JSON_MESSAGE_LEN + 1];
 static void process_tof_json_msg(char* msg, int msg_len)
 {
-    static const char* tmp_json_file="/tmp/.tof_json_msg";
-    static const char* get_tof_distance_sh = "get_tof_distance_from_json.sh";
+    static const char* tmp_recvd_json_file="/tmp/.recvd_json_msg";
+    static const char* get_json_data_sh = "get_data_from_recvd_json.sh";
+    static const char* tof_hd = "tof_distance";
+    static const char* key_evt_hd = "key_evt";
+    static const char* key_name_add = "add";
+    static const char* key_name_sub = "sub";
+    static const char* key_val_pressed = "pressed";
+    static const char* key_val_released = "released";
+    static uint32_t ls_key_seq = 0;
     FILE * msg_file, *d_stream;
     int written_len;
-    char *tof_dist_str;
-    size_t tof_dist_len;
+    char *info_line;
+    size_t info_line_len;
+    ssize_t read_cnt;
     bool goon = true;
     uint16_t dist;
 
     DIY_LOG(LOG_INFO, "json msg: %s\n", msg);
 
-    msg_file = fopen(tmp_json_file, "w");
+    msg_file = fopen(tmp_recvd_json_file, "w");
     if(!msg_file)
     {
-        DIY_LOG(LOG_ERROR, "create file %s error!\n", tmp_json_file);
+        DIY_LOG(LOG_ERROR, "create file %s error!\n", tmp_recvd_json_file);
         return;
     }
     written_len = fwrite(msg, msg_len, 1, msg_file);
     if(written_len != 1)
     {
         DIY_LOG(LOG_ERROR, "write to file %s abnormal: %d chars to be written, but actual %d chars.\n",
-                tmp_json_file, msg_len, written_len * msg_len);
+                tmp_recvd_json_file, msg_len, written_len * msg_len);
         goon = false;
     }
     fflush(msg_file);
@@ -323,27 +331,88 @@ static void process_tof_json_msg(char* msg, int msg_len)
 
     if(!goon) return;
 
-    d_stream = popen(get_tof_distance_sh, "r");
+    d_stream = popen(get_json_data_sh, "r");
     if(!d_stream)
     {
-        DIY_LOG(LOG_ERROR, "open %s error: %s\n", get_tof_distance_sh, strerror(errno));
+        DIY_LOG(LOG_ERROR, "open %s error: %s\n", get_json_data_sh, strerror(errno));
         return;
     }
-    tof_dist_str = NULL;
-    tof_dist_len = 0;
-    getline(&tof_dist_str, &tof_dist_len, d_stream);
-    if(tof_dist_len <= 0)
+
+    info_line = NULL; info_line_len = 0;
+    while((read_cnt = getline(&info_line, &info_line_len, d_stream)) != -1)
     {
-        DIY_LOG(LOG_ERROR, "read from %s error, %d chars read.\n", get_tof_distance_sh, (int)tof_dist_len);
+        if(info_line && read_cnt > 0)
+        {
+            char* colon_cp, *hd_ptr, *vstr_ptr;
+            info_line[strcspn(info_line, "\r\n")] = '\0';
+            colon_cp = strstr(info_line, ":");
+            if(!colon_cp || (colon_cp - info_line + 1 >= info_line_len))
+            {
+                DIY_LOG(LOG_ERROR, "ignore invalid info from json data sh: %s\n", info_line);
+                continue;
+            }
+            hd_ptr = info_line; *colon_cp = 0;
+            vstr_ptr = colon_cp + 1;
+            if(!strcmp(hd_ptr, tof_hd))
+            {
+                DIY_LOG(LOG_INFO, "tof distance read from json: %s\n", vstr_ptr);
+                CONVERT_FUNC_ATOUINT16(dist, vstr_ptr);
+                update_tof_distance(dist);
+            }
+            else if(!strcmp(hd_ptr, key_evt_hd))
+            {
+                converted_gbh_uevt_s_t converted_gbh_uevt;
+                char* semicol_ptr, *key_name_ptr, *key_val_ptr;
+                DIY_LOG(LOG_INFO, "key event read from json: %s\n", vstr_ptr);
+                semicol_ptr = strstr(vstr_ptr, ",");
+                if(!semicol_ptr || (semicol_ptr - vstr_ptr + 1) >= strlen(vstr_ptr))
+                {
+                    DIY_LOG(LOG_ERROR, "ignore invalid key event from json data sh:%s\n", vstr_ptr);
+                    continue;
+                }
+                key_name_ptr = vstr_ptr; *semicol_ptr = 0;
+                key_val_ptr = semicol_ptr + 1;
+                if(!strcmp(key_name_ptr, key_name_add))
+                {
+                    converted_gbh_uevt.key_gpio = key_dose_add;
+                }
+                else if(!strcmp(key_name_ptr, key_name_sub))
+                {
+                    converted_gbh_uevt.key_gpio = key_dose_sub;
+                }
+                else
+                {
+                    DIY_LOG(LOG_ERROR, "ignore key event because of invalid key name: %s\n", key_name_ptr);
+                    continue;
+                }
+
+                if(!strcmp(key_val_ptr, key_val_pressed))
+                {
+                    converted_gbh_uevt.action = key_pressed;
+                }
+                else if(!strcmp(key_val_ptr, key_val_released))
+                {
+                    converted_gbh_uevt.action = key_released;
+                }
+                else
+                {
+                    DIY_LOG(LOG_ERROR, "ignore key event because of invalid key value: %s\n", key_val_ptr);
+                    continue;
+                }
+                converted_gbh_uevt.seen = 0;
+                converted_gbh_uevt.seqnum = ls_key_seq; ++ls_key_seq;
+                converted_gbh_uevt.valid = true;
+
+                process_gbh_uevent(&converted_gbh_uevt);
+            }
+            else
+            {
+                DIY_LOG(LOG_ERROR, "unknown info from json data sh and it is ignored:%s:%s\n", hd_ptr, vstr_ptr);
+            }
+        }
     }
-    if(tof_dist_str)
-    {
-        tof_dist_str[strcspn(tof_dist_str, "\r\n")] = '\0';
-        DIY_LOG(LOG_INFO, "tof distance read from json: %s\n", tof_dist_str);
-        CONVERT_FUNC_ATOUINT16(dist, tof_dist_str);
-        update_tof_distance(dist);
-    }
-    free(tof_dist_str);
+
+    free(info_line);
     pclose(d_stream);
 }
 #endif

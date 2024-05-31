@@ -50,7 +50,7 @@ mb_tcp_client_wait_res_timeout_sec=3
 #used by exchange info with external mcu
 mcu_exchg_device="/dev/ttyS2"
 mcu_exchg_json_key_type="json_type"
-tof_json_override_flag=1
+tof_json_override_flag=0
 
 #gpio clock tick. should be int.
 gpio_clock_tick_sec=1

@@ -129,7 +129,6 @@ int fill_timespec_with_known_val(struct timespec * ts, float seconds)
 int fill_timespec_struc(struct timespec * ts, float seconds)
 {
     int ret;
-    time_t sec;
 
     if(NULL == ts) return -1;
 
