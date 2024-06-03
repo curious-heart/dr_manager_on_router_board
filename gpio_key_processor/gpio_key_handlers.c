@@ -251,7 +251,12 @@ static void restore_factory_settings(void* param)
 {
     /*to_param should point to gs_restore_factory_key_timer */
     if(param) *(app_timer_node_s_t**)param = NULL;
+
     DIY_LOG(LOG_INFO, "restore factor settings now...\n");
+#ifndef MANAGE_LCD_AND_TOF_HERE
+    system("send_restore_factory_cmd.sh");
+    sleep(1);
+#endif
 
     system("firstboot -y");
     sleep(3);
