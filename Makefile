@@ -25,7 +25,7 @@ prepare:
 
 INCLUDES = $(wildcard $(addsuffix /*.h, $(INC)))
 SOURCES = $(wildcard $(addsuffix /*.c, $(SRC)))
-
+SOURCES += ./gpio_key_processor/gpio_key_app_version_def.c
 ifeq ($(CONFIG_manage_lcd_and_tof_here),n)
 SOURCES := $(filter-out ./lcd_refresh_thread.c ./tof_thread.c, $(SOURCES))
 INCLUDES := $(filter-out ./lcd_resource.h, $(INCLUDES))
@@ -46,7 +46,7 @@ override CFLAGS += -DMANAGE_LCD_AND_TOF_HERE
 endif
 
 DEPS = $(INCLUDES)
-OBJECTS = $(patsubst %.c, $(OBJ)/%.o, $(notdir $(SOURCES))) ./gpio_key_processor/gpio_key_app_version_def.c
+OBJECTS = $(patsubst %.c, $(OBJ)/%.o, $(notdir $(SOURCES))) 
 TCP_SRVR_TEST_OBJECTS = $(patsubst %.c, $(OBJ)/%.o, $(notdir $(TCP_SRVR_TEST_SOURCES)))
 GPIO_KEY_PROCESSOR_OBJECTS = $(patsubst %.c, $(OBJ)/%.o, $(notdir $(GPIO_KEY_PROCESSOR_SOURCES)))
 
