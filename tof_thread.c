@@ -193,7 +193,8 @@ void* tof_thread_func(void* arg)
     int ret;
     struct timespec w_ts;
     static uint16_t last_raw_distance = (uint16_t)-1, raw_distance = (uint16_t)-1;
-    tof_requester_e_t requester;
+    static bool ls_thread_startup = true; //take a measurement at the thread startup.
+    tof_requester_e_t requester = TOF_REQUESTER_NONE;
 
     pthread_cleanup_push(tof_th_cleanup_h, NULL);
 
@@ -237,20 +238,24 @@ void* tof_thread_func(void* arg)
 
     while(true)
     {
-        ret = fill_timespec_struc(&w_ts, period);
-        if(0 != ret)
+        if(!ls_thread_startup)
         {
-            DIY_LOG(LOG_ERROR, "fill timespec error:%d\n", ret);
-            
-            usleep(period * 1000000);
-        }
-        else
-        {
-            sem_timedwait(&gs_tof_th_wait_sem, &w_ts);
+            ret = fill_timespec_struc(&w_ts, period);
+            if(0 != ret)
+            {
+                DIY_LOG(LOG_ERROR, "fill timespec error:%d\n", ret);
+                
+                usleep(period * 1000000);
+            }
+            else
+            {
+                sem_timedwait(&gs_tof_th_wait_sem, &w_ts);
+            }
+
+            requester = check_tof_th_measure_flag();
         }
 
-        requester = check_tof_th_measure_flag();
-        if(TOF_REQUESTER_NONE != requester)
+        if((ls_thread_startup) || (TOF_REQUESTER_NONE != requester))
         {
             raw_distance = tof_single_measure(); 
             gs_distance = (uint16_t)((int)raw_distance + 
@@ -267,6 +272,8 @@ void* tof_thread_func(void* arg)
                 update_lcd_display(pthread_self(), g_tof_th_desc);
             }
             last_raw_distance = raw_distance;
+
+            ls_thread_startup = false;
         }
     }
 
