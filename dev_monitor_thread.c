@@ -433,7 +433,7 @@ bool access_device_st_pool(pthread_t pth_id, const char* desc, access_device_sta
         DIY_LOG(LOG_DEBUG, "thread %u ", (uint32_t)pth_id);
         if(desc)
         {
-            DIY_LOG(LOG_INFO + LOG_ONLY_INFO_STR_COMP, "%s ", desc);
+            DIY_LOG(LOG_DEBUG + LOG_ONLY_INFO_STR_COMP, "%s ", desc);
         }
         DIY_LOG(LOG_DEBUG + LOG_ONLY_INFO_STR_COMP, "finished updating device status pool.\n");
     }

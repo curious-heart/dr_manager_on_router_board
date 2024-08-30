@@ -94,6 +94,9 @@ key_cmd_args=" --exp_start_key_hold $exp_start_key_hold_time"\
 " --mcu_exchg_device $mcu_exchg_device"\
 " --gpio_clock_tick_sec $gpio_clock_tick_sec"\
 " $tof_json_override_opt"\
-" --restore_factory_key_hold_time $restore_factory_key_hold_sec"
+" --restore_factory_key_hold_time $restore_factory_key_hold_sec"\
+" --tof_smooth_range $tof_dist_smooth_range_mm"
 
+echo
+echo $KEY_APP_NAME $key_cmd_args $*
 $KEY_APP_NAME $key_cmd_args $* &

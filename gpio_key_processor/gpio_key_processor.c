@@ -310,6 +310,7 @@ static void process_tof_json_msg(char* msg, int msg_len)
     ssize_t read_cnt;
     bool goon = true;
     uint16_t dist;
+    static uint16_t ls_last_dist;
 
     DIY_LOG(LOG_INFO, "json msg: %s\n", msg);
 
@@ -355,9 +356,23 @@ static void process_tof_json_msg(char* msg, int msg_len)
             vstr_ptr = colon_cp + 1;
             if(!strcmp(hd_ptr, tof_hd))
             {
-                DIY_LOG(LOG_INFO, "tof distance read from json: %s\n", vstr_ptr);
                 CONVERT_FUNC_ATOUINT16(dist, vstr_ptr);
-                update_tof_distance(dist);
+                DIY_LOG(LOG_INFO, "tof distance read from json: %s, last distance %u.", vstr_ptr, ls_last_dist);
+                {
+                    extern uint16_t g_tof_dist_smooth_range_mm;
+                    uint16_t diff = (ls_last_dist >= dist) ? (ls_last_dist - dist) : (dist - ls_last_dist);
+                    if(diff >= g_tof_dist_smooth_range_mm)
+                    {
+                        ls_last_dist = dist;
+                        update_tof_distance(dist);
+                        DIY_LOG(LOG_INFO + LOG_ONLY_INFO_STR_COMP, " update.\n");
+                    }
+                    else
+                    {
+                        DIY_LOG(LOG_INFO + LOG_ONLY_INFO_STR_COMP, " diff < %u, so do not update.\n",
+                                g_tof_dist_smooth_range_mm);
+                    }
+                }
             }
             else if(!strcmp(hd_ptr, key_evt_hd))
             {

@@ -58,10 +58,6 @@ static mb_tcp_server_params_t * gs_mb_tcp_server_params = NULL;
 static uint16_t gs_dsp_sw_ver;
 static bool gs_server_ready = false;
 
-#ifndef MANAGE_LCD_AND_TOF_HERE
-static bool gs_dev_info_already_sent = false;
-#endif
-
 void mb_server_exit()
 {
     if (gs_mb_server_socket != -1)
@@ -283,7 +279,7 @@ void refresh_global_dev_st_info_from_main_th()
 #ifdef MANAGE_LCD_AND_TOF_HERE
         update_lcd_display(pthread_self(), g_main_thread_desc);
 #else
-        if(gs_dev_info_already_sent) send_mb_regs_external();
+        send_mb_regs_external();
 #endif
     }
 }
@@ -713,9 +709,10 @@ static void mb_tcp_server_fill_mapping_tab_reg_from_msg(uint8_t *req_msg, int of
 static mb_rw_reg_ret_t mb_server_process_extend_reg(uint8_t * req_msg, int req_msg_len, 
         uint8_t func, uint16_t reg_addr_start, uint16_t reg_cnt, bool server_only)
 {
+    bool becare = false;
     mb_rw_reg_ret_t ret = MB_RW_REG_RET_NONE;
 
-    DIY_LOG(LOG_INFO, "%sProcess extend register.", gp_mb_server_log_header);
+    DIY_LOG(LOG_INFO, "%sProcess extend register.\n", gp_mb_server_log_header);
     switch(func)
     {
         case MODBUS_FC_WRITE_SINGLE_REGISTER:
@@ -762,7 +759,12 @@ static mb_rw_reg_ret_t mb_server_process_extend_reg(uint8_t * req_msg, int req_m
                             break;
 
                         case EXT_MB_REG_DISTANCE:
+                            if(gs_hv_st.tof_distance != write_data)
+                            {
+                                becare = true;
+                            }
                             gs_hv_st.tof_distance = write_data;
+                            DIY_LOG(LOG_INFO, "tof distance: %u\n", write_data);
                             break;
 
                         default:
@@ -830,6 +832,11 @@ static mb_rw_reg_ret_t mb_server_process_extend_reg(uint8_t * req_msg, int req_m
         default:
             DIY_LOG(LOG_WARN + LOG_ONLY_INFO_STR_COMP, "But nothing to do now...\n");
             break;
+    }
+
+    if(becare)
+    {
+        refresh_global_dev_st_info_from_main_th();
     }
 
     return ret;
@@ -1183,17 +1190,15 @@ mb_server_exit_code_t  mb_server_loop(mb_tcp_server_params_t * srvr_params, bool
 
     write_version_str_to_file();
 
+#ifndef MANAGE_LCD_AND_TOF_HERE
+    send_dev_info_external();
+    send_mb_regs_external();
+#endif
+
     for (;;) 
     {
         int select_ret;
 
-#ifndef MANAGE_LCD_AND_TOF_HERE
-        if(!gs_dev_info_already_sent)
-        {
-            gs_dev_info_already_sent = send_dev_info_external();
-            if(gs_dev_info_already_sent) send_mb_regs_external();
-        }
-#endif
         rdset = refset;
         select_ret = select(fdmax + 1, &rdset, NULL, NULL, &timeout);
         if (-1 == select_ret)
@@ -1314,13 +1319,13 @@ mb_server_exit_code_t  mb_server_loop(mb_tcp_server_params_t * srvr_params, bool
                            gp_mb_server_log_header, master_socket);
                     if(get_peer_name_ret < 0)
                     {
-                        DIY_LOG(LOG_WARN + LOG_ONLY_INFO_STR,
+                        DIY_LOG(LOG_ERROR + LOG_ONLY_INFO_STR,
                                 "but can't obtain the remote addr, errno: %d.\n",
                                 errno);
                     }
                     else
                     {
-                        DIY_LOG(LOG_INFO + LOG_ONLY_INFO_STR, "%s:%u.\n",
+                        DIY_LOG(LOG_ERROR + LOG_ONLY_INFO_STR, "%s:%u.\n",
                                inet_ntoa(clientaddr.sin_addr),
                                clientaddr.sin_port);
                     }

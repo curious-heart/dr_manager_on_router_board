@@ -60,3 +60,6 @@ range_light_auto_off_sec=20
 
 #should be uint
 restore_factory_key_hold_sec=10
+
+#should be uint
+tof_dist_smooth_range_mm=20
