@@ -6,12 +6,13 @@
 #include <errno.h>
 #include <modbus/modbus.h>
 #include <string.h>
+#include <sys/time.h>
 
 #include "logger.h"
 #include "hv_registers.h"
 
 static const char* gs_APP_NAME = "mb_tcp_test_client";
-static const char * gs_APP_VER_STR = "1.0.2";
+static const char * gs_APP_VER_STR = "1.0.3a";
 
 #define MAX_CHAR_NUM_READ 16
 static const char* gs_local_loop_ip = "127.0.0.1";
@@ -21,11 +22,43 @@ static modbus_t * gs_mb_tcp_client_ctx = NULL;
 static const float gs_def_mb_resp_timeout_s = 3;
 static float gs_mb_resp_timeout_s = gs_def_mb_resp_timeout_s;
 
+#define DEF_USED_TIME_VAR \
+    struct timeval start_time, end_time, used_time;\
+    int get_start_t_ret, get_start_t_errno, get_end_t_ret, get_end_t_errno;
+
+#define RECORD_START_TIME \
+{\
+    timerclear(&start_time);\
+    timerclear(&end_time);\
+    get_start_t_ret = gettimeofday(&start_time, NULL);\
+    if(get_start_t_ret) get_start_t_errno = errno;\
+}
+#define RECORD_END_TIME \
+{\
+    get_end_t_ret = gettimeofday(&end_time, NULL);\
+    if(get_end_t_ret) get_end_t_errno = errno;\
+}
+#define PRINT_USED_TIME \
+{\
+    printf("\n");\
+    if(get_start_t_ret) printf("get start time error: %d\n", get_start_t_errno);\
+    if(get_end_t_ret) printf("get end time error: %d\n", get_end_t_errno);\
+    if(!get_start_t_ret && !get_end_t_ret)\
+    {\
+        timersub(&end_time, &start_time, &used_time);\
+        printf("start time: %lld sec, %lld us\n", start_time.tv_sec, start_time.tv_usec);\
+        printf("end time: %lld sec, %lld us\n", end_time.tv_sec, end_time.tv_usec);\
+        printf("time used: %lld sec, %lld us\n\n", used_time.tv_sec, used_time.tv_usec);\
+    }\
+}
+
 static void mb_reg_only_write(hv_mb_reg_e_t reg_addr)
 {
     uint16_t write_data;
     const char* reg_str;
     char r_buf[MAX_CHAR_NUM_READ + 1];
+    int mb_op_ret;
+    DEF_USED_TIME_VAR;
 
     reg_str = get_hv_mb_reg_str(reg_addr);
     if(!reg_str)
@@ -38,7 +71,12 @@ static void mb_reg_only_write(hv_mb_reg_e_t reg_addr)
         printf("please input the data to be written:\n");
         fgets(r_buf, sizeof(r_buf), stdin);
         sscanf(r_buf, "%hu", &write_data);
-        if(modbus_write_register(gs_mb_tcp_client_ctx, reg_addr, write_data) <= 0)
+
+        RECORD_START_TIME;
+        mb_op_ret = modbus_write_register(gs_mb_tcp_client_ctx, reg_addr, write_data);
+        RECORD_END_TIME;
+
+        if(mb_op_ret <= 0)
         {
             printf("modbus write register %s error:%d, %s\n",
                    reg_str, errno, modbus_strerror(errno));
@@ -47,6 +85,8 @@ static void mb_reg_only_write(hv_mb_reg_e_t reg_addr)
         {
             printf("modbus write register %s ok!\n", reg_str); 
         }
+
+        PRINT_USED_TIME;
     }
     else
     {
@@ -60,6 +100,7 @@ static uint16_t mb_reg_only_read(hv_mb_reg_e_t reg_addr)
     float DAP_v;
     const char* reg_str;
     int mb_read_ret;
+    DEF_USED_TIME_VAR;
 
     reg_str = get_hv_mb_reg_str(reg_addr);
     if(!reg_str)
@@ -72,7 +113,11 @@ static uint16_t mb_reg_only_read(hv_mb_reg_e_t reg_addr)
         if(EXT_MB_REG_DAP_HP == reg_addr || EXT_MB_REG_DAP_LP == reg_addr )
         {
             translated_addr = EXT_MB_REG_DAP_HP;
+
+            RECORD_START_TIME;
             mb_read_ret = modbus_read_registers(gs_mb_tcp_client_ctx, translated_addr, 2, &read_data[0]);
+            RECORD_END_TIME;
+
             if(mb_read_ret <= 0)
             {
                 printf("modbus read register %s error:%d, %s\n", reg_str, errno, modbus_strerror(errno));
@@ -86,7 +131,10 @@ static uint16_t mb_reg_only_read(hv_mb_reg_e_t reg_addr)
         }
         else
         {
+            RECORD_START_TIME;
             mb_read_ret = modbus_read_registers(gs_mb_tcp_client_ctx, reg_addr, 1, &read_data[0]);
+            RECORD_END_TIME;
+
             if(mb_read_ret <= 0)
             {
                 printf("modbus read register %s error:%d, %s\n", reg_str, errno, modbus_strerror(errno));
@@ -96,6 +144,7 @@ static uint16_t mb_reg_only_read(hv_mb_reg_e_t reg_addr)
                 printf("read register %s ok, the value is: %d\n", reg_str, read_data[0]);
             }
         }
+        PRINT_USED_TIME;
     }
     else
     {
@@ -153,23 +202,30 @@ static void mb_tcp_server_test()
 {
     bool end = false;
     int test_no;
+    static const int exit_no = -1, list_regs = -2;
     hv_mb_reg_e_t reg_addr;
     char r_buf[MAX_CHAR_NUM_READ + 1]; 
     char rw_op;
 
+    print_register_tips();
     while(!end)
     {
         printf("\n");
-        print_register_tips();
-        printf("-1: exit.\n");
+        printf("%d: exit.\n%d:list mb-registers.\n", exit_no, list_regs);
 
         fgets(r_buf, sizeof(r_buf), stdin);
         sscanf(r_buf, "%d", &test_no);
-        if(test_no < 0)
+        if(exit_no == test_no)
         {
             end = true;
             break;
         }
+        else if(list_regs == test_no)
+        {
+            print_register_tips();
+            continue;
+        }
+
         if(!VALID_MB_REG_ADDR(test_no))
         {
             printf("Invlaid register number!\n");
@@ -178,6 +234,7 @@ static void mb_tcp_server_test()
 
         reg_addr = (hv_mb_reg_e_t)test_no;
         rw_op = get_hv_mb_reg_rw_attr(reg_addr);
+
         switch(rw_op)
         {
             case HV_MB_REG_RW_ATTR_R:

@@ -7,7 +7,7 @@
 #include "logger.h"
 #include "dap_calc.h"
 
-static const char* gs_dap_db_file_name = "dap_db.sqlite3";
+static const char* gs_dap_db_file_name = "/usr/bin/dap_db.sqlite3";
 static const char* gs_dap_tbl_co_name = "coefficient_tbl";
 static const char* gs_dap_tbl_data_name = "dap_data_tbl";
 
@@ -144,7 +144,7 @@ static int load_DAP_cb(void *, int col_num, char ** exec_output, char ** col_nam
 {
     if(col_num < 1 || (NULL == exec_output[0])) 
     {
-        DIY_LOG(LOG_ERROR, "exec error, col_num is %d, the exec_output[0] is 0x%08X\n", col_num, exec_output[0]);
+        DIY_LOG(LOG_ERROR, "exec error, col_num is %d, the exec_output[0] is 0x%08X\n", col_num, (uint32_t)exec_output[0]);
         return SQLITE_ERROR;
     }
     gs_curr_dap_val = strtof(exec_output[0], NULL);

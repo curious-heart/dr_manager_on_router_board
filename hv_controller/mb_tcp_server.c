@@ -243,30 +243,55 @@ static hv_mb_reg_e_t gs_mb_regs_to_send_external[] =
 };
 static void send_mb_regs_external()
 {
-#define MAX_OP_CMD_LINE 64
     /*write regs to tmp file.*/
     static const char* mb_reg_content_file_name = "/tmp/.dr_mb_reg_content";
     static const char* send_mb_reg_external_sh = "/usr/bin/send_mb_reg_external.sh";
     int idx;
     hv_mb_reg_e_t reg_addr;
-    char cmd_line[MAX_OP_CMD_LINE+ 1];
+    FILE * reg_cont_file = NULL;
+    int file_op_ret;
 
-    snprintf(cmd_line, sizeof(cmd_line), "rm -f %s", mb_reg_content_file_name);
-    system(cmd_line);
+    /* a line is of format "reg,value". both reg and regvalue are uint 16, at most 5 digits.
+     * the extra 1 are for ",", "\n" and "\0" respectively.
+     * */
+#define REG_CONT_LIEN_SIZE (2*5+1+1+1) 
+    static char ls_reg_cont_file_cont[REG_CONT_LIEN_SIZE * ARRAY_ITEM_CNT(gs_mb_regs_to_send_external) + 1];
+    char* buf_ptr = ls_reg_cont_file_cont;
+    int buf_size = sizeof(ls_reg_cont_file_cont), write_size;
+
+    memset(ls_reg_cont_file_cont, 0, sizeof(ls_reg_cont_file_cont));
     for(idx = 0; idx < ARRAY_ITEM_CNT(gs_mb_regs_to_send_external); ++idx)
     {
         reg_addr = gs_mb_regs_to_send_external[idx];
         if(VALID_MB_REG_ADDR(reg_addr))
         {
-            snprintf(cmd_line, sizeof(cmd_line), 
-                    "echo %u,%u >> %s", reg_addr, gs_mb_mapping->tab_registers[reg_addr], mb_reg_content_file_name);
-            system(cmd_line);
+            write_size = snprintf(buf_ptr, buf_size, "%hu,%hu\n", 
+                                (uint16_t)reg_addr, gs_mb_mapping->tab_registers[reg_addr]);
+            if(write_size >= buf_size)
+            {
+                DIY_LOG(LOG_ERROR, "mb reg contents exceeds buffer.\n");
+                break;
+            }
+            buf_ptr += write_size;
+            buf_size -= write_size;
         }
     }
 
+    reg_cont_file = fopen(mb_reg_content_file_name, "w");
+    if(!reg_cont_file)
+    {
+        DIY_LOG(LOG_ERROR, "open file %s error.\n", mb_reg_content_file_name);
+        return;
+    }
+    file_op_ret = fprintf(reg_cont_file, "%s", ls_reg_cont_file_cont);
+    if(file_op_ret < 0)
+    {
+        DIY_LOG(LOG_ERROR, "write to file %s error: %s.\n", mb_reg_content_file_name, ls_reg_cont_file_cont);
+    }
+    fclose(reg_cont_file);
+
     /*call shell script to send regs external.*/
     system(send_mb_reg_external_sh);
-#undef MAX_OP_CMD_LINE
 }
 #endif
 
