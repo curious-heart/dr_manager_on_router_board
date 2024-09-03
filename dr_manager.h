@@ -5,6 +5,10 @@
 #include <stdbool.h>
 #include <pthread.h>
 
+#ifndef MANAGE_LCD_AND_TOF_HERE
+#include "hv_registers.h"
+#endif
+
 typedef enum
 {
     HOTSPOT_DOWN = -1,
@@ -125,6 +129,68 @@ typedef struct ST_PARAMS_COLLECTION dr_device_st_local_buf_t;
 /*------------------------------------------------------------*/
 
 extern dr_device_st_pool_t g_device_st_pool;
+
+typedef struct
+{
+    hv_mb_reg_e_t reg;
+    uint16_t val;
+}mb_reg_val_pair_s_t;
+int get_reg_key_val_pair_to_send_external(mb_reg_val_pair_s_t * pairs[]);
+
+#define REGS_TO_SEND_EXTERNAL \
+    {State/* = 4*/, 0},                          /*状态*/\
+    {VoltSet/* = 5*/, 0},                        /*5管电压设置值*/\
+    {FilamentSet/* = 6*/, 0},                    /*6 管设置值电流 （决定灯丝电流决定管电流）*/\
+    {ExposureTime/* = 7*/, 0},                   /*曝光时间*/\
+    {RangeIndicationStatus/* = 10*/, 0},         /*范围指示状态*/\
+    {ExposureStatus/* = 11*/, 0},                /*曝光状态*/\
+    {RangeIndicationStart/* = 12*/, 0},          /*范围指示启动*/\
+    {BatteryLevel/* = 14*/, 0},                  /*电池电量*/\
+    {BatteryVoltmeter/* = 15*/, 0},\
+\
+    {EXT_MB_REG_DISTANCE/* = 105*/, 0},                       /* uint16，测距结果。单位mm*/\
+    {EXT_MB_REG_HOTSPOT_ST/* = 106*/, 0},           /*uint16，本机Wi-Fi热点状态。*/\
+    {EXT_MB_REG_CELLUAR_ST/* = 107*/, 0},              /*uint16，高字节表示蜂窝网的信号格数，有效值0~5；*/\
+                                                         /*低字节表示蜂窝网状态：0-无服务；1-3G；2-4G；3-5G*/\
+    {EXT_MB_REG_WIFI_WAN_SIG_AND_BAT_LVL/* = 108*/, 0}, /*uint16，高字节指示电池电量格数，有效值0~4；*/\
+                                                           /*低字节指示WAN侧Wi-Fi信号格数，有效值0~4*/\
+    {EXT_MB_REG_DEV_INFO_BITS/* = 109*/, 0}, /*uint16的每个bit指示一个设备的二值状态信息：*/
+
+
+/* refer to comments to MB_REG_ENUM in hv_registers.h for the macro definition below.
+ * NOTE: This MACRO SHOULD be used in function like update_dev_st_pool_from_main_loop_th that is used in 
+ * thread safe case. 
+ * */
+#define EVAL_EXT_MB_REG_FRO_ST(var) \
+case EXT_MB_REG_HOTSPOT_ST:\
+    (var) = ST_PARAM_GET(g_device_st_pool, hot_spot_st); \
+    break;\
+\
+case EXT_MB_REG_CELLUAR_ST:\
+    (var) = (((uint16_t)(ST_PARAM_GET(g_device_st_pool,cellular_signal_bars))) << 8) \
+            | ((uint16_t)(ST_PARAM_GET(g_device_st_pool,cellular_mode)) & 0xFF); \
+    break;\
+\
+case EXT_MB_REG_WIFI_WAN_SIG_AND_BAT_LVL:\
+    (var) = (((uint16_t)(ST_PARAM_GET(g_device_st_pool, bat_lvl))) << 8) \
+            | ((uint16_t)(ST_PARAM_GET(g_device_st_pool, wifi_wan_st)) & 0xFF); \
+    break;\
+\
+case EXT_MB_REG_DEV_INFO_BITS:\
+    SET_DEV_INFO_BITS(ST_PARAM_GET(g_device_st_pool, bat_chg_st),\
+                          CHARGER_CONNECTED, MB_REG_DEV_INFO_BITS_CHG_CONN);\
+    SET_DEV_INFO_BITS(ST_PARAM_GET(g_device_st_pool, bat_chg_full), \
+                          true, MB_REG_DEV_INFO_BITS_BAT_FULL);\
+    SET_DEV_INFO_BITS(ST_PARAM_GET(g_device_st_pool, wan_bear) & WWAN_BEAR_WIFI, \
+                          WWAN_BEAR_WIFI, MB_REG_DEV_INFO_BITS_WIFI_WAN_CONN);\
+    SET_DEV_INFO_BITS(ST_PARAM_GET(g_device_st_pool, wan_bear) & WWAN_BEAR_CELLULAR, \
+                          WWAN_BEAR_CELLULAR, MB_REG_DEV_INFO_BITS_CELL_WAN_CONN);\
+    SET_DEV_INFO_BITS(ST_PARAM_GET(g_device_st_pool,sim_card_st), \
+                          SIM_CARD_NORM, MB_REG_DEV_INFO_BITS_SIM_READY);\
+    (var) = info_word;\
+    break;
+/*------------------------------------------------------------*/
+
 extern const char* g_main_thread_desc;
 
 int init_dev_st_pool_mutex();

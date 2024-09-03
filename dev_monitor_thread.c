@@ -40,6 +40,9 @@ static char gs_mac_tail6_str[6 + 1] = {0};
 static bool update_dev_st_pool_from_monitor_th(void* d)
 {
     bool updated = false;
+    mb_reg_val_pair_s_t *pair_arr = NULL;
+    int pair_cnt = 0, pair_idx;
+    uint16_t info_word = 0;
 
     if(!d) return updated;
 
@@ -51,6 +54,21 @@ static bool update_dev_st_pool_from_monitor_th(void* d)
     ST_PARAM_SET_UPD(g_device_st_pool, wifi_wan_st, main_dev_st->wifi_wan_st);
     ST_PARAM_SET_UPD(g_device_st_pool, sim_card_st, main_dev_st->sim_card_st);
     ST_PARAM_SET_UPD(g_device_st_pool, hot_spot_st, main_dev_st->hot_spot_st);
+
+    pair_cnt = get_reg_key_val_pair_to_send_external(&pair_arr);
+    if(pair_arr && pair_cnt > 0)
+    {
+        for(pair_idx = 0; pair_idx < pair_cnt; ++pair_idx)
+        {
+            switch(pair_arr[pair_idx].reg)
+            {
+                EVAL_EXT_MB_REG_FRO_ST(pair_arr[pair_idx].val)
+
+                default:
+                    break;
+            }
+        }
+    }
 
     return updated;
 }

@@ -29,9 +29,11 @@ const char* g_main_thread_desc = "Main-thread";
 static pthread_t gs_dev_monitor_th_id;
 static bool gs_dev_monitor_th_started = false;
 
+static pthread_t gs_lcd_refresh_th_id;
+static bool gs_lcd_refresh_th_started =false;
 #ifdef MANAGE_LCD_AND_TOF_HERE
-static pthread_t gs_lcd_refresh_th_id, gs_tof_th_id;
-static bool gs_lcd_refresh_th_started =false, gs_tof_th_started = false;
+static pthread_t gs_tof_th_id;
+static bool gs_tof_th_started = false;
 #endif
 
 #define MAX_USR_INPUT_LEN 16
@@ -262,8 +264,8 @@ static void close_sigint(int dummy)
 static void init_thread_syncs()
 {
     init_dev_st_pool_mutex();
-#ifdef MANAGE_LCD_AND_TOF_HERE
     init_lcd_upd_sync_mech();
+#ifdef MANAGE_LCD_AND_TOF_HERE
     init_tof_th_measure_syncs();
 #endif
 }
@@ -341,35 +343,6 @@ void write_version_str_to_file()
     system(cmd_line);
 }
 
-#ifndef MANAGE_LCD_AND_TOF_HERE
-bool send_dev_info_external()
-{
-    static const char* curr_sh = "/usr/bin/send_dev_info_external.sh";
-    FILE* r_stream = NULL;
-    char* line = NULL;
-    size_t len = 0;
-    bool ret = false;
-    char true_char = '1';
-
-    r_stream = popen(curr_sh, "r");
-    if(NULL == r_stream)
-    {
-        DIY_LOG(LOG_ERROR, "popen %s error.\n", curr_sh);
-        return ret;
-    }
-
-    if(getline(&line, &len, r_stream) > 0)
-    {
-        ret = (line[0] == true_char) ? true : false;
-    }
-
-    free(line);
-    pclose(r_stream);
-
-    return ret;
-}
-#endif
-
 extern cmd_line_opt_collection_t g_cmd_line_opt_collection;
 int main(int argc, char *argv[])
 {
@@ -418,7 +391,6 @@ int main(int argc, char *argv[])
     }
     gs_dev_monitor_th_started = true;
 
-#ifdef MANAGE_LCD_AND_TOF_HERE
     if(!start_assit_thread(g_lcd_refresh_th_desc, &gs_lcd_refresh_th_id, true,
                 lcd_refresh_thread_func, &g_cmd_line_opt_collection.lcd_refresh_th_parm))
     {
@@ -426,6 +398,7 @@ int main(int argc, char *argv[])
     }
     gs_lcd_refresh_th_started = true;
 
+#ifdef MANAGE_LCD_AND_TOF_HERE
     if(!start_assit_thread(g_tof_th_desc, &gs_tof_th_id, true,
             tof_thread_func, &g_cmd_line_opt_collection.tof_th_parm))
     {

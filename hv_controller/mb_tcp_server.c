@@ -48,7 +48,7 @@ static modbus_mapping_t *gs_mb_mapping;
 static int gs_mb_server_socket = -1;
 static int gs_mb_header_len = -1;
 
-static time_t gs_time_point_for_conn_check;
+static time_t gs_time_point_for_local_regs_refresh;
 
 /*This global static var should only be accessed from main loop thread.*/
 static dr_device_st_local_buf_t gs_hv_st;
@@ -182,12 +182,30 @@ static mb_reg_check_ret_t mb_server_check_func_reg_cnt(uint8_t * req_msg,
 }
 
 /*
+ * NOTE: this variable is like g_device_st_pool defined in dev_monitor_thread.c: it SHOULD be only accessed
+ * in thread safe case, e.g. from access_device_st_pool.
+ * */
+static mb_reg_val_pair_s_t gs_mb_reg_val_pairs_sent_external[] =
+{
+    REGS_TO_SEND_EXTERNAL
+};
+static const int gs_mb_reg_cnt_to_send_external = ARRAY_ITEM_CNT(gs_mb_reg_val_pairs_sent_external);
+int get_reg_key_val_pair_to_send_external(mb_reg_val_pair_s_t * pairs[])
+{
+    if(pairs) (*pairs) = gs_mb_reg_val_pairs_sent_external;
+    return gs_mb_reg_cnt_to_send_external;
+}
+/*
  * DO NOT call this function directly because it is not thread safe.
  * Use it as a function point parameter of function access_device_st_pool.
  */
 static bool update_dev_st_pool_from_main_loop_th(void* d)
 {
     bool updated = false;
+    mb_reg_val_pair_s_t *pair_arr = NULL;
+    int pair_cnt = 0, pair_idx;
+    uint16_t info_word = 0;
+    bool becare;
 
     if(!d)
     {
@@ -211,89 +229,53 @@ static bool update_dev_st_pool_from_main_loop_th(void* d)
      * update it to global buffer. In fact, global buffer is not used now since LCD refresh thread does not exist now...
      * */
     ST_PARAM_SET_UPD(g_device_st_pool, tof_distance, hv_st->tof_distance);
+
 #endif
+    pair_cnt = get_reg_key_val_pair_to_send_external(&pair_arr);
+    if(pair_arr && pair_cnt > 0)
+    {
+        for(pair_idx = 0; pair_idx < pair_cnt; ++pair_idx)
+        {
+            if(!VALID_MB_REG_ADDR(pair_arr[pair_idx].reg)) continue;
+
+            becare = true;
+            if(EXTEND_MB_REG_ADDR(pair_arr[pair_idx].reg))
+            {
+                switch(pair_arr[pair_idx].reg)
+                {
+                    case EXT_MB_REG_DISTANCE:
+#ifdef MANAGE_LCD_AND_TOF_HERE
+                        gs_mb_mapping->tab_registers[EXT_MB_REG_DISTANCE] = ST_PARAM_GET(g_device_st_pool, tof_distance);
+#endif
+                        break;
+
+                    EVAL_EXT_MB_REG_FRO_ST(gs_mb_mapping->tab_registers[pair_arr[pair_idx].reg])
+
+                    default:
+                        becare = false;
+                        break;
+                }
+            }
+            if(becare) pair_arr[pair_idx].val = gs_mb_mapping->tab_registers[pair_arr[pair_idx].reg];
+        }
+    }
 
     return updated;
 }
 
-extern cmd_line_opt_collection_t g_cmd_line_opt_collection;
+/*----------------------------------------------------------------------------------------------*/
 
-#ifndef MANAGE_LCD_AND_TOF_HERE
-bool send_dev_info_external();
-static hv_mb_reg_e_t gs_mb_regs_to_send_external[] =
+static void update_local_st_from_regs()
 {
-    State/* = 4*/,                          /*状态*/
-    VoltSet/* = 5*/,                        /*5管电压设置值*/
-    FilamentSet/* = 6*/,                    /*6 管设置值电流 （决定灯丝电流决定管电流）*/
-    ExposureTime/* = 7*/,                   /*曝光时间*/
-    RangeIndicationStatus/* = 10*/,         /*范围指示状态*/\
-    ExposureStatus/* = 11*/,                /*曝光状态*/
-    RangeIndicationStart/* = 12*/,          /*范围指示启动*/
-    BatteryLevel/* = 14*/,                  /*电池电量*/
-    BatteryVoltmeter/* = 15*/,
-
-    EXT_MB_REG_DISTANCE/* = 105*/,                       /* uint16，测距结果。单位mm*/
-    EXT_MB_REG_HOTSPOT_ST/* = 106*/,           /*uint16，本机Wi-Fi热点状态。*/
-    EXT_MB_REG_CELLUAR_ST/* = 107*/,              /*uint16，高字节表示蜂窝网的信号格数，有效值0~5；*/
-                                                         /*低字节表示蜂窝网状态：0-无服务；1-3G；2-4G；3-5G*/
-    EXT_MB_REG_WIFI_WAN_SIG_AND_BAT_LVL/* = 108*/, /*uint16，高字节指示电池电量格数，有效值0~4；*/
-                                                           /*低字节指示WAN侧Wi-Fi信号格数，有效值0~4*/
-    EXT_MB_REG_DEV_INFO_BITS/* = 109*/, /*uint16的每个bit指示一个设备的二值状态信息：*/
-
-};
-static void send_mb_regs_external()
-{
-    /*write regs to tmp file.*/
-    static const char* mb_reg_content_file_name = "/tmp/.dr_mb_reg_content";
-    static const char* send_mb_reg_external_sh = "/usr/bin/send_mb_reg_external.sh";
-    int idx;
-    hv_mb_reg_e_t reg_addr;
-    FILE * reg_cont_file = NULL;
-    int file_op_ret;
-
-    /* a line is of format "reg,value". both reg and regvalue are uint 16, at most 5 digits.
-     * the extra 1 are for ",", "\n" and "\0" respectively.
-     * */
-#define REG_CONT_LIEN_SIZE (2*5+1+1+1) 
-    static char ls_reg_cont_file_cont[REG_CONT_LIEN_SIZE * ARRAY_ITEM_CNT(gs_mb_regs_to_send_external) + 1];
-    char* buf_ptr = ls_reg_cont_file_cont;
-    int buf_size = sizeof(ls_reg_cont_file_cont), write_size;
-
-    memset(ls_reg_cont_file_cont, 0, sizeof(ls_reg_cont_file_cont));
-    for(idx = 0; idx < ARRAY_ITEM_CNT(gs_mb_regs_to_send_external); ++idx)
-    {
-        reg_addr = gs_mb_regs_to_send_external[idx];
-        if(VALID_MB_REG_ADDR(reg_addr))
-        {
-            write_size = snprintf(buf_ptr, buf_size, "%hu,%hu\n", 
-                                (uint16_t)reg_addr, gs_mb_mapping->tab_registers[reg_addr]);
-            if(write_size >= buf_size)
-            {
-                DIY_LOG(LOG_ERROR, "mb reg contents exceeds buffer.\n");
-                break;
-            }
-            buf_ptr += write_size;
-            buf_size -= write_size;
-        }
-    }
-
-    reg_cont_file = fopen(mb_reg_content_file_name, "w");
-    if(!reg_cont_file)
-    {
-        DIY_LOG(LOG_ERROR, "open file %s error.\n", mb_reg_content_file_name);
-        return;
-    }
-    file_op_ret = fprintf(reg_cont_file, "%s", ls_reg_cont_file_cont);
-    if(file_op_ret < 0)
-    {
-        DIY_LOG(LOG_ERROR, "write to file %s error: %s.\n", mb_reg_content_file_name, ls_reg_cont_file_cont);
-    }
-    fclose(reg_cont_file);
-
-    /*call shell script to send regs external.*/
-    system(send_mb_reg_external_sh);
+    gs_hv_st.bat_lvl = gs_mb_mapping->tab_registers[BatteryLevel];
+    gs_hv_st.expo_volt_kv = gs_mb_mapping->tab_registers[VoltSet];
+    gs_hv_st.expo_am_ua = gs_mb_mapping->tab_registers[FilamentSet];
+    gs_hv_st.expo_dura_ms = gs_mb_mapping->tab_registers[ExposureTime];
+    gs_hv_st.expo_st = gs_mb_mapping->tab_registers[ExposureStatus];
+    gs_hv_st.range_light_on = gs_mb_mapping->tab_registers[RangeIndicationStatus];
 }
-#endif
+
+extern cmd_line_opt_collection_t g_cmd_line_opt_collection;
 
 /*DO NOT call this function from outside of main thread. So DO NOT export it in .h file, but declare it as necessary.*/
 void refresh_global_dev_st_info_from_main_th()
@@ -301,11 +283,7 @@ void refresh_global_dev_st_info_from_main_th()
     bool upd = access_device_st_pool(pthread_self(),g_main_thread_desc, update_dev_st_pool_from_main_loop_th, &gs_hv_st);
     if(upd)
     {
-#ifdef MANAGE_LCD_AND_TOF_HERE
         update_lcd_display(pthread_self(), g_main_thread_desc);
-#else
-        send_mb_regs_external();
-#endif
     }
 }
 
@@ -557,7 +535,6 @@ mb_rw_reg_ret_t mb_server_write_reg_sniff(uint16_t reg_addr_start, uint16_t * da
         refresh_global_dev_st_info_from_main_th();
     }
 
-    gs_time_point_for_conn_check = time(NULL);
     return ret;
 }
 
@@ -621,18 +598,20 @@ mb_rw_reg_ret_t mb_server_read_reg_sniff(uint16_t reg_addr_start, uint16_t * dat
         refresh_global_dev_st_info_from_main_th();
     }
 
-    gs_time_point_for_conn_check = time(NULL);
     return ret;
 }
 
-static mb_rw_reg_ret_t read_hv_st_from_internal(float timeout_sec)
+static mb_rw_reg_ret_t read_hv_st_from_internal()
 {
-    mb_rw_reg_ret_t process_ret = MB_RW_REG_RET_ERROR; 
+    mb_rw_reg_ret_t process_ret = MB_RW_REG_RET_NONE; 
     bool becare = false;
 
-    if(hv_controller_read_uint16s(HSV,
-                &gs_mb_mapping->tab_registers[HSV], (OilBoxTemperature - HSV + 1)))
+    if(hv_controller_read_uint16s(HSV, &gs_mb_mapping->tab_registers[HSV], (OilBoxTemperature - HSV + 1))
+        && hv_controller_read_uint16s(Workstatus, &gs_mb_mapping->tab_registers[Workstatus],
+                                        (exposureCount - Workstatus + 1)))
     {
+        gs_time_point_for_local_regs_refresh = time(NULL);
+
         if(gs_hv_st.hv_dsp_conn_st != HV_DSP_CONNECTED)
         {
             becare = true;
@@ -652,10 +631,6 @@ static mb_rw_reg_ret_t read_hv_st_from_internal(float timeout_sec)
                 process_ret = MB_RW_REG_RET_USE_SHORT_WAIT_TIME;
             }
         }
-        else
-        {
-            process_ret = MB_RW_REG_RET_NONE;
-        }
 
         if(gs_hv_st.bat_lvl != gs_mb_mapping->tab_registers[BatteryLevel])
         {
@@ -668,23 +643,14 @@ static mb_rw_reg_ret_t read_hv_st_from_internal(float timeout_sec)
             becare = true;
         }
 
-        gs_time_point_for_conn_check = time(NULL);
+        update_local_st_from_regs();
     }
     else
     {
+        gs_hv_st.hv_dsp_conn_st = HV_DSP_DISCONNECTED;
+        process_ret = MB_RW_REG_RET_ERROR;
+        becare = true;
         DIY_LOG(LOG_ERROR, "%sread hv state from internall error.\n", gp_mb_server_log_header);
-    }
-
-
-    if(process_ret == MB_RW_REG_RET_ERROR)
-    {
-        if(check_time_out_of_curr_time(gs_time_point_for_conn_check, (time_t)timeout_sec))
-        {
-            gs_hv_st.hv_dsp_conn_st = HV_DSP_DISCONNECTED;
-            becare = true;
-
-            gs_time_point_for_conn_check = time(NULL);
-        }
     }
 
     if(becare)
@@ -867,6 +833,7 @@ static mb_rw_reg_ret_t mb_server_process_extend_reg(uint8_t * req_msg, int req_m
     return ret;
 }
 
+#if 0
 static void exchange_info_with_mb_reg(bool read_reg)
 {
     uint16_t info_word = 0;
@@ -895,15 +862,6 @@ static void exchange_info_with_mb_reg(bool read_reg)
             = (((uint16_t)(ST_PARAM_GET(g_device_st_pool, bat_lvl))) << 8) 
                 | ((uint16_t)(ST_PARAM_GET(g_device_st_pool, wifi_wan_st)) & 0xFF); 
 
-#define SET_DEV_INFO_BITS(info, set, mask) \
-        if((set) == (info))\
-        {                     \
-            info_word |= (mask);\
-        }                     \
-        else                  \
-        {                     \
-            info_word &= ~(mask);\
-        }
         SET_DEV_INFO_BITS(ST_PARAM_GET(g_device_st_pool, bat_chg_st), CHARGER_CONNECTED, MB_REG_DEV_INFO_BITS_CHG_CONN)
         SET_DEV_INFO_BITS(ST_PARAM_GET(g_device_st_pool, bat_chg_full), true, MB_REG_DEV_INFO_BITS_BAT_FULL)
         SET_DEV_INFO_BITS(ST_PARAM_GET(g_device_st_pool, wan_bear) & WWAN_BEAR_WIFI, 
@@ -911,10 +869,11 @@ static void exchange_info_with_mb_reg(bool read_reg)
         SET_DEV_INFO_BITS(ST_PARAM_GET(g_device_st_pool, wan_bear) & WWAN_BEAR_CELLULAR, 
                           WWAN_BEAR_CELLULAR, MB_REG_DEV_INFO_BITS_CELL_WAN_CONN)
         SET_DEV_INFO_BITS(ST_PARAM_GET(g_device_st_pool,sim_card_st), SIM_CARD_NORM, MB_REG_DEV_INFO_BITS_SIM_READY)
-#undef SET_DEV_INFO_BITS
+
         gs_mb_mapping->tab_registers[EXT_MB_REG_DEV_INFO_BITS] = info_word;
     }
 }
+#endif
 
 static mb_rw_reg_ret_t mb_server_process_req(uint8_t * req_msg, int req_msg_len, bool * comm_with_dsp,
                                              bool server_only)
@@ -943,9 +902,9 @@ static mb_rw_reg_ret_t mb_server_process_req(uint8_t * req_msg, int req_msg_len,
         return MB_RW_REG_RET_ERROR;
     }
 
-    exchange_info_with_mb_reg(false);
+    //exchange_info_with_mb_reg(false);
 
-    if(server_only || (MB_REG_COMM_DSP(reg_addr_start, reg_cnt) && comm_with_dsp))
+    if(comm_with_dsp && (server_only || MB_REG_COMM_DSP(reg_addr_start, reg_cnt)))
     {
         *comm_with_dsp = true;
     }
@@ -954,7 +913,7 @@ static mb_rw_reg_ret_t mb_server_process_req(uint8_t * req_msg, int req_msg_len,
     {
         /*extend register process.*/
         process_ret = mb_server_process_extend_reg(req_msg, req_msg_len, func_code, reg_addr_start, reg_cnt, server_only);
-        exchange_info_with_mb_reg(true);
+        //exchange_info_with_mb_reg(true);
         return process_ret;
     }
 
@@ -1054,7 +1013,7 @@ static mb_rw_reg_ret_t mb_server_process_req(uint8_t * req_msg, int req_msg_len,
             break;
     }
 
-    exchange_info_with_mb_reg(true);
+    //exchange_info_with_mb_reg(true);
     return process_ret;
 }
 
@@ -1070,14 +1029,11 @@ modbus_mapping_t * mb_server_get_mapping()
 
 static void init_reg_refresh()
 {
-    if(hv_controller_read_uint16s(HSV, &gs_mb_mapping->tab_registers[HSV], OilBoxTemperature - HSV + 1))
-    {
-        gs_hv_st.expo_volt_kv = gs_mb_mapping->tab_registers[VoltSet];
-        gs_hv_st.expo_am_ua = gs_mb_mapping->tab_registers[FilamentSet];
-        gs_hv_st.expo_dura_ms = gs_mb_mapping->tab_registers[ExposureTime];
-        gs_hv_st.bat_lvl = gs_mb_mapping->tab_registers[BatteryLevel];
-        refresh_global_dev_st_info_from_main_th();
+    mb_rw_reg_ret_t process_ret; 
 
+    process_ret = read_hv_st_from_internal();
+    if(process_ret >= MB_RW_REG_RET_NONE)
+    {
         gs_dsp_sw_ver = gs_mb_mapping->tab_registers[HSV];
     }
     else
@@ -1201,7 +1157,6 @@ mb_server_exit_code_t  mb_server_loop(mb_tcp_server_params_t * srvr_params, bool
 
     init_DAP_db();
 
-    gs_time_point_for_conn_check = time(NULL);
     /* Clear the reference set of socket */
     FD_ZERO(&refset);
     /* Add the server socket */
@@ -1214,11 +1169,6 @@ mb_server_exit_code_t  mb_server_loop(mb_tcp_server_params_t * srvr_params, bool
     gs_server_ready = true;
 
     write_version_str_to_file();
-
-#ifndef MANAGE_LCD_AND_TOF_HERE
-    send_dev_info_external();
-    send_mb_regs_external();
-#endif
 
     for (;;) 
     {
@@ -1320,7 +1270,8 @@ mb_server_exit_code_t  mb_server_loop(mb_tcp_server_params_t * srvr_params, bool
                                clientaddr.sin_port);
                     }
 
-                    process_ret = mb_server_process_req(query, rc, &ex_client_active, server_only);
+                    ex_client_active = true;
+                    process_ret = mb_server_process_req(query, rc, NULL, server_only);
                     if(MB_RW_REG_RET_USE_SHORT_WAIT_TIME == process_ret)
                     {
                         timeout.tv_sec = 0;
@@ -1368,10 +1319,11 @@ mb_server_exit_code_t  mb_server_loop(mb_tcp_server_params_t * srvr_params, bool
             }
         }
 
-        if(!ex_client_active)
+        if(!ex_client_active || check_time_out_of_curr_time(gs_time_point_for_local_regs_refresh,
+                                                            (time_t)(srvr_params->long_select_wait_time)))
         {
-            process_ret = read_hv_st_from_internal(srvr_params->long_select_wait_time);
-            if(MB_RW_REG_RET_USE_SHORT_WAIT_TIME == process_ret)
+            process_ret = read_hv_st_from_internal();
+            if((MB_RW_REG_RET_USE_SHORT_WAIT_TIME == process_ret) || MB_RW_REG_RET_ERROR == process_ret)
             {
                 timeout.tv_sec = 0;
                 timeout.tv_usec 

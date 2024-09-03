@@ -143,10 +143,29 @@ static void tof_th_cleanup_h(void* arg)
 static bool upd_g_st_pool_from_tof_th(void* arg)
 {
     bool updated = false;
+    mb_reg_val_pair_s_t *pair_arr = NULL;
+    int pair_cnt = 0, pair_idx;
 
     if(arg)
     {
         ST_PARAM_SET_UPD(g_device_st_pool, tof_distance, (*(uint16_t*)arg));
+
+        pair_cnt = get_reg_key_val_pair_to_send_external(&pair_arr);
+        if(pair_arr && pair_cnt > 0)
+        {
+            for(pair_idx = 0; pair_idx < pair_cnt; ++pair_idx)
+            {
+                switch(pair_arr[pair_idx].reg)
+                {
+                    case EXT_MB_REG_DISTANCE:
+                        pair_arr[pair_idx].val = ST_PARAM_GET(g_device_st_pool, tof_distance);
+                        break;
+
+                    default:
+                        break;
+                }
+            }
+        }
     }
     return updated;
 }

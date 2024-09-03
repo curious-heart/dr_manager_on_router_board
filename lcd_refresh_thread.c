@@ -6,7 +6,10 @@
 #include "common_tools.h"
 #include "logger.h"
 #include "dr_manager.h"
+
+#ifdef MANAGE_LCD_AND_TOF_HERE
 #include "lcd_display.h"
+#endif
 
 
 /* WHEN you want to add/modify LCD display elements, check the following things:
@@ -20,23 +23,37 @@
 static sem_t gs_lcd_refresh_sem;
 static bool gs_sem_inited = false;
 static dr_device_st_pool_t gs_device_st_pool_of_lcd;
+
+static mb_reg_val_pair_s_t gs_mb_reg_val_pairs_sent_external_of_lcd[] =
+{
+    REGS_TO_SEND_EXTERNAL
+};
+static const int gs_reg_cnt_sent_external = ARRAY_ITEM_CNT(gs_mb_reg_val_pairs_sent_external_of_lcd);
+
+#ifdef MANAGE_LCD_AND_TOF_HERE
 static bool gs_lcd_opened = false;
+#endif
 const char* g_lcd_refresh_th_desc = "LCD-Refresh";
 
+#ifdef MANAGE_LCD_AND_TOF_HERE
 static bool gs_wifi_mac_tail6_displayed = false;
+#endif
 
 static int destroy_lcd_upd_sync_mech();
 static void lcd_refresh_thread_cleanup_h(void* arg)
 {
     DIY_LOG(LOG_INFO, "%s thread exit cleanup!\n", g_lcd_refresh_th_desc);
+#ifdef MANAGE_LCD_AND_TOF_HERE
     if(gs_lcd_opened)
     {
         close_lcd_dev();
         gs_lcd_opened = false;
     }
+#endif
     destroy_lcd_upd_sync_mech();
 }
 
+#ifdef MANAGE_LCD_AND_TOF_HERE
 #include "lcd_resource.h"
 
 /*++++++++++++++++++++++++++++++*/
@@ -465,6 +482,8 @@ static const write_info_to_lcd_funcs_t gs_write_info_to_lcd_func_list =
     NULL,
 };
 
+#endif //MANAGE_LCD_AND_TOF_HERE
+
 /*----------------------------------------*/
 
 /*
@@ -473,6 +492,9 @@ static const write_info_to_lcd_funcs_t gs_write_info_to_lcd_func_list =
  */
 static bool access_g_st_pool_from_lcd_refresh_th(void* buf)
 {
+    mb_reg_val_pair_s_t *pair_arr = NULL;
+    int pair_cnt = 0;
+
     /*copy global device status pool into local buf, and clear the "updated" flag in global pool.*/
     if(buf)
     {
@@ -485,9 +507,17 @@ static bool access_g_st_pool_from_lcd_refresh_th(void* buf)
 #define ST_PARAM_CLEAR_UPD_ALL ST_PARAMS_COLLECTION;
     ST_PARAM_CLEAR_UPD_ALL;
 #undef ST_PARAM_CLEAR_UPD_ALL
+
+    pair_cnt = get_reg_key_val_pair_to_send_external(&pair_arr);
+    if(pair_arr && pair_cnt > 0)
+    {
+        memcpy(&gs_mb_reg_val_pairs_sent_external_of_lcd, pair_arr, sizeof(gs_mb_reg_val_pairs_sent_external_of_lcd));
+    }
+
     return false;
 }
 
+#ifdef MANAGE_LCD_AND_TOF_HERE
 static void display_ver_str()
 {
     int ver_str_len = 0;
@@ -645,9 +675,100 @@ static void init_lcd_display()
     }\
 }
 #define REFRESH_LCD_DISPYAL ST_PARAMS_COLLECTION
+
+#endif //MANAGE_LCD_AND_TOF_HERE
+
+#ifndef MANAGE_LCD_AND_TOF_HERE
+//dev info is fixed actually, but external device may not receive this info properly, so we send it in a relative long
+//period.
+static const time_t gs_send_dev_info_period_sec = 30; 
+static time_t gs_last_send_dev_info_point = 0;
+static bool send_dev_info_external()
+{
+    static const char* curr_sh = "/usr/bin/send_dev_info_external.sh";
+    FILE* r_stream = NULL;
+    char* line = NULL;
+    size_t len = 0;
+    bool ret = false;
+    char true_char = '1';
+
+    r_stream = popen(curr_sh, "r");
+    if(NULL == r_stream)
+    {
+        DIY_LOG(LOG_ERROR, "popen %s error.\n", curr_sh);
+        return ret;
+    }
+
+    if(getline(&line, &len, r_stream) > 0)
+    {
+        ret = (line[0] == true_char) ? true : false;
+    }
+
+    free(line);
+    pclose(r_stream);
+
+    return ret;
+}
+
+static void send_mb_regs_external()
+{
+    /*write regs to tmp file.*/
+    static const char* mb_reg_content_file_name = "/tmp/.dr_mb_reg_content";
+    static const char* send_mb_reg_external_sh = "/usr/bin/send_mb_reg_external.sh";
+    int idx;
+    hv_mb_reg_e_t reg_addr;
+    FILE * reg_cont_file = NULL;
+    int file_op_ret;
+
+    /* a line is of format "reg,value". both reg and regvalue are uint 16, at most 5 digits.
+     * the extra 1 are for ",", "\n" and "\0" respectively.
+     * */
+#define REG_CONT_LIEN_SIZE (2*5+1+1+1) 
+    char reg_cont_file_cont[REG_CONT_LIEN_SIZE * gs_reg_cnt_sent_external+ 1];
+    char* buf_ptr = reg_cont_file_cont;
+    int buf_size = sizeof(reg_cont_file_cont), write_size;
+
+    memset(reg_cont_file_cont, 0, sizeof(reg_cont_file_cont));
+    for(idx = 0; idx < gs_reg_cnt_sent_external; ++idx)
+    {
+        reg_addr = gs_mb_reg_val_pairs_sent_external_of_lcd[idx].reg;
+        if(VALID_MB_REG_ADDR(reg_addr))
+        {
+            write_size = snprintf(buf_ptr, buf_size, "%hu,%hu\n", 
+                                (uint16_t)reg_addr, gs_mb_reg_val_pairs_sent_external_of_lcd[idx].val);
+            if(write_size >= buf_size)
+            {
+                DIY_LOG(LOG_ERROR, "mb reg contents exceeds buffer.\n");
+                break;
+            }
+            buf_ptr += write_size;
+            buf_size -= write_size;
+        }
+    }
+
+    reg_cont_file = fopen(mb_reg_content_file_name, "w");
+    if(!reg_cont_file)
+    {
+        DIY_LOG(LOG_ERROR, "open file %s error.\n", mb_reg_content_file_name);
+        return;
+    }
+    file_op_ret = fprintf(reg_cont_file, "%s", reg_cont_file_cont);
+    if(file_op_ret < 0)
+    {
+        DIY_LOG(LOG_ERROR, "write to file %s error: %s.\n", mb_reg_content_file_name, reg_cont_file_cont);
+    }
+    fclose(reg_cont_file);
+
+    /*call shell script to send regs external.*/
+    system(send_mb_reg_external_sh);
+}
+#endif //MANAGE_LCD_AND_TOF_HERE
+
 void* lcd_refresh_thread_func(void* arg)
 {
+#ifdef MANAGE_LCD_AND_TOF_HERE
     static bool ver_displayed = false;
+#endif
     lcd_refresh_th_parm_t * parm = (lcd_refresh_th_parm_t*)arg;
 
     DIY_LOG(LOG_INFO, "%s thread start!\n", g_lcd_refresh_th_desc);
@@ -661,6 +782,7 @@ void* lcd_refresh_thread_func(void* arg)
         return NULL;
     }
 
+#ifdef MANAGE_LCD_AND_TOF_HERE
     gs_lcd_opened = open_lcd_dev(parm->dev_name, parm->dev_addr);
     if(!gs_lcd_opened)
     {
@@ -669,6 +791,7 @@ void* lcd_refresh_thread_func(void* arg)
     }
     clear_screen();
     init_lcd_display();
+#endif
 
     while(true)
     {
@@ -676,7 +799,7 @@ void* lcd_refresh_thread_func(void* arg)
 
         access_device_st_pool(pthread_self(), g_lcd_refresh_th_desc, access_g_st_pool_from_lcd_refresh_th,
                 &gs_device_st_pool_of_lcd);
-
+#ifdef MANAGE_LCD_AND_TOF_HERE
         REFRESH_LCD_DISPYAL; 
 
         if(!ver_displayed && mb_server_is_ready())
@@ -689,6 +812,14 @@ void* lcd_refresh_thread_func(void* arg)
         {
             gs_wifi_mac_tail6_displayed = display_wifi_mac_tail6();
         }
+#else
+        send_mb_regs_external();
+        if(check_time_out_of_curr_time(gs_last_send_dev_info_point, gs_send_dev_info_period_sec))
+        {
+            send_dev_info_external();
+            gs_last_send_dev_info_point = time(NULL);
+        }
+#endif
     }
     pthread_cleanup_pop(1);
 
