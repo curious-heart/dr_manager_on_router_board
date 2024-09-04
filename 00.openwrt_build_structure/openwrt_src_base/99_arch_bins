@@ -1,8 +1,9 @@
 #!/bin/sh
 
-arch_dir=~/20.working/20.x-optical/01.mDR/91.gitee_rep/DR-MangerGroup/软件/00.bin/02.route_board/
+arch_dir=~/20.working/20.x-optical/01.mDR/91.gitee_rep/DR-MangerGroup/软件/00.bin/02.route_board
 
 fw_bins_dir=bin/targets/ramips/mt7621
+src_fw_squash_bin_name=openwrt-ramips-mt7621-trolink_asp-squashfs-sysupgrade.bin
 
 app_name_str=dr_manager
 ipk_file_str=$(ls bin/packages/mipsel_24kc/mypackages/$app_name_str*)
@@ -25,9 +26,11 @@ if [ -f $ipk_file_str ]; then
 
     cp -rp $fw_bins_dir/* $tgt_fw_dir
     cp -p $ipk_file_str $tgt_app_dir
+    cp -p $fw_bins_dir/$src_fw_squash_bin_name $tgt_dir/$bin_dir_name.bin
     echo fw version: $fw_ver_str
     echo app version: $app_ver_str
     echo bins are copied into $tgt_dir
+    echo the bin for burning: $bin_dir_name.bin
 else
     echo $app_name_str ipk dose not exist!
 fi
