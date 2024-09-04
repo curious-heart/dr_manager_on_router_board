@@ -679,9 +679,6 @@ static void init_lcd_display()
 #endif //MANAGE_LCD_AND_TOF_HERE
 
 #ifndef MANAGE_LCD_AND_TOF_HERE
-//dev info is fixed actually, but external device may not receive this info properly, so we send it in a relative long
-//period.
-static const time_t gs_send_dev_info_period_sec = 30; 
 static time_t gs_last_send_dev_info_point = 0;
 static bool send_dev_info_external()
 {
@@ -793,6 +790,11 @@ void* lcd_refresh_thread_func(void* arg)
     init_lcd_display();
 #endif
 
+#ifndef MANAGE_LCD_AND_TOF_HERE
+    send_mb_regs_external();
+    send_dev_info_external();
+#endif
+
     while(true)
     {
         sem_wait(&gs_lcd_refresh_sem);
@@ -814,8 +816,10 @@ void* lcd_refresh_thread_func(void* arg)
         }
 #else
         send_mb_regs_external();
-        if(check_time_out_of_curr_time(gs_last_send_dev_info_point, gs_send_dev_info_period_sec))
+        if(check_time_out_of_curr_time(gs_last_send_dev_info_point, (time_t)(parm->send_dev_info_period_int_s)))
         {
+            //dev info is fixed actually, but external device may not receive this info properly,
+            //so we send it in a relative long period.
             send_dev_info_external();
             gs_last_send_dev_info_point = time(NULL);
         }

@@ -225,6 +225,7 @@ typedef struct
 {
     const char* dev_name;
     uint8_t dev_addr;
+    int16_t send_dev_info_period_int_s;
 }lcd_refresh_th_parm_t;
 void* lcd_refresh_thread_func(void* arg);
 extern const char* g_lcd_refresh_th_desc;

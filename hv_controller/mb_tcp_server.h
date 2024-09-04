@@ -15,7 +15,7 @@ typedef struct
     float req_tof_dist_wait_time;
     bool expo_tof_measure_wait;
 
-    uint16_t srvr_regs_sync_period_int_s; //int seconds
+    int16_t srvr_regs_sync_period_int_s; //int seconds
 }mb_tcp_server_params_t;
 
 typedef struct

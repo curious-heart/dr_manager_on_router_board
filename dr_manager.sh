@@ -51,6 +51,7 @@ cmd_args=" --com_dev $mb_rtu_serialPortName"\
 " $dev_monitor_debug"\
 " --lcd_dev_name $lcd_dev_name"\
 " --lcd_dev_addr $lcd_i2c_addr"\
+" --send_dev_info_period_int_s $send_dev_info_period_int_s"\
 " --tof_measure_period $tof_measure_period"\
 " --tof_dev_name $tof_dev_name"\
 " --tof_dev_addr $tof_i2c_addr"\

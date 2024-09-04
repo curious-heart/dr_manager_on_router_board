@@ -26,6 +26,7 @@ dev_monitor_debug_flag=0
 #LCD
 lcd_dev_name="/dev/i2c-0"
 lcd_i2c_addr=0x3C
+send_dev_info_period_int_s=30
 #TOF
 tof_measure_period=1
 tof_dev_name="/dev/i2c-0"

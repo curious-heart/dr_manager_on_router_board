@@ -32,7 +32,7 @@ static const bool gs_def_mb_tcp_srvr_debug_flag= false;
 static const bool gs_def_mb_tcp_srvr_allow_force_exposure = false;
 static const float gs_def_mb_tcp_srvr_req_tof_dist_wait_time = 1.5; //in seconds
 static const bool gs_def_mb_tcp_srvr_expo_tof_measure_wait = false; 
-static const uint16_t gs_def_srvr_regs_sync_period_int_s = 5; //seconds
+static const int16_t gs_def_srvr_regs_sync_period_int_s = 5; //seconds
 /*monitor (check device state) period.*/
 static const float gs_def_dev_monitor_period = 3;
 static const bool gs_def_dev_monitor_debug_flag = false;
@@ -40,6 +40,7 @@ static const bool gs_def_dev_monitor_debug_flag = false;
 static const char* const gs_def_lcd_dev_name = "/dev/i2c-0";
 static char gs_lcd_dev_name[MAX_OPT_STR_SIZE];
 static const uint8_t gs_def_lcd_i2c_addr = 0x3C;
+static const int16_t gs_def_send_dev_info_period_int_s = 15;
 /*TOF*/
 static const float gs_def_tof_measure_period  = 1;
 static const char* const gs_def_tof_dev_name = "/dev/i2c-0";
@@ -91,6 +92,7 @@ cmd_line_opt_collection_t g_cmd_line_opt_collection =
     {
         .dev_name = gs_def_lcd_dev_name,
         .dev_addr = gs_def_lcd_i2c_addr,
+        .send_dev_info_period_int_s = gs_def_send_dev_info_period_int_s,
     },
 
     .tof_th_parm = 
@@ -133,6 +135,9 @@ static const char* const gs_opt_dev_monitor_period_str = "dev_monitor_peroid";
 static const char* const gs_opt_dev_monitor_debug_flag_str = "dev_monitor_debug";
 static const char* const gs_opt_lcd_dev_name_str = "lcd_dev_name";
 static const char* const gs_opt_lcd_dev_addr_str = "lcd_dev_addr";
+/*this is only used for new hardware (lcd refresh thread send dev info json to external mcu)*/
+static const char* const gs_opt_send_dev_info_period_str = "send_dev_info_period_int_s";
+
 static const char* const gs_opt_tof_measure_period_str = "tof_measure_period";
 static const char* const gs_opt_tof_dev_name_str = "tof_dev_name";
 static const char* const gs_opt_tof_dev_addr_str = "tof_dev_addr";
@@ -225,7 +230,7 @@ static const char* const gs_opt_range_light_auto_off_time_str = "range_light_aut
 \
     APP_CMD_OPT_ITEM(gs_opt_srvr_regs_sync_period_int_s_str, required_argument, 0, 0) \
     APP_CMD_OPT_VALUE("srvr_regs_sync_period_int_s(int seconds)",\
-           &gs_def_srvr_regs_sync_period_int_s, &g_cmd_line_opt_collection.srvr_params.srvr_regs_sync_period_int_s, uint16_t) \
+           &gs_def_srvr_regs_sync_period_int_s, &g_cmd_line_opt_collection.srvr_params.srvr_regs_sync_period_int_s, int16_t) \
 \
     APP_CMD_OPT_ITEM(gs_opt_dev_monitor_period_str, required_argument, 0, 0)\
     APP_CMD_OPT_VALUE("dev_st_monitor_period(s)",\
@@ -242,6 +247,11 @@ static const char* const gs_opt_range_light_auto_off_time_str = "range_light_aut
     APP_CMD_OPT_ITEM(gs_opt_lcd_dev_addr_str, required_argument, 0, 0)\
     APP_CMD_OPT_VALUE("lcd_device_addr(0x..)", \
             &gs_def_lcd_i2c_addr, &g_cmd_line_opt_collection.lcd_refresh_th_parm.dev_addr, uint8_t) \
+\
+    APP_CMD_OPT_ITEM(gs_opt_send_dev_info_period_str, required_argument, 0, 0)\
+    APP_CMD_OPT_VALUE("send_dev_info_to_external_period(int sec)", \
+            &gs_def_send_dev_info_period_int_s, \
+            &g_cmd_line_opt_collection.lcd_refresh_th_parm.send_dev_info_period_int_s, int16_t) \
 \
     APP_CMD_OPT_ITEM(gs_opt_tof_measure_period_str, required_argument, 0, 0)\
     APP_CMD_OPT_VALUE("tof_measure_period(s)",\
@@ -398,9 +408,9 @@ option_process_ret_t process_cmd_options(int argc, char *argv[])
                         true, NULL, type_bool);
 
                 OPT_CHECK_AND_DRAW(gs_long_opt_arr[longindex].name, gs_opt_srvr_regs_sync_period_int_s_str,
-                        CONVERT_FUNC_ATOUINT16(g_cmd_line_opt_collection.srvr_params.srvr_regs_sync_period_int_s, optarg),
+                        CONVERT_FUNC_ATOINT16(g_cmd_line_opt_collection.srvr_params.srvr_regs_sync_period_int_s, optarg),
                         SHOULD_BE_GT_0(g_cmd_line_opt_collection.srvr_params.srvr_regs_sync_period_int_s), 
-                        SHOULD_BE_GT_0_LOG, type_uint16_t);
+                        SHOULD_BE_GT_0_LOG, type_int16_t);
 
 #ifdef MANAGE_LCD_AND_TOF_HERE
                 OPT_CHECK_AND_DRAW(gs_long_opt_arr[longindex].name, gs_opt_tof_measure_period_str,
@@ -471,6 +481,11 @@ option_process_ret_t process_cmd_options(int argc, char *argv[])
                         CONVERT_FUNC_ATOUINT8(g_cmd_line_opt_collection.lcd_refresh_th_parm.dev_addr, optarg),
                         true, NULL,
                         type_uint8_t);
+                OPT_CHECK_AND_DRAW(gs_long_opt_arr[longindex].name, gs_opt_send_dev_info_period_str,
+                    CONVERT_FUNC_ATOINT16(g_cmd_line_opt_collection.lcd_refresh_th_parm.send_dev_info_period_int_s, optarg),
+                        SHOULD_BE_GT_0(g_cmd_line_opt_collection.lcd_refresh_th_parm.send_dev_info_period_int_s), 
+                        SHOULD_BE_GT_0_LOG,
+                        type_int16_t);
                 OPT_CHECK_AND_DRAW(gs_long_opt_arr[longindex].name, gs_opt_range_light_auto_off_time_str,
                         CONVERT_FUNC_ATOUINT32(g_cmd_line_opt_collection.range_light_auto_off_time_s, optarg),
                         SHOULD_BE_GT_0(g_cmd_line_opt_collection.range_light_auto_off_time_s), SHOULD_BE_GT_0_LOG,

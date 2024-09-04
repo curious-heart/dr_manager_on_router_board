@@ -15,6 +15,7 @@ if [ -f $ipk_file_str ]; then
     app_ver_str=${tmp_str%%"_"[^[:digit:]]*}
     bin_dir_name="fw_"$fw_ver_str"-app_"$app_ver_str
     tgt_dir=$arch_dir/$bin_dir_name
+    rm -rf $tgt_dir
     tgt_fw_dir=$tgt_dir/fw
     tgt_app_dir=$tgt_dir/app
     if [ ! -d $tgt_fw_dir ]; then
