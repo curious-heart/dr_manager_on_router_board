@@ -262,6 +262,45 @@ static bool update_dev_st_pool_from_main_loop_th(void* d)
 
     return updated;
 }
+/*
+ * DO NOT call this function directly because it is not thread safe.
+ * Use it as a function point parameter of function access_device_st_pool.
+ * */
+static bool update_local_extend_regs(void* reg)
+{
+    hv_mb_reg_e_t start_reg, end_reg, cur_reg;
+    uint16_t info_word = 0;
+
+    if(!reg)
+    {
+        /*update all extend regs.*/
+        start_reg = EXT_MB_REG_DISTANCE;
+        end_reg = HV_MB_REG_END_FLAG;
+    }
+    else
+    {
+        /*update a single reg.*/
+        start_reg = *((hv_mb_reg_e_t*)reg);
+        end_reg = start_reg + 1;
+    }
+    for(cur_reg = start_reg; cur_reg < end_reg; ++cur_reg)
+    {
+        switch(cur_reg)
+        {
+            case EXT_MB_REG_DISTANCE:
+#ifdef MANAGE_LCD_AND_TOF_HERE
+                gs_mb_mapping->tab_registers[EXT_MB_REG_DISTANCE] = ST_PARAM_GET(g_device_st_pool, tof_distance);
+#endif
+                break;
+
+            EVAL_EXT_MB_REG_FRO_ST(gs_mb_mapping->tab_registers[cur_reg])
+
+            default:
+                break;
+        }
+    }
+    return true;
+}
 
 /*----------------------------------------------------------------------------------------------*/
 
@@ -364,6 +403,7 @@ static mb_rw_reg_ret_t mb_server_pre_check_write_reg(uint16_t reg_addr_start, ui
 #ifdef MANAGE_LCD_AND_TOF_HERE
             distance = (int)request_tof_distance(TOF_REQUESTER_EXPOSURE, 
                     gs_mb_tcp_server_params->req_tof_dist_wait_time, gs_mb_tcp_server_params->expo_tof_measure_wait);
+            gs_mb_mapping->tab_registers[EXT_MB_REG_DISTANCE] = distance;
 #else
             /*distance is set by external user to mb reg, and already updated to local buffer.*/
             distance = gs_hv_st.tof_distance;
@@ -700,7 +740,9 @@ static void mb_tcp_server_fill_mapping_tab_reg_from_msg(uint8_t *req_msg, int of
 static mb_rw_reg_ret_t mb_server_process_extend_reg(uint8_t * req_msg, int req_msg_len, 
         uint8_t func, uint16_t reg_addr_start, uint16_t reg_cnt, bool server_only)
 {
+#ifdef MANAGE_LCD_AND_TOF_HERE
     bool becare = false;
+#endif
     mb_rw_reg_ret_t ret = MB_RW_REG_RET_NONE;
 
     DIY_LOG(LOG_INFO, "%sProcess extend register.\n", gp_mb_server_log_header);
@@ -750,10 +792,12 @@ static mb_rw_reg_ret_t mb_server_process_extend_reg(uint8_t * req_msg, int req_m
                             break;
 
                         case EXT_MB_REG_DISTANCE:
+#ifdef MANAGE_LCD_AND_TOF_HERE
                             if(gs_hv_st.tof_distance != write_data)
                             {
                                 becare = true;
                             }
+#endif
                             gs_hv_st.tof_distance = write_data;
                             DIY_LOG(LOG_INFO, "tof distance: %u\n", write_data);
                             break;
@@ -792,6 +836,7 @@ static mb_rw_reg_ret_t mb_server_process_extend_reg(uint8_t * req_msg, int req_m
         case MODBUS_FC_READ_HOLDING_REGISTERS:
         {
             int idx;
+            access_device_st_pool(pthread_self(),g_main_thread_desc, update_local_extend_regs, NULL);
             for(idx = 0; idx < reg_cnt; ++idx)
             {
                 if(!EXTEND_MB_REG_ADDR(reg_addr_start + idx))
@@ -825,10 +870,12 @@ static mb_rw_reg_ret_t mb_server_process_extend_reg(uint8_t * req_msg, int req_m
             break;
     }
 
+#ifdef MANAGE_LCD_AND_TOF_HERE
     if(becare)
     {
         refresh_global_dev_st_info_from_main_th();
     }
+#endif
 
     return ret;
 }
@@ -1320,7 +1367,7 @@ mb_server_exit_code_t  mb_server_loop(mb_tcp_server_params_t * srvr_params, bool
         }
 
         if(!ex_client_active || check_time_out_of_curr_time(gs_time_point_for_local_regs_refresh,
-                                                            (time_t)(srvr_params->long_select_wait_time)))
+                                                            (time_t)(srvr_params->srvr_regs_sync_period_int_s)))
         {
             process_ret = read_hv_st_from_internal();
             if((MB_RW_REG_RET_USE_SHORT_WAIT_TIME == process_ret) || MB_RW_REG_RET_ERROR == process_ret)

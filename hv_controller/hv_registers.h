@@ -66,18 +66,6 @@ typedef enum MB_REG_ENUM hv_mb_reg_e_t;
 #define MB_REG_DEV_INFO_BITS_CELL_WAN_CONN ((uint16_t)0x0008)
 #define MB_REG_DEV_INFO_BITS_SIM_READY ((uint16_t)0x0010)
 
-#define SET_DEV_INFO_BITS(info, set, mask) \
-{\
-    if((set) == (info))\
-    {                     \
-        info_word |= (mask);\
-    }                     \
-    else                  \
-    {                     \
-        info_word &= ~(mask);\
-    }\
-}
-
 #define NORMAL_MB_REG_ADDR(addr) (HSV <= (addr) && (addr) < MAX_HV_NORMAL_MB_REG_NUM)
 #define EXTEND_MB_REG_ADDR(addr) (EXT_MB_REG_START_FLAG < (addr) && (addr) < HV_MB_REG_END_FLAG)
 #define VALID_MB_REG_ADDR(addr) (NORMAL_MB_REG_ADDR(addr) || EXTEND_MB_REG_ADDR(addr))

@@ -588,8 +588,8 @@ static void display_ver_str()
 
             if(known_char)
             {
-                write_img_to_px_pos(img, img_w, img_h, LCD_VER_STR_RIGHT_ALIGN_POS_X - sum_w, LCD_VER_STR_RIGHT_ALIGN_POS_Y);
                 sum_w += img_w + 1;
+                write_img_to_px_pos(img, img_w, img_h, LCD_VER_STR_RIGHT_ALIGN_POS_X - sum_w, LCD_VER_STR_RIGHT_ALIGN_POS_Y);
             }
 
             --idx;

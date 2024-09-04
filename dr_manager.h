@@ -5,9 +5,7 @@
 #include <stdbool.h>
 #include <pthread.h>
 
-#ifndef MANAGE_LCD_AND_TOF_HERE
 #include "hv_registers.h"
-#endif
 
 typedef enum
 {
@@ -161,6 +159,18 @@ int get_reg_key_val_pair_to_send_external(mb_reg_val_pair_s_t * pairs[]);
  * NOTE: This MACRO SHOULD be used in function like update_dev_st_pool_from_main_loop_th that is used in 
  * thread safe case. 
  * */
+#define SET_DEV_INFO_BITS(info, set, mask) \
+{\
+    if((set) == (info))\
+    {                     \
+        info_word |= (mask);\
+    }                     \
+    else                  \
+    {                     \
+        info_word &= ~(mask);\
+    }\
+}
+
 #define EVAL_EXT_MB_REG_FRO_ST(var) \
 case EXT_MB_REG_HOTSPOT_ST:\
     (var) = ST_PARAM_GET(g_device_st_pool, hot_spot_st); \

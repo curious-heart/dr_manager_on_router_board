@@ -24,7 +24,7 @@ static float gs_mb_resp_timeout_s = gs_def_mb_resp_timeout_s;
 
 #define DEF_USED_TIME_VAR \
     struct timeval start_time, end_time, used_time;\
-    int get_start_t_ret, get_start_t_errno, get_end_t_ret, get_end_t_errno;
+    int get_start_t_ret, get_start_t_errno = 0, get_end_t_ret, get_end_t_errno = 0;
 
 #define RECORD_START_TIME \
 {\
