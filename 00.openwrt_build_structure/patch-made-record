@@ -1,0 +1,15 @@
+1. The most closed openwrt release to Trolink original (openwrt-TrolinkAsp_release0625.tar.gz) is tag v22.03.5.
+
+2. The feeds commit that the Trolink original used are as the following:
+"packages" commit in Trolink original release seems 76c19152fbc83c0ea36ebaf5f3bbd2c3672d6514
+plus, "feeds/packages/utils/ttyd/files/ttyd.config" as the following:
+3c3
+<   option interface '@lan'
+---
+>   option interface '@lan @wan @wwan'
+"luci" commit in Trolink original release seems 1c26abc13891f618627d3ccac2395e43109eb9f8
+"routing" commit in Trolink original release seems f2b9e3536523b4e23d14dd7d21cfa17ceb622b87
+"telephony" commit in Trolink original release seems 36d9f2f962bd0aba2eef674eb265819609ea99ed (the same as tag 22.03.5)
+
+3. The following folders contain the files modified by Trolink:
+build_dir/target-mipsel_24kc_musl/linux-ramips_mt7621/linux-5.10.176/drivers/usb/serial
