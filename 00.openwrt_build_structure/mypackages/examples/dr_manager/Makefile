@@ -25,7 +25,7 @@ define Package/$(PKG_NAME)
 	SECTION:=examples
 	CATEGORY:=Examples
 	TITLE:=DR Manager
-	DEPENDS:=+libmodbus libpthread libsqlite3
+	DEPENDS:=+libmodbus +libpthread libsqlite3
 endef
 
 define Package/$(PKG_NAME)/config
